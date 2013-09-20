@@ -56,6 +56,7 @@ public class RestPutWarmerAction extends BaseRestHandler {
                 .source(request.content(), request.contentUnsafe());
         putWarmerRequest.searchRequest(searchRequest);
         putWarmerRequest.masterNodeTimeout(request.paramAsTime("master_timeout", putWarmerRequest.masterNodeTimeout()));
+        putWarmerRequest.timeout(request.paramAsTime("timeout", putWarmerRequest.timeout()));
         client.admin().indices().putWarmer(putWarmerRequest, new ActionListener<PutWarmerResponse>() {
             @Override
             public void onResponse(PutWarmerResponse response) {

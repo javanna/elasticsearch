@@ -24,9 +24,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.TimeoutClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -44,6 +44,9 @@ import org.elasticsearch.transport.TransportService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Put warmer action.
@@ -96,7 +99,21 @@ public class TransportPutWarmerAction extends TransportMasterNodeOperationAction
                     return;
                 }
 
-                clusterService.submitStateUpdateTask("put_warmer [" + request.name() + "]", new TimeoutClusterStateUpdateTask() {
+                final CountDownLatch latch = new CountDownLatch(state.nodes().size());
+                final AtomicBoolean failure = new AtomicBoolean(false);
+
+                clusterService.submitStateUpdateTask("put_warmer [" + request.name() + "]", new AckedClusterStateUpdateTask() {
+
+                    @Override
+                    public void clusterStatePublishAcked() {
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void clusterStatePublishFailed() {
+                        latch.countDown();
+                        failure.set(true);
+                    }
 
                     @Override
                     public TimeValue timeout() {
@@ -164,6 +181,18 @@ public class TransportPutWarmerAction extends TransportMasterNodeOperationAction
                         listener.onResponse(new PutWarmerResponse(true));
                     }
                 });
+
+
+                //TODO we could just skip the wait at the first failure as we are going to return false anyway
+                try {
+                    logger.trace("Waiting for acknowledgement from {} nodes, timeout {}", latch.getCount(), request.timeout());
+                    boolean awaited = latch.await(request.timeout().millis(), TimeUnit.MILLISECONDS);
+                    logger.trace("Waited for acknowledgement, {} missing acknowledgements", latch.getCount());
+                    listener.onResponse(new PutWarmerResponse(awaited && !failure.get()));
+                } catch (InterruptedException e) {
+                    //TODO now what? :)
+                }
+
             }
 
             @Override
