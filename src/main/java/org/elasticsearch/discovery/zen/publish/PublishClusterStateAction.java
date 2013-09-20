@@ -30,6 +30,7 @@ import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.stream.*;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.zen.DiscoveryNodesProvider;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
@@ -78,7 +79,7 @@ public class PublishClusterStateAction extends AbstractComponent {
         transportService.removeHandler(PublishClusterStateRequestHandler.ACTION);
     }
 
-    public void publish(ClusterState clusterState) {
+    public void publish(ClusterState clusterState, final Discovery.AckListener ackListener) {
         DiscoveryNode localNode = nodesProvider.nodes().localNode();
 
         Map<Version, BytesReference> serializedStates = Maps.newHashMap();
@@ -88,6 +89,7 @@ public class PublishClusterStateAction extends AbstractComponent {
             if (node.equals(localNode)) {
                 // no need to send to our self
                 latch.countDown();
+                ackListener.onNodeAck(node.getName());
                 continue;
             }
             // try and serialize the cluster state once (or per version), so we don't serialize it
@@ -105,6 +107,7 @@ public class PublishClusterStateAction extends AbstractComponent {
                 } catch (Throwable e) {
                     logger.warn("failed to serialize cluster_state before publishing it to node {}", e, node);
                     latch.countDown();
+                    ackListener.onNodeFailure(node.getName());
                     continue;
                 }
             }
@@ -112,6 +115,8 @@ public class PublishClusterStateAction extends AbstractComponent {
                 TransportRequestOptions options = TransportRequestOptions.options().withHighType().withCompress(false);
                 // no need to put a timeout on the options here, because we want the response to eventually be received
                 // and not log an error if it arrives after the timeout
+
+                logger.warn("Sending PublishClusterStateRequest to {}", node.name());
                 transportService.sendRequest(node, PublishClusterStateRequestHandler.ACTION,
                         new PublishClusterStateRequest(bytes, node.version()),
                         options, // no need to compress, we already compressed the bytes
@@ -121,16 +126,19 @@ public class PublishClusterStateAction extends AbstractComponent {
                             @Override
                             public void handleResponse(TransportResponse.Empty response) {
                                 latch.countDown();
+                                ackListener.onNodeAck(node.getName());
                             }
 
                             @Override
                             public void handleException(TransportException exp) {
                                 logger.debug("failed to send cluster state to [{}]", exp, node);
                                 latch.countDown();
+                                ackListener.onNodeFailure(node.getName());
                             }
                         });
             } catch (Throwable t) {
                 latch.countDown();
+                ackListener.onNodeFailure(node.getName());
             }
         }
 
@@ -199,6 +207,7 @@ public class PublishClusterStateAction extends AbstractComponent {
             listener.onNewClusterState(clusterState, new NewClusterStateListener.NewStateProcessed() {
                 @Override
                 public void onNewClusterStateProcessed() {
+                    logger.warn("ClusterStateProcessed sending empty response");
                     try {
                         channel.sendResponse(TransportResponse.Empty.INSTANCE);
                     } catch (Throwable e) {

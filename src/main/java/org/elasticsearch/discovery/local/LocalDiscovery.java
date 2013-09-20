@@ -278,7 +278,7 @@ public class LocalDiscovery extends AbstractLifecycleComponent<Discovery> implem
     }
 
     @Override
-    public void publish(ClusterState clusterState) {
+    public void publish(ClusterState clusterState, final AckListener ackListener) {
         if (!master) {
             throw new ElasticSearchIllegalStateException("Shouldn't publish state when not master");
         }
@@ -292,9 +292,10 @@ public class LocalDiscovery extends AbstractLifecycleComponent<Discovery> implem
             final byte[] clusterStateBytes = Builder.toBytes(clusterState);
             LocalDiscovery[] members = clusterGroup.members().toArray(new LocalDiscovery[0]);
             final CountDownLatch latch = new CountDownLatch(members.length);
-            for (LocalDiscovery discovery : members) {
+            for (final LocalDiscovery discovery : members) {
                 if (discovery.master) {
                     latch.countDown();
+                    ackListener.onNodeAck(discovery.nodeName());
                     continue;
                 }
                 final ClusterState nodeSpecificClusterState = ClusterState.Builder.fromBytes(clusterStateBytes, discovery.localNode);
@@ -319,16 +320,19 @@ public class LocalDiscovery extends AbstractLifecycleComponent<Discovery> implem
                         public void onFailure(String source, Throwable t) {
                             logger.error("unexpected failure during [{}]", t, source);
                             latch.countDown();
+                            ackListener.onNodeFailure(discovery.nodeName());
                         }
 
                         @Override
                         public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
                             sendInitialStateEventIfNeeded();
                             latch.countDown();
+                            ackListener.onNodeAck(discovery.nodeName());
                         }
                     });
                 } else {
                     latch.countDown();
+                    ackListener.onNodeAck(discovery.nodeName());
                 }
             }
 

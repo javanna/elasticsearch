@@ -108,10 +108,10 @@ public class DiscoveryService extends AbstractLifecycleComponent<DiscoveryServic
      * Publish all the changes to the cluster from the master (can be called just by the master). The publish
      * process should not publish this state to the master as well! (the master is sending it...).
      */
-    public void publish(ClusterState clusterState) {
+    public void publish(ClusterState clusterState, Discovery.AckListener ackListener) {
         if (!lifecycle.started()) {
             return;
         }
-        discovery.publish(clusterState);
+        discovery.publish(clusterState, ackListener);
     }
 }
