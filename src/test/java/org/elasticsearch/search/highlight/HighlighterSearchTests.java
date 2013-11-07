@@ -2262,4 +2262,34 @@ public class HighlighterSearchTests extends AbstractIntegrationTest {
                 .addHighlightedField("field1").setHighlighterRequireFieldMatch(true).get();
         assertHighlight(searchResponse, 0, "field1", 0, 1, equalTo("<em>First</em> sentence. Second sentence."));
     }
+
+    @Test
+    public void testFastVectorHighlighterMultipleFieldsSameIndexName() {
+        assertAcked(client().admin().indices().prepareCreate("test")
+                .addMapping("type1", "field1", "type=string,term_vector=with_positions_offsets,index_name=my_field,store=yes",
+                        "field2", "type=string,term_vector=with_positions_offsets,index_name=my_field,store=yes"));
+        ensureGreen();
+
+        client().prepareIndex("test", "type1", "1").setSource("field1", "one sentence. And here is the second one.",
+                "field2", "This is the sentence to be highlighted.").get();
+        refresh();
+
+        SearchResponse searchResponse = client().prepareSearch("test").setQuery(matchQuery("field2", "sentence")).addHighlightedField("field2").get();
+        assertHighlight(searchResponse, 0, "field2", 0, 1, equalTo("This is the <em>sentence</em> to be highlighted."));
+    }
+
+    @Test
+    public void testPostingsHighlighterMultipleFieldsSameIndexName() {
+        assertAcked(client().admin().indices().prepareCreate("test")
+                .addMapping("type1", "field1", "type=string,index_options=offsets,index_name=my_field,store=yes",
+                        "field2", "type=string,index_options=offsets,index_name=my_field,store=yes"));
+        ensureGreen();
+
+        client().prepareIndex("test", "type1", "1").setSource("field1", "one sentence. And here is the second one.",
+                "field2", "This is the sentence to be highlighted.").get();
+        refresh();
+
+        SearchResponse searchResponse = client().prepareSearch("test").setQuery(matchQuery("field2", "sentence")).addHighlightedField("field2").get();
+        assertHighlight(searchResponse, 0, "field2", 0, 1, equalTo("This is the <em>sentence</em> to be highlighted."));
+    }
 }
