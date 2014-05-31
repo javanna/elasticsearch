@@ -18,16 +18,18 @@
 
 package org.apache.lucene.search.postingshighlight;
 
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexReaderContext;
+import com.google.common.collect.Lists;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Strings;
+import org.apache.lucene.search.Query;
+import org.elasticsearch.index.mapper.internal.AnalyzerMapper;
 import org.elasticsearch.search.highlight.HighlightUtils;
+import org.elasticsearch.search.highlight.HighlighterContext;
+import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
 import java.text.BreakIterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,92 +48,27 @@ import java.util.Map;
  */
 public final class CustomPostingsHighlighter extends XPostingsHighlighter {
 
-    private static final Snippet[] EMPTY_SNIPPET = new Snippet[0];
     private static final Passage[] EMPTY_PASSAGE = new Passage[0];
 
     private final CustomPassageFormatter passageFormatter;
-    private final int noMatchSize;
-    private final int totalContentLength;
-    private final String[] fieldValues;
-    private final int[] fieldValuesOffsets;
-    private int currentValueIndex = 0;
+    private final HighlighterContext highlighterContext;
 
     private BreakIterator breakIterator;
 
-    public CustomPostingsHighlighter(CustomPassageFormatter passageFormatter, List<Object> fieldValues, boolean mergeValues, int maxLength, int noMatchSize) {
+    public CustomPostingsHighlighter(CustomPassageFormatter passageFormatter, HighlighterContext highlighterContext, int maxLength) {
         super(maxLength);
         this.passageFormatter = passageFormatter;
-        this.noMatchSize = noMatchSize;
-
-        if (mergeValues) {
-            String rawValue = Strings.collectionToDelimitedString(fieldValues, String.valueOf(getMultiValuedSeparator("")));
-            String fieldValue = rawValue.substring(0, Math.min(rawValue.length(), maxLength));
-            this.fieldValues = new String[]{fieldValue};
-            this.fieldValuesOffsets = new int[]{0};
-            this.totalContentLength = fieldValue.length();
-        } else {
-            this.fieldValues = new String[fieldValues.size()];
-            this.fieldValuesOffsets = new int[fieldValues.size()];
-            int contentLength = 0;
-            int offset = 0;
-            int previousLength = -1;
-            for (int i = 0; i < fieldValues.size(); i++) {
-                String rawValue = fieldValues.get(i).toString();
-                String fieldValue = rawValue.substring(0, Math.min(rawValue.length(), maxLength));
-                this.fieldValues[i] = fieldValue;
-                contentLength += fieldValue.length();
-                offset += previousLength + 1;
-                this.fieldValuesOffsets[i] = offset;
-                previousLength = fieldValue.length();
-            }
-            this.totalContentLength = contentLength;
-        }
-    }
-
-    /*
-    Our own api to highlight a single document field, passing in the query terms, and get back our own Snippet object
-     */
-    public Snippet[] highlightDoc(String field, BytesRef[] terms, IndexSearcher searcher, int docId, int maxPassages) throws IOException {
-        IndexReader reader = searcher.getIndexReader();
-        IndexReaderContext readerContext = reader.getContext();
-        List<AtomicReaderContext> leaves = readerContext.leaves();
-
-        String[] contents = new String[]{loadCurrentFieldValue()};
-        Map<Integer, Object> snippetsMap = highlightField(field, contents, getBreakIterator(field), terms, new int[]{docId}, leaves, maxPassages);
-
-        //increment the current value index so that next time we'll highlight the next value if available
-        currentValueIndex++;
-
-        Object snippetObject = snippetsMap.get(docId);
-        if (snippetObject != null && snippetObject instanceof Snippet[]) {
-            return (Snippet[]) snippetObject;
-        }
-        return EMPTY_SNIPPET;
-    }
-
-    /*
-    Method provided through our own fork: allows to do proper scoring when doing per value discrete highlighting.
-    Used to provide the total length of the field (all values) for proper scoring.
-     */
-    @Override
-    protected int getContentLength(String field, int docId) {
-        return totalContentLength;
-    }
-
-    /*
-    Method provided through our own fork: allows to perform proper per value discrete highlighting.
-    Used to provide the offset for the current value.
-     */
-    @Override
-    protected int getOffsetForCurrentValue(String field, int docId) {
-        if (currentValueIndex < fieldValuesOffsets.length) {
-            return fieldValuesOffsets[currentValueIndex];
-        }
-        throw new IllegalArgumentException("No more values offsets to return");
+        this.highlighterContext = highlighterContext;
     }
 
     public void setBreakIterator(BreakIterator breakIterator) {
         this.breakIterator = breakIterator;
+    }
+
+    @Override
+    protected Analyzer getIndexAnalyzer(String field) {
+        AnalyzerMapper analyzerMapper = highlighterContext.context.mapperService().documentMapper(highlighterContext.hitContext.hit().type()).analyzerMapper();
+        return analyzerMapper.setAnalyzer(highlighterContext);
     }
 
     @Override
@@ -159,29 +96,48 @@ public final class CustomPostingsHighlighter extends XPostingsHighlighter {
      */
     @Override
     protected Passage[] getEmptyHighlight(String fieldName, BreakIterator bi, int maxPassages) {
-        if (noMatchSize > 0) {
+        if (highlighterContext.field.fieldOptions().noMatchSize() > 0) {
             //we want to return the first sentence of the first snippet only
             return super.getEmptyHighlight(fieldName, bi, 1);
         }
         return EMPTY_PASSAGE;
     }
 
-    /*
-    Not needed since we call our own loadCurrentFieldValue explicitly, but we override it anyway for consistency.
-     */
     @Override
     protected String[][] loadFieldValues(IndexSearcher searcher, String[] fields, int[] docids, int maxLength) throws IOException {
-        return new String[][]{new String[]{loadCurrentFieldValue()}};
+        SearchContext searchContext = SearchContext.current();
+        boolean forceSource = searchContext.highlight().forceSource(highlighterContext.field);
+        if (forceSource || !highlighterContext.mapper.fieldType().stored()) {
+            List<Object> objects = HighlightUtils.loadFromSource(highlighterContext.mapper, searchContext, highlighterContext.hitContext);
+            StringBuilder value = new StringBuilder();
+            for (Object object : objects) {
+                value.append(object).append(getMultiValuedSeparator(highlighterContext.field.field()));
+            }
+            return new String[][]{{value.toString()}};
+        }
+        return super.loadFieldValues(searcher, fields, docids, maxLength);
     }
 
-    /*
-     Our own method that returns the field values, which relies on the content that was provided when creating the highlighter.
-     Supports per value discrete highlighting calling the highlightDoc method multiple times, one per value.
-    */
-    protected String loadCurrentFieldValue() {
-        if (currentValueIndex < fieldValues.length) {
-            return fieldValues[currentValueIndex];
+    public Map<String,Map<Integer, List<Snippet>>> highlightSnippets(String fieldsIn[], Query query, IndexSearcher searcher, int[] docidsIn, int maxPassagesIn[]) throws IOException {
+        Map<String,Map<Integer, List<Snippet>>> snippets = new HashMap<>();
+        for(Map.Entry<String,Object[]> ent : highlightFieldsAsObjects(fieldsIn, query, searcher, docidsIn, maxPassagesIn).entrySet()) {
+            Map<Integer, List<Snippet>> docsSnippets = new HashMap<>();
+            Object[] snippetObjects = ent.getValue();
+            for (int i = 0; i < snippetObjects.length; i++) {
+                Object docSnippetObject = snippetObjects[i];
+                List<Snippet> docSnippets = Lists.newArrayList();
+                if (docSnippetObject != null) {
+                    //we return multiple snippets instead of merging back the passages into a single string
+                    for (Snippet snippet : (Snippet[]) docSnippetObject) {
+                        if (snippet != null) {
+                            docSnippets.add(snippet);
+                        }
+                    }
+                }
+                docsSnippets.put(docidsIn[i], docSnippets);
+            }
+            snippets.put(ent.getKey(), docsSnippets);
         }
-        throw new IllegalArgumentException("No more values to return");
+        return snippets;
     }
 }

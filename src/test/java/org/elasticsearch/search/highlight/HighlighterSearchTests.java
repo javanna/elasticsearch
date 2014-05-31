@@ -649,7 +649,7 @@ public class HighlighterSearchTests extends ElasticsearchIntegrationTest {
 
     @Test
     public void testPlainHighlighterDocumentAnalyzer() throws Exception {
-        client().admin().indices().prepareCreate("test")
+        assertAcked(prepareCreate("test")
         .addMapping("type1", XContentFactory.jsonBuilder().startObject().startObject("type1")
             .startObject("_analyzer")
                 .field("path", "language_analyzer")
@@ -663,7 +663,7 @@ public class HighlighterSearchTests extends ElasticsearchIntegrationTest {
                     .field("type", "string")
                 .endObject()
             .endObject()
-            .endObject().endObject()).execute().actionGet();
+            .endObject().endObject()));
         ensureYellow();
 
         index("test", "type1", "1",
@@ -677,6 +677,38 @@ public class HighlighterSearchTests extends ElasticsearchIntegrationTest {
                         new HighlightBuilder.Field("text").preTags("<1>").postTags("</1>").requireFieldMatch(true))
                 .get();
         assertHighlight(response, 0, "text", 0, 1, equalTo("Look at me, I'm eating <1>cars</1>."));
+    }
+
+    @Test
+    public void testPostingsHighlighterDocumentAnalyzerMtq() throws Exception {
+        assertAcked(prepareCreate("test")
+                .addMapping("type1", XContentFactory.jsonBuilder().startObject().startObject("type1")
+                        .startObject("_analyzer")
+                        .field("path", "my_analyzer")
+                        .endObject()
+                        .startObject("properties")
+                        .startObject("my_analyzer")
+                        .field("type", "string")
+                        .field("index", "not_analyzed")
+                        .endObject()
+                        .startObject("text")
+                        .field("type", "string")
+                        .endObject()
+                        .endObject()
+                        .endObject().endObject()));
+        ensureYellow();
+
+        index("test", "type1", "1",
+                "my_analyzer", "keyword",
+                "text", "postings mtq");
+        refresh();
+
+        SearchResponse response = client().prepareSearch("test")
+                .setQuery(QueryBuilders.wildcardQuery("text", "postings m*"))
+                .addHighlightedField(
+                        new HighlightBuilder.Field("text").preTags("<1>").postTags("</1>").requireFieldMatch(true))
+                .get();
+        assertHighlight(response, 0, "text", 0, 1, equalTo("<1>postings mtq</1>"));
     }
 
     @Test

@@ -46,21 +46,30 @@ public final class HighlightUtils {
         boolean forceSource = searchContext.highlight().forceSource(field);
         List<Object> textsToHighlight;
         if (!forceSource && mapper.fieldType().stored()) {
-            CustomFieldsVisitor fieldVisitor = new CustomFieldsVisitor(ImmutableSet.of(mapper.names().indexName()), false);
-            hitContext.reader().document(hitContext.docId(), fieldVisitor);
-            textsToHighlight = fieldVisitor.fields().get(mapper.names().indexName());
-            if (textsToHighlight == null) {
-                // Can happen if the document doesn't have the field to highlight
-                textsToHighlight = ImmutableList.of();
-            }
+            textsToHighlight = loadStoredField(mapper, hitContext);
         } else {
-            SearchLookup lookup = searchContext.lookup();
-            lookup.setNextReader(hitContext.readerContext());
-            lookup.setNextDocId(hitContext.docId());
-            textsToHighlight = lookup.source().extractRawValues(mapper.names().sourcePath());
+            textsToHighlight = loadFromSource(mapper, searchContext, hitContext);
         }
         assert textsToHighlight != null;
         return textsToHighlight;
+    }
+
+    static List<Object> loadStoredField(FieldMapper<?> mapper, FetchSubPhase.HitContext hitContext) throws IOException{
+        CustomFieldsVisitor fieldVisitor = new CustomFieldsVisitor(ImmutableSet.of(mapper.names().indexName()), false);
+        hitContext.reader().document(hitContext.docId(), fieldVisitor);
+        List<Object> textsToHighlight = fieldVisitor.fields().get(mapper.names().indexName());
+        if (textsToHighlight == null) {
+            // Can happen if the document doesn't have the field to highlight
+            textsToHighlight = ImmutableList.of();
+        }
+        return textsToHighlight;
+    }
+
+    public static List<Object> loadFromSource(FieldMapper<?> mapper, SearchContext searchContext, FetchSubPhase.HitContext hitContext) {
+        SearchLookup lookup = searchContext.lookup();
+        lookup.setNextReader(hitContext.readerContext());
+        lookup.setNextDocId(hitContext.docId());
+        return lookup.source().extractRawValues(mapper.names().sourcePath());
     }
 
     static class Encoders {
