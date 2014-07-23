@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.explain;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.QuerySourceBuilder;
@@ -39,6 +40,7 @@ public class ExplainRequest extends SingleShardOperationRequest<ExplainRequest> 
 
     private String type = "_all";
     private String id;
+    private String concreteIndex;
     private String routing;
     private String preference;
     private BytesReference source;
@@ -74,6 +76,15 @@ public class ExplainRequest extends SingleShardOperationRequest<ExplainRequest> 
 
     public ExplainRequest id(String id) {
         this.id = id;
+        return this;
+    }
+
+    String concreteIndex() {
+        return concreteIndex;
+    }
+
+    ExplainRequest concreteIndex(String concreteIndex) {
+        this.concreteIndex = concreteIndex;
         return this;
     }
 
@@ -199,6 +210,18 @@ public class ExplainRequest extends SingleShardOperationRequest<ExplainRequest> 
     }
 
     @Override
+    protected void readIndex(StreamInput in) throws IOException {
+        index = in.readString();
+        if (in.getVersion().onOrAfter(Version.V_1_4_0)) {
+            this.concreteIndex = in.readOptionalString();
+        } else {
+            //older nodes send a single index, the concrete one already resolved by them
+            //clients send a non concrete index that will be overridden on the coordinating node
+            this.concreteIndex = index;
+        }
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(type);
@@ -216,5 +239,17 @@ public class ExplainRequest extends SingleShardOperationRequest<ExplainRequest> 
 
         FetchSourceContext.optionalWriteToStream(fetchSourceContext, out);
         out.writeVLong(nowInMillis);
+    }
+
+    @Override
+    protected void writeIndex(StreamOutput out) throws IOException {
+        if (out.getVersion().onOrAfter(Version.V_1_4_0)) {
+            out.writeString(index);
+            out.writeOptionalString(concreteIndex);
+        } else {
+            //older versions expect the concrete index as the only index
+            //clients don't set the concrete one though, hence we have to fallback to the original index
+            out.writeString(concreteIndex == null ? index : concreteIndex);
+        }
     }
 }

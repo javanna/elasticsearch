@@ -95,23 +95,21 @@ public class TransportExplainAction extends TransportShardSingleOperationAction<
 
     @Override
     protected void resolveRequest(ClusterState state, ExplainRequest request) {
-        String concreteIndex = state.metaData().concreteSingleIndex(request.index(), request.indicesOptions());
-        request.filteringAlias(state.metaData().filteringAliases(concreteIndex, request.index()));
-        request.index(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
-
+        request.concreteIndex(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
+        request.filteringAlias(state.metaData().filteringAliases(request.concreteIndex(), request.index()));
         // Fail fast on the node that received the request.
-        if (request.routing() == null && state.getMetaData().routingRequired(request.index(), request.type())) {
-            throw new RoutingMissingException(request.index(), request.type(), request.id());
+        if (request.routing() == null && state.getMetaData().routingRequired(request.concreteIndex(), request.type())) {
+            throw new RoutingMissingException(request.concreteIndex(), request.type(), request.id());
         }
     }
 
     protected ExplainResponse shardOperation(ExplainRequest request, int shardId) throws ElasticsearchException {
-        IndexService indexService = indicesService.indexService(request.index());
+        IndexService indexService = indicesService.indexService(request.concreteIndex());
         IndexShard indexShard = indexService.shardSafe(shardId);
         Term uidTerm = new Term(UidFieldMapper.NAME, Uid.createUidAsBytes(request.type(), request.id()));
         Engine.GetResult result = indexShard.get(new Engine.Get(false, uidTerm));
         if (!result.exists()) {
-            return new ExplainResponse(request.index(), request.type(), request.id(), false);
+            return new ExplainResponse(request.concreteIndex(), request.type(), request.id(), false);
         }
 
         SearchContext context = new DefaultSearchContext(
@@ -139,9 +137,9 @@ public class TransportExplainAction extends TransportShardSingleOperationAction<
                 // because we are working in the same searcher in engineGetResult we can be sure that a
                 // doc isn't deleted between the initial get and this call.
                 GetResult getResult = indexShard.getService().get(result, request.id(), request.type(), request.fields(), request.fetchSourceContext(), false);
-                return new ExplainResponse(request.index(), request.type(), request.id(), true, explanation, getResult);
+                return new ExplainResponse(request.concreteIndex(), request.type(), request.id(), true, explanation, getResult);
             } else {
-                return new ExplainResponse(request.index(), request.type(), request.id(), true, explanation);
+                return new ExplainResponse(request.concreteIndex(), request.type(), request.id(), true, explanation);
             }
         } catch (IOException e) {
             throw new ElasticsearchException("Could not explain", e);
@@ -164,12 +162,12 @@ public class TransportExplainAction extends TransportShardSingleOperationAction<
     }
 
     protected ClusterBlockException checkRequestBlock(ClusterState state, ExplainRequest request) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.index());
+        return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.concreteIndex());
     }
 
     protected ShardIterator shards(ClusterState state, ExplainRequest request) throws ElasticsearchException {
         return clusterService.operationRouting().getShards(
-                clusterService.state(), request.index(), request.type(), request.id(), request.routing(), request.preference()
+                clusterService.state(), request.concreteIndex(), request.type(), request.id(), request.routing(), request.preference()
         );
     }
 }

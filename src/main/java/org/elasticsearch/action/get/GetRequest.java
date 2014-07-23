@@ -45,10 +45,11 @@ import java.io.IOException;
  */
 public class GetRequest extends SingleShardOperationRequest<GetRequest> {
 
-    protected String type;
-    protected String id;
-    protected String routing;
-    protected String preference;
+    private String type;
+    private String id;
+    private String concreteIndex;
+    private String routing;
+    private String preference;
 
     private String[] fields;
 
@@ -151,6 +152,15 @@ public class GetRequest extends SingleShardOperationRequest<GetRequest> {
     public GetRequest preference(String preference) {
         this.preference = preference;
         return this;
+    }
+
+    GetRequest concreteIndex(String concreteIndex) {
+        this.concreteIndex = concreteIndex;
+        return this;
+    }
+
+    String concreteIndex() {
+        return this.concreteIndex;
     }
 
     public String type() {
@@ -287,6 +297,18 @@ public class GetRequest extends SingleShardOperationRequest<GetRequest> {
     }
 
     @Override
+    protected void readIndex(StreamInput in) throws IOException {
+        index = in.readString();
+        if (in.getVersion().onOrAfter(Version.V_1_4_0)) {
+            this.concreteIndex = in.readOptionalString();
+        } else {
+            //older nodes send a single index, the concrete one already resolved by them
+            //clients send a non concrete index that will be overridden on the coordinating node
+            this.concreteIndex = index;
+        }
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeSharedString(type);
@@ -305,7 +327,7 @@ public class GetRequest extends SingleShardOperationRequest<GetRequest> {
         }
         if (realtime == null) {
             out.writeByte((byte) -1);
-        } else if (realtime == false) {
+        } else if (!realtime) {
             out.writeByte((byte) 0);
         } else {
             out.writeByte((byte) 1);
@@ -317,6 +339,18 @@ public class GetRequest extends SingleShardOperationRequest<GetRequest> {
         Versions.writeVersionWithVLongForBW(version, out);
 
         FetchSourceContext.optionalWriteToStream(fetchSourceContext, out);
+    }
+
+    @Override
+    protected void writeIndex(StreamOutput out) throws IOException {
+        if (out.getVersion().onOrAfter(Version.V_1_4_0)) {
+            out.writeString(index);
+            out.writeOptionalString(concreteIndex);
+        } else {
+            //older versions expect the concrete index as the only index
+            //clients don't set the concrete one though, hence we have to fallback to the original index
+            out.writeString(concreteIndex == null ? index : concreteIndex);
+        }
     }
 
     @Override

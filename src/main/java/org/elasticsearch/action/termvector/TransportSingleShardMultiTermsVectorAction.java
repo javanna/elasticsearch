@@ -82,22 +82,15 @@ public class TransportSingleShardMultiTermsVectorAction extends TransportShardSi
     }
 
     @Override
-    protected void resolveRequest(ClusterState state, MultiTermVectorsShardRequest request) {
-        // no need to set concrete index and routing here, it has already been set by the multi term vectors action on the item
-        // request.index(state.metaData().concreteIndex(request.index()));
-    }
-
-    @Override
     protected MultiTermVectorsShardResponse shardOperation(MultiTermVectorsShardRequest request, int shardId) throws ElasticsearchException {
 
         MultiTermVectorsShardResponse response = new MultiTermVectorsShardResponse();
         for (int i = 0; i < request.locations.size(); i++) {
             TermVectorRequest termVectorRequest = request.requests.get(i);
-
             try {
                 IndexService indexService = indicesService.indexServiceSafe(request.index());
                 IndexShard indexShard = indexService.shardSafe(shardId);
-                TermVectorResponse termVectorResponse = indexShard.termVectorService().getTermVector(termVectorRequest);
+                TermVectorResponse termVectorResponse = indexShard.termVectorService().getTermVector(termVectorRequest, termVectorRequest.concreteIndex());
                 response.add(request.locations.get(i), termVectorResponse);
             } catch (Throwable t) {
                 if (TransportActions.isShardNotAvailableException(t)) {

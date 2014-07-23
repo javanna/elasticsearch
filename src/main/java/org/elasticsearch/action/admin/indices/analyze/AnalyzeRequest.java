@@ -40,6 +40,8 @@ public class AnalyzeRequest extends SingleCustomOperationRequest<AnalyzeRequest>
 
     private String index;
 
+    private String concreteIndex;
+
     private String text;
 
     private String analyzer;
@@ -87,6 +89,15 @@ public class AnalyzeRequest extends SingleCustomOperationRequest<AnalyzeRequest>
 
     public String index() {
         return this.index;
+    }
+
+    AnalyzeRequest concreteIndex(String concreteIndex) {
+        this.concreteIndex = concreteIndex;
+        return this;
+    }
+
+    String concreteIndex() {
+        return this.concreteIndex;
     }
 
     @Override
@@ -166,6 +177,13 @@ public class AnalyzeRequest extends SingleCustomOperationRequest<AnalyzeRequest>
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         index = in.readOptionalString();
+        if (in.getVersion().onOrAfter(Version.V_1_4_0)) {
+            this.concreteIndex = in.readOptionalString();
+        } else {
+            //older nodes send a single index, the concrete one already resolved by them
+            //clients send a non concrete index that will be overridden on the coordinating node
+            this.concreteIndex = index;
+        }
         text = in.readString();
         analyzer = in.readOptionalString();
         tokenizer = in.readOptionalString();
@@ -179,7 +197,14 @@ public class AnalyzeRequest extends SingleCustomOperationRequest<AnalyzeRequest>
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeOptionalString(index);
+        if (out.getVersion().onOrAfter(Version.V_1_4_0)) {
+            out.writeOptionalString(index);
+            out.writeOptionalString(concreteIndex);
+        } else {
+            //older versions expect the concrete index as the only index
+            //clients don't set the concrete one though, hence we have to fallback to the original index
+            out.writeOptionalString(concreteIndex == null ? index : concreteIndex);
+        }
         out.writeString(text);
         out.writeOptionalString(analyzer);
         out.writeOptionalString(tokenizer);

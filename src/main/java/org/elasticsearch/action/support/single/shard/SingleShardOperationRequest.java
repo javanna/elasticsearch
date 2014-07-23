@@ -101,15 +101,22 @@ public abstract class SingleShardOperationRequest<T extends SingleShardOperation
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        index = in.readString();
+        readIndex(in);
         // no need to pass threading over the network, they are always false when coming throw a thread pool
+    }
+
+    protected void readIndex(StreamInput in) throws IOException {
+        index = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(index);
+        writeIndex(out);
     }
 
+    protected void writeIndex(StreamOutput out) throws IOException {
+        out.writeString(index);
+    }
 }
 

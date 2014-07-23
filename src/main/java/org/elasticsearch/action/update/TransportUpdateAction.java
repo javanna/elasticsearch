@@ -108,7 +108,7 @@ public class TransportUpdateAction extends TransportInstanceSingleOperationActio
 
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, UpdateRequest request) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.WRITE, request.index());
+        return state.blocks().indexBlockedException(ClusterBlockLevel.WRITE, request.concreteIndex());
     }
 
     @Override
@@ -119,15 +119,19 @@ public class TransportUpdateAction extends TransportInstanceSingleOperationActio
     @Override
     protected boolean resolveRequest(ClusterState state, UpdateRequest request, ActionListener<UpdateResponse> listener) {
         MetaData metaData = clusterService.state().metaData();
-        String aliasOrIndex = request.index();
-        request.routing((metaData.resolveIndexRouting(request.routing(), aliasOrIndex)));
-        request.index(metaData.concreteSingleIndex(request.index(), request.indicesOptions()));
+        request.routing((metaData.resolveIndexRouting(request.routing(), request.index())));
+        request.concreteIndex(metaData.concreteSingleIndex(request.index(), request.indicesOptions()));
 
         // Fail fast on the node that received the request, rather than failing when translating on the index or delete request.
-        if (request.routing() == null && state.getMetaData().routingRequired(request.index(), request.type())) {
-            throw new RoutingMissingException(request.index(), request.type(), request.id());
+        if (request.routing() == null && state.getMetaData().routingRequired(request.concreteIndex(), request.type())) {
+            throw new RoutingMissingException(request.concreteIndex(), request.type(), request.id());
         }
         return true;
+    }
+
+    @Override
+    protected String concreteIndex(UpdateRequest request) {
+        return request.concreteIndex();
     }
 
     @Override
@@ -167,10 +171,10 @@ public class TransportUpdateAction extends TransportInstanceSingleOperationActio
     @Override
     protected ShardIterator shards(ClusterState clusterState, UpdateRequest request) throws ElasticsearchException {
         if (request.shardId() != -1) {
-            return clusterState.routingTable().index(request.index()).shard(request.shardId()).primaryShardIt();
+            return clusterState.routingTable().index(request.concreteIndex()).shard(request.shardId()).primaryShardIt();
         }
         ShardIterator shardIterator = clusterService.operationRouting()
-                .indexShards(clusterState, request.index(), request.type(), request.id(), request.routing());
+                .indexShards(clusterState, request.concreteIndex(), request.type(), request.id(), request.routing());
         ShardRouting shard;
         while ((shard = shardIterator.nextOrNull()) != null) {
             if (shard.primary()) {
@@ -284,7 +288,7 @@ public class TransportUpdateAction extends TransportInstanceSingleOperationActio
             case NONE:
                 UpdateResponse update = result.action();
                 listener.onResponse(update);
-                indicesService.indexService(request.index()).shard(request.shardId()).indexingService().noopUpdate(request.type());
+                indicesService.indexService(request.concreteIndex()).shard(request.shardId()).indexingService().noopUpdate(request.type());
                 break;
             default:
                 throw new ElasticsearchIllegalStateException("Illegal operation " + result.operation());

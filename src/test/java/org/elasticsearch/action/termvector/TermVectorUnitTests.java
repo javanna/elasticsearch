@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.termvector;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
@@ -28,10 +29,13 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.termvector.TermVectorRequest.Flag;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.Streams;
+import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -43,6 +47,8 @@ import org.elasticsearch.index.mapper.core.TypeParsers;
 import org.elasticsearch.index.mapper.internal.AllFieldMapper;
 import org.elasticsearch.rest.action.termvector.RestTermVectorAction;
 import org.elasticsearch.test.ElasticsearchLuceneTestCase;
+import org.elasticsearch.test.ElasticsearchTestCase;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -53,6 +59,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.equalTo;
 
 public class TermVectorUnitTests extends ElasticsearchLuceneTestCase {
@@ -224,9 +231,13 @@ public class TermVectorUnitTests extends ElasticsearchLuceneTestCase {
 
     @Test
     public void streamRequest() throws IOException {
-
-        for (int i = 0; i < 10; i++) {
-            TermVectorRequest request = new TermVectorRequest("index", "type", "id");
+        int iterations = RandomizedTest.randomIntBetween(5, 20);
+        for (int i = 0; i < iterations; i++) {
+            TermVectorRequest request = new TermVectorRequest("alias", "type", "id");
+            boolean setConcreteIndex = RandomizedTest.randomBoolean();
+            if (setConcreteIndex) {
+                request.concreteIndex("index");
+            }
             request.offsets(random().nextBoolean());
             request.fieldStatistics(random().nextBoolean());
             request.payloads(random().nextBoolean());
@@ -238,15 +249,16 @@ public class TermVectorUnitTests extends ElasticsearchLuceneTestCase {
             request.preference(pref);
 
             // write
-            ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-            OutputStreamStreamOutput out = new OutputStreamStreamOutput(outBuffer);
+            BytesStreamOutput out = new BytesStreamOutput();
+            Version outputVersion = ElasticsearchTestCase.randomVersion();
+            out.setVersion(outputVersion);
             request.writeTo(out);
 
             // read
-            ByteArrayInputStream esInBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
-            InputStreamStreamInput esBuffer = new InputStreamStreamInput(esInBuffer);
-            TermVectorRequest req2 = new TermVectorRequest(null, null, null);
-            req2.readFrom(esBuffer);
+            BytesStreamInput in = new BytesStreamInput(out.bytes());
+            in.setVersion(outputVersion);
+            TermVectorRequest req2 = new TermVectorRequest();
+            req2.readFrom(in);
 
             assertThat(request.offsets(), equalTo(req2.offsets()));
             assertThat(request.fieldStatistics(), equalTo(req2.fieldStatistics()));
@@ -256,6 +268,25 @@ public class TermVectorUnitTests extends ElasticsearchLuceneTestCase {
             assertThat(request.preference(), equalTo(pref));
             assertThat(request.routing(), equalTo(parent));
 
+            if (outputVersion.onOrAfter(Version.V_1_4_0)) {
+                assertThat(req2.index(), CoreMatchers.equalTo("alias"));
+                if (setConcreteIndex) {
+                    assertThat(req2.concreteIndex(), CoreMatchers.equalTo("index"));
+                } else {
+                    assertThat(req2.concreteIndex(), nullValue());
+                }
+            } else {
+                if (setConcreteIndex) {
+                    //when we have a concrete index we serialize it as the only index
+                    assertThat(req2.index(), CoreMatchers.equalTo("index"));
+                    assertThat(req2.concreteIndex(), CoreMatchers.equalTo("index"));
+                } else {
+                    //client case: when we don't have a concrete index we serialize the original index
+                    //which will get read as concrete one as well but resolved on the coordinating node
+                    assertThat(req2.index(), CoreMatchers.equalTo("alias"));
+                    assertThat(req2.concreteIndex(), CoreMatchers.equalTo("alias"));
+                }
+            }
         }
     }
     

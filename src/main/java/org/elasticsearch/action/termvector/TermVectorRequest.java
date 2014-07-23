@@ -21,6 +21,7 @@ package org.elasticsearch.action.termvector;
 
 import com.google.common.collect.Sets;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.single.shard.SingleShardOperationRequest;
@@ -43,6 +44,8 @@ public class TermVectorRequest extends SingleShardOperationRequest<TermVectorReq
     private String type;
 
     private String id;
+
+    private String concreteIndex;
 
     private String routing;
 
@@ -118,6 +121,16 @@ public class TermVectorRequest extends SingleShardOperationRequest<TermVectorReq
         this.id = id;
         return this;
     }
+
+    String concreteIndex() {
+        return concreteIndex;
+    }
+
+    TermVectorRequest concreteIndex(String concreteIndex) {
+        this.concreteIndex = concreteIndex;
+        return this;
+    }
+
 
     /**
      * @return The routing for this request.
@@ -287,7 +300,6 @@ public class TermVectorRequest extends SingleShardOperationRequest<TermVectorReq
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        index = in.readString();
         type = in.readString();
         id = in.readString();
         routing = in.readOptionalString();
@@ -310,9 +322,23 @@ public class TermVectorRequest extends SingleShardOperationRequest<TermVectorReq
     }
 
     @Override
+    protected void readIndex(StreamInput in) throws IOException {
+        if (in.getVersion().onOrAfter(Version.V_1_4_0)) {
+            this.index = in.readString();
+            this.concreteIndex = in.readOptionalString();
+        } else {
+            //NOTE: term_vector before 1.4 de-serialized the index twice by mistake, keep reading two strings for bw comp
+            in.readString();
+            this.index = in.readString();
+            //older nodes send a single index, the concrete one already resolved by them
+            //clients send a non concrete index that will be overridden on the coordinating node
+            this.concreteIndex = index;
+        }
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(index);
         out.writeString(type);
         out.writeString(id);
         out.writeOptionalString(routing);
@@ -330,7 +356,20 @@ public class TermVectorRequest extends SingleShardOperationRequest<TermVectorReq
         } else {
             out.writeVInt(0);
         }
+    }
 
+    @Override
+    protected void writeIndex(StreamOutput out) throws IOException {
+        if (out.getVersion().onOrAfter(Version.V_1_4_0)) {
+            out.writeString(index);
+            out.writeOptionalString(concreteIndex);
+        } else {
+            //older versions expect the concrete index as the only index
+            //clients don't set the concrete one though, hence we have to fallback to the original index
+            //NOTE: term_vector before 1.4 serialized the index twice by mistake, keep writing two strings for bw comp
+            out.writeString("");
+            out.writeString(concreteIndex == null ? index : concreteIndex);
+        }
     }
 
     public static enum Flag {

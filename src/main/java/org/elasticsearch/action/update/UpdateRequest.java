@@ -51,6 +51,7 @@ public class UpdateRequest extends InstanceShardOperationRequest<UpdateRequest> 
 
     private String type;
     private String id;
+    private String concreteIndex;
     @Nullable
     private String routing;
 
@@ -156,6 +157,15 @@ public class UpdateRequest extends InstanceShardOperationRequest<UpdateRequest> 
     public UpdateRequest id(String id) {
         this.id = id;
         return this;
+    }
+
+    UpdateRequest concreteIndex(String concreteIndex) {
+        this.concreteIndex = concreteIndex;
+        return this;
+    }
+
+    String concreteIndex() {
+        return concreteIndex;
     }
 
     /**
@@ -681,6 +691,18 @@ public class UpdateRequest extends InstanceShardOperationRequest<UpdateRequest> 
     }
 
     @Override
+    protected void readIndex(StreamInput in) throws IOException {
+        index = in.readString();
+        if (in.getVersion().onOrAfter(Version.V_1_4_0)) {
+            this.concreteIndex = in.readOptionalString();
+        } else {
+            //older nodes send a single index, the concrete one already resolved by them
+            //clients send a non concrete index that will be overridden on the coordinating node
+            this.concreteIndex = index;
+        }
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeByte(replicationType.id());
@@ -735,4 +757,15 @@ public class UpdateRequest extends InstanceShardOperationRequest<UpdateRequest> 
         }
     }
 
+    @Override
+    protected void writeIndex(StreamOutput out) throws IOException {
+        if (out.getVersion().onOrAfter(Version.V_1_4_0)) {
+            out.writeString(index);
+            out.writeOptionalString(concreteIndex);
+        } else {
+            //older versions expect the concrete index as the only index
+            //clients don't set the concrete one though, hence we have to fallback to the original index
+            out.writeString(concreteIndex == null ? index : concreteIndex);
+        }
+    }
 }

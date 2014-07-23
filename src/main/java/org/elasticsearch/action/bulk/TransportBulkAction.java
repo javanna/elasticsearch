@@ -35,7 +35,6 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -51,8 +50,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.List;
@@ -201,7 +198,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
     }
 
     private void executeBulk(final BulkRequest bulkRequest, final long startTime, final ActionListener<BulkResponse> listener, final AtomicArray<BulkItemResponse> responses ) {
-        ClusterState clusterState = clusterService.state();
+        final ClusterState clusterState = clusterService.state();
         // TODO use timeout to wait here if its blocked...
         clusterState.blocks().globalBlockedRaiseException(ClusterBlockLevel.WRITE);
 
@@ -210,17 +207,15 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             ActionRequest request = bulkRequest.requests.get(i);
             if (request instanceof IndexRequest) {
                 IndexRequest indexRequest = (IndexRequest) request;
-                String aliasOrIndex = indexRequest.index();
-                indexRequest.index(clusterState.metaData().concreteSingleIndex(indexRequest.index(), indexRequest.indicesOptions()));
-
+                String concreteSingleIndex = clusterState.metaData().concreteSingleIndex(indexRequest.index(), indexRequest.indicesOptions());
                 MappingMetaData mappingMd = null;
-                if (metaData.hasIndex(indexRequest.index())) {
-                    mappingMd = metaData.index(indexRequest.index()).mappingOrDefault(indexRequest.type());
+                if (metaData.hasIndex(concreteSingleIndex)) {
+                    mappingMd = metaData.index(concreteSingleIndex).mappingOrDefault(indexRequest.type());
                 }
                 try {
-                    indexRequest.process(metaData, aliasOrIndex, mappingMd, allowIdGeneration);
+                    indexRequest.process(metaData, mappingMd, allowIdGeneration, concreteSingleIndex);
                 } catch (ElasticsearchParseException e) {
-                    BulkItemResponse.Failure failure = new BulkItemResponse.Failure(indexRequest.index(), indexRequest.type(), indexRequest.id(), e);
+                    BulkItemResponse.Failure failure = new BulkItemResponse.Failure(concreteSingleIndex, indexRequest.type(), indexRequest.id(), e);
                     BulkItemResponse bulkItemResponse = new BulkItemResponse(i, "index", failure);
                     responses.set(i, bulkItemResponse);
                     // make sure the request gets never processed again
@@ -229,11 +224,9 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             } else if (request instanceof DeleteRequest) {
                 DeleteRequest deleteRequest = (DeleteRequest) request;
                 deleteRequest.routing(clusterState.metaData().resolveIndexRouting(deleteRequest.routing(), deleteRequest.index()));
-                deleteRequest.index(clusterState.metaData().concreteSingleIndex(deleteRequest.index(), deleteRequest.indicesOptions()));
             } else if (request instanceof UpdateRequest) {
                 UpdateRequest updateRequest = (UpdateRequest) request;
                 updateRequest.routing(clusterState.metaData().resolveIndexRouting(updateRequest.routing(), updateRequest.index()));
-                updateRequest.index(clusterState.metaData().concreteSingleIndex(updateRequest.index(), updateRequest.indicesOptions()));
             }
         }
 
@@ -244,7 +237,8 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             ActionRequest request = bulkRequest.requests.get(i);
             if (request instanceof IndexRequest) {
                 IndexRequest indexRequest = (IndexRequest) request;
-                ShardId shardId = clusterService.operationRouting().indexShards(clusterState, indexRequest.index(), indexRequest.type(), indexRequest.id(), indexRequest.routing()).shardId();
+                String concreteSingleIndex = clusterState.metaData().concreteSingleIndex(indexRequest.index(), indexRequest.indicesOptions());
+                ShardId shardId = clusterService.operationRouting().indexShards(clusterState, concreteSingleIndex, indexRequest.type(), indexRequest.id(), indexRequest.routing()).shardId();
                 List<BulkItemRequest> list = requestsByShard.get(shardId);
                 if (list == null) {
                     list = Lists.newArrayList();
@@ -253,10 +247,11 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 list.add(new BulkItemRequest(i, request));
             } else if (request instanceof DeleteRequest) {
                 DeleteRequest deleteRequest = (DeleteRequest) request;
-                MappingMetaData mappingMd = clusterState.metaData().index(deleteRequest.index()).mappingOrDefault(deleteRequest.type());
+                String concreteSingleIndex = clusterState.metaData().concreteSingleIndex(deleteRequest.index(), deleteRequest.indicesOptions());
+                MappingMetaData mappingMd = clusterState.metaData().index(concreteSingleIndex).mappingOrDefault(deleteRequest.type());
                 if (mappingMd != null && mappingMd.routing().required() && deleteRequest.routing() == null) {
                     // if routing is required, and no routing on the delete request, we need to broadcast it....
-                    GroupShardsIterator groupShards = clusterService.operationRouting().broadcastDeleteShards(clusterState, deleteRequest.index());
+                    GroupShardsIterator groupShards = clusterService.operationRouting().broadcastDeleteShards(clusterState, concreteSingleIndex);
                     for (ShardIterator shardIt : groupShards) {
                         List<BulkItemRequest> list = requestsByShard.get(shardIt.shardId());
                         if (list == null) {
@@ -266,7 +261,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                         list.add(new BulkItemRequest(i, new DeleteRequest(deleteRequest)));
                     }
                 } else {
-                    ShardId shardId = clusterService.operationRouting().deleteShards(clusterState, deleteRequest.index(), deleteRequest.type(), deleteRequest.id(), deleteRequest.routing()).shardId();
+                    ShardId shardId = clusterService.operationRouting().deleteShards(clusterState, concreteSingleIndex, deleteRequest.type(), deleteRequest.id(), deleteRequest.routing()).shardId();
                     List<BulkItemRequest> list = requestsByShard.get(shardId);
                     if (list == null) {
                         list = Lists.newArrayList();
@@ -276,11 +271,12 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 }
             } else if (request instanceof UpdateRequest) {
                 UpdateRequest updateRequest = (UpdateRequest) request;
-                MappingMetaData mappingMd = clusterState.metaData().index(updateRequest.index()).mappingOrDefault(updateRequest.type());
+                String concreteSingleIndex = clusterState.metaData().concreteSingleIndex(updateRequest.index(), updateRequest.indicesOptions());
+                MappingMetaData mappingMd = clusterState.metaData().index(concreteSingleIndex).mappingOrDefault(updateRequest.type());
                 if (mappingMd != null && mappingMd.routing().required() && updateRequest.routing() == null) {
                     continue; // What to do?
                 }
-                ShardId shardId = clusterService.operationRouting().indexShards(clusterState, updateRequest.index(), updateRequest.type(), updateRequest.id(), updateRequest.routing()).shardId();
+                ShardId shardId = clusterService.operationRouting().indexShards(clusterState, concreteSingleIndex, updateRequest.type(), updateRequest.id(), updateRequest.routing()).shardId();
                 List<BulkItemRequest> list = requestsByShard.get(shardId);
                 if (list == null) {
                     list = Lists.newArrayList();
@@ -322,16 +318,19 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                     for (BulkItemRequest request : requests) {
                         if (request.request() instanceof IndexRequest) {
                             IndexRequest indexRequest = (IndexRequest) request.request();
+                            String concreteSingleIndex = clusterState.metaData().concreteSingleIndex(indexRequest.index(), indexRequest.indicesOptions());
                             responses.set(request.id(), new BulkItemResponse(request.id(), indexRequest.opType().toString().toLowerCase(Locale.ENGLISH),
-                                    new BulkItemResponse.Failure(indexRequest.index(), indexRequest.type(), indexRequest.id(), message, status)));
+                                    new BulkItemResponse.Failure(concreteSingleIndex, indexRequest.type(), indexRequest.id(), message, status)));
                         } else if (request.request() instanceof DeleteRequest) {
                             DeleteRequest deleteRequest = (DeleteRequest) request.request();
+                            String concreteSingleIndex = clusterState.metaData().concreteSingleIndex(deleteRequest.index(), deleteRequest.indicesOptions());
                             responses.set(request.id(), new BulkItemResponse(request.id(), "delete",
-                                    new BulkItemResponse.Failure(deleteRequest.index(), deleteRequest.type(), deleteRequest.id(), message, status)));
+                                    new BulkItemResponse.Failure(concreteSingleIndex, deleteRequest.type(), deleteRequest.id(), message, status)));
                         } else if (request.request() instanceof UpdateRequest) {
                             UpdateRequest updateRequest = (UpdateRequest) request.request();
+                            String concreteSingleIndex = clusterState.metaData().concreteSingleIndex(updateRequest.index(), updateRequest.indicesOptions());
                             responses.set(request.id(), new BulkItemResponse(request.id(), "update",
-                                    new BulkItemResponse.Failure(updateRequest.index(), updateRequest.type(), updateRequest.id(), message, status)));
+                                    new BulkItemResponse.Failure(concreteSingleIndex, updateRequest.type(), updateRequest.id(), message, status)));
                         }
                     }
                     if (counter.decrementAndGet() == 0) {

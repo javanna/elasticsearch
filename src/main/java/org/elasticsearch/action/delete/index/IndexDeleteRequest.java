@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.delete.index;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.support.replication.IndexReplicationOperationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -34,13 +35,16 @@ public class IndexDeleteRequest extends IndexReplicationOperationRequest<IndexDe
 
     private String type;
     private String id;
+    private String concreteIndex;
     private boolean refresh = false;
     private long version;
 
     IndexDeleteRequest() {
     }
 
-    public IndexDeleteRequest(DeleteRequest request) {
+    public IndexDeleteRequest(DeleteRequest request, String concreteIndex) {
+        assert concreteIndex != null;
+        this.concreteIndex = concreteIndex;
         this.timeout = request.timeout();
         this.consistencyLevel = request.consistencyLevel();
         this.replicationType = request.replicationType();
@@ -49,6 +53,10 @@ public class IndexDeleteRequest extends IndexReplicationOperationRequest<IndexDe
         this.id = request.id();
         this.refresh = request.refresh();
         this.version = request.version();
+    }
+
+    String concreteIndex() {
+        return this.concreteIndex;
     }
 
     public String type() {
@@ -77,11 +85,31 @@ public class IndexDeleteRequest extends IndexReplicationOperationRequest<IndexDe
     }
 
     @Override
+    protected void readIndex(StreamInput in) throws IOException {
+        this.index = in.readString();
+        if (in.getVersion().onOrAfter(Version.V_1_4_0)) {
+            this.concreteIndex = in.readOptionalString();
+        } else {
+            this.concreteIndex = index;
+        }
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(type);
         out.writeString(id);
         out.writeBoolean(refresh);
         Versions.writeVersion(version, out);
+    }
+
+    @Override
+    protected void writeIndex(StreamOutput out) throws IOException {
+        if (out.getVersion().onOrAfter(Version.V_1_4_0)) {
+            out.writeString(index);
+            out.writeOptionalString(concreteIndex);
+        } else {
+            out.writeString(concreteIndex);
+        }
     }
 }

@@ -103,19 +103,23 @@ public abstract class InstanceShardOperationRequest<T extends InstanceShardOpera
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        index = in.readString();
+        readIndex(in);
         shardId = in.readInt();
         timeout = TimeValue.readTimeValue(in);
         // no need to pass threading over the network, they are always false when coming throw a thread pool
     }
 
+    protected abstract void readIndex(StreamInput in) throws IOException;
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(index);
+        writeIndex(out);
         out.writeInt(shardId);
         timeout.writeTo(out);
     }
+
+    protected abstract void writeIndex(StreamOutput out) throws IOException;
 
     public void beforeLocalFork() {
     }

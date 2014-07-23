@@ -89,26 +89,26 @@ public class TransportAnalyzeAction extends TransportSingleCustomOperationAction
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, AnalyzeRequest request) {
         if (request.index() != null) {
-            request.index(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
-            return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.index());
+            request.concreteIndex(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
+            return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.concreteIndex());
         }
         return null;
     }
 
     @Override
     protected ShardsIterator shards(ClusterState state, AnalyzeRequest request) {
-        if (request.index() == null) {
+        if (request.concreteIndex() == null) {
             // just execute locally....
             return null;
         }
-        return state.routingTable().index(request.index()).randomAllActiveShardsIt();
+        return state.routingTable().index(request.concreteIndex()).randomAllActiveShardsIt();
     }
 
     @Override
     protected AnalyzeResponse shardOperation(AnalyzeRequest request, int shardId) throws ElasticsearchException {
         IndexService indexService = null;
-        if (request.index() != null) {
-            indexService = indicesService.indexServiceSafe(request.index());
+        if (request.concreteIndex() != null) {
+            indexService = indicesService.indexServiceSafe(request.concreteIndex());
         }
         Analyzer analyzer = null;
         boolean closeAnalyzer = false;

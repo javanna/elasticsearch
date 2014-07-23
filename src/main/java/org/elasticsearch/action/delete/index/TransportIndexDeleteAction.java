@@ -55,7 +55,7 @@ public class TransportIndexDeleteAction extends TransportIndexReplicationOperati
 
     @Override
     protected IndexDeleteResponse newResponseInstance(IndexDeleteRequest request, List<ShardDeleteResponse> shardDeleteResponses, int failuresCount, List<ShardOperationFailedException> shardFailures) {
-        return new IndexDeleteResponse(request.index(), failuresCount, shardDeleteResponses.toArray(new ShardDeleteResponse[shardDeleteResponses.size()]));
+        return new IndexDeleteResponse(request.concreteIndex(), failuresCount, shardDeleteResponses.toArray(new ShardDeleteResponse[shardDeleteResponses.size()]));
     }
 
     @Override
@@ -70,12 +70,12 @@ public class TransportIndexDeleteAction extends TransportIndexReplicationOperati
 
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, IndexDeleteRequest request) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.WRITE, request.index());
+        return state.blocks().indexBlockedException(ClusterBlockLevel.WRITE, request.concreteIndex());
     }
 
     @Override
     protected GroupShardsIterator shards(IndexDeleteRequest request) {
-        return clusterService.operationRouting().broadcastDeleteShards(clusterService.state(), request.index());
+        return clusterService.operationRouting().broadcastDeleteShards(clusterService.state(), request.concreteIndex());
     }
 
     @Override

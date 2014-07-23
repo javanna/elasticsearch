@@ -42,7 +42,7 @@ public class ShardDeleteRequest extends ShardReplicationOperationRequest<ShardDe
 
     ShardDeleteRequest(IndexDeleteRequest request, int shardId) {
         super(request);
-        this.index = request.index();
+        this.index = request.concreteIndex();
         this.shardId = shardId;
         this.type = request.type();
         this.id = request.id();

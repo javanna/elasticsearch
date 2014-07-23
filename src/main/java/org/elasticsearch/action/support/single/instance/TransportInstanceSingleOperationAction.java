@@ -82,13 +82,12 @@ public abstract class TransportInstanceSingleOperationAction<Request extends Ins
     protected abstract ClusterBlockException checkRequestBlock(ClusterState state, Request request);
 
     /**
-     * Resolves the request, by default, simply setting the concrete index (if its aliased one). If the resolve
-     * means a different execution, then return false here to indicate not to continue and execute this request.
+     * Resolves the request. If the resolve means a different execution, then return false
+     * here to indicate not to continue and execute this request.
      */
-    protected boolean resolveRequest(ClusterState state, Request request, ActionListener<Response> listener) {
-        request.index(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
-        return true;
-    }
+    protected abstract boolean resolveRequest(ClusterState state, Request request, ActionListener<Response> listener);
+
+    protected abstract String concreteIndex(Request request);
 
     protected boolean retryOnFailure(Throwable e) {
         return false;
@@ -270,7 +269,7 @@ public abstract class TransportInstanceSingleOperationAction<Request extends Ins
                         Throwable listenFailure = failure;
                         if (listenFailure == null) {
                             if (shardIt == null) {
-                                listenFailure = new UnavailableShardsException(new ShardId(request.index(), -1), "Timeout waiting for [" + timeout + "], request: " + request.toString());
+                                listenFailure = new UnavailableShardsException(new ShardId(concreteIndex(request), -1), "Timeout waiting for [" + timeout + "], request: " + request.toString());
                             } else {
                                 listenFailure = new UnavailableShardsException(shardIt.shardId(), "[" + shardIt.size() + "] shardIt, [" + shardIt.sizeActive() + "] active : Timeout waiting for [" + timeout + "], request: " + request.toString());
                             }

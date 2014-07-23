@@ -69,13 +69,13 @@ public class TransportGetAction extends TransportShardSingleOperationAction<GetR
 
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, GetRequest request) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.index());
+        return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.concreteIndex());
     }
 
     @Override
     protected ShardIterator shards(ClusterState state, GetRequest request) {
         return clusterService.operationRouting()
-                .getShards(clusterService.state(), request.index(), request.type(), request.id(), request.routing(), request.preference());
+                .getShards(clusterService.state(), request.concreteIndex(), request.type(), request.id(), request.routing(), request.preference());
     }
 
     @Override
@@ -85,17 +85,17 @@ public class TransportGetAction extends TransportShardSingleOperationAction<GetR
         }
         // update the routing (request#index here is possibly an alias)
         request.routing(state.metaData().resolveIndexRouting(request.routing(), request.index()));
-        request.index(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
 
+        request.concreteIndex(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
         // Fail fast on the node that received the request.
-        if (request.routing() == null && state.getMetaData().routingRequired(request.index(), request.type())) {
-            throw new RoutingMissingException(request.index(), request.type(), request.id());
+        if (request.routing() == null && state.getMetaData().routingRequired(request.concreteIndex(), request.type())) {
+            throw new RoutingMissingException(request.concreteIndex(), request.type(), request.id());
         }
     }
 
     @Override
     protected GetResponse shardOperation(GetRequest request, int shardId) throws ElasticsearchException {
-        IndexService indexService = indicesService.indexServiceSafe(request.index());
+        IndexService indexService = indicesService.indexServiceSafe(request.concreteIndex());
         IndexShard indexShard = indexService.shardSafe(shardId);
 
         if (request.refresh() && !request.realtime()) {

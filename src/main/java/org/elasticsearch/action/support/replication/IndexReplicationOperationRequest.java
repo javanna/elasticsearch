@@ -35,7 +35,7 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 /**
  *
  */
-public class IndexReplicationOperationRequest<T extends IndexReplicationOperationRequest> extends ActionRequest<T> implements IndicesRequest {
+public abstract class IndexReplicationOperationRequest<T extends IndexReplicationOperationRequest> extends ActionRequest<T> implements IndicesRequest {
 
     protected TimeValue timeout = ShardReplicationOperationRequest.DEFAULT_TIMEOUT;
 
@@ -116,6 +116,10 @@ public class IndexReplicationOperationRequest<T extends IndexReplicationOperatio
         replicationType = ReplicationType.fromId(in.readByte());
         consistencyLevel = WriteConsistencyLevel.fromId(in.readByte());
         timeout = TimeValue.readTimeValue(in);
+        readIndex(in);
+    }
+
+    protected void readIndex(StreamInput in) throws IOException {
         index = in.readString();
     }
 
@@ -125,6 +129,10 @@ public class IndexReplicationOperationRequest<T extends IndexReplicationOperatio
         out.writeByte(replicationType.id());
         out.writeByte(consistencyLevel.id());
         timeout.writeTo(out);
+        writeIndex(out);
+    }
+
+    protected void writeIndex(StreamOutput out) throws IOException {
         out.writeString(index);
     }
 }

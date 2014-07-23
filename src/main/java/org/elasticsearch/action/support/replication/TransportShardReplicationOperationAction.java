@@ -129,12 +129,19 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
 
     protected abstract ClusterBlockException checkRequestBlock(ClusterState state, Request request);
 
+    protected String concreteIndex(Request request) {
+        return request.index();
+    }
+
+    protected String replicaConcreteIndex(ReplicaRequest request) {
+        return request.index();
+    }
+
     /**
-     * Resolves the request, by default, simply setting the concrete index (if its aliased one). If the resolve
+     * Resolves the request, by default doing nothing. If the resolve
      * means a different execution, then return false here to indicate not to continue and execute this request.
      */
     protected boolean resolveRequest(ClusterState state, Request request, ActionListener<Response> listener) {
-        request.index(state.metaData().concreteSingleIndex(request.index(), request.indicesOptions()));
         return true;
     }
 
@@ -237,7 +244,7 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
             try {
                 shardOperationOnReplica(request);
             } catch (Throwable t) {
-                failReplicaIfNeeded(request.request.index(), request.shardId, t);
+                failReplicaIfNeeded(replicaConcreteIndex(request.request), request.shardId, t);
                 throw t;
             }
             channel.sendResponse(TransportResponse.Empty.INSTANCE);
@@ -622,7 +629,7 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
             AtomicInteger counter = new AtomicInteger(replicaCounter);
 
 
-            IndexMetaData indexMetaData = observer.observedState().metaData().index(request.index());
+            IndexMetaData indexMetaData = observer.observedState().metaData().index(concreteIndex(request));
 
             if (newPrimaryShard != null) {
                 performOnReplica(response, counter, newPrimaryShard, newPrimaryShard.currentNodeId(), indexMetaData);

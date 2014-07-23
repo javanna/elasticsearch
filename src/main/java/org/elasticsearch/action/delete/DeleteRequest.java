@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.delete;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
@@ -46,6 +47,7 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
 
     private String type;
     private String id;
+    private String concreteIndex;
     @Nullable
     private String routing;
     private boolean refresh;
@@ -77,6 +79,7 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
         super(request);
         this.type = request.type();
         this.id = request.id();
+        this.concreteIndex = request.concreteIndex;
         this.routing = request.routing();
         this.refresh = request.refresh();
         this.version = request.version();
@@ -128,6 +131,15 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
      */
     public DeleteRequest id(String id) {
         this.id = id;
+        return this;
+    }
+
+    String concreteIndex() {
+        return concreteIndex;
+    }
+
+    DeleteRequest concreteIndex(String concreteIndex) {
+        this.concreteIndex = concreteIndex;
         return this;
     }
 
@@ -211,6 +223,18 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
     }
 
     @Override
+    protected void readIndex(StreamInput in) throws IOException {
+        index = in.readSharedString();
+        if (in.getVersion().onOrAfter(Version.V_1_4_0)) {
+            this.concreteIndex = in.readOptionalString();
+        } else {
+            //older nodes send a single index, the concrete one already resolved by them
+            //clients send a non concrete index that will be overridden on the coordinating node
+            this.concreteIndex = index;
+        }
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeSharedString(type);
@@ -219,6 +243,18 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
         out.writeBoolean(refresh);
         Versions.writeVersion(version, out);
         out.writeByte(versionType.getValue());
+    }
+
+    @Override
+    protected void writeIndex(StreamOutput out) throws IOException {
+        if (out.getVersion().onOrAfter(Version.V_1_4_0)) {
+            out.writeSharedString(index);
+            out.writeOptionalString(concreteIndex);
+        } else {
+            //older versions expect the concrete index as the only index
+            //clients don't set the concrete one though, hence we have to fallback to the original index
+            out.writeSharedString(concreteIndex == null ? index : concreteIndex);
+        }
     }
 
     @Override
