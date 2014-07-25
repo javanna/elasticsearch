@@ -62,9 +62,9 @@ public class CompositeTestCluster extends TestCluster {
     }
 
     @Override
-    public synchronized void beforeTest(Random random, double transportClientRatio) throws IOException {
-        super.beforeTest(random, transportClientRatio);
-        cluster.beforeTest(random, transportClientRatio);
+    public synchronized void beforeTest(Random random, double transportClientRatio, boolean transportClientEnableSniffMode) throws IOException {
+        super.beforeTest(random, transportClientRatio, transportClientEnableSniffMode);
+        cluster.beforeTest(random, transportClientRatio, transportClientEnableSniffMode);
         Settings defaultSettings = cluster.getDefaultSettings();
         final Client client = cluster.size() > 0 ? cluster.client() : cluster.clientNodeClient();
         for (int i = 0; i < externalNodes.length; i++) {

@@ -56,7 +56,6 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.PendingClusterTask;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
@@ -110,9 +109,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.test.InternalTestCluster.clusterName;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.*;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 
 /**
  * {@link ElasticsearchIntegrationTest} is an abstract base class to run integration
@@ -291,7 +288,7 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
                 default:
                     fail("Unknown Scope: [" + currentClusterScope + "]");
             }
-            cluster().beforeTest(getRandom(), getPerTestTransportClientRatio());
+            cluster().beforeTest(getRandom(), getPerTestTransportClientRatio(), getPerTestEnableSniffMode());
             cluster().wipe();
             randomIndexTemplate();
             logger.info("[{}#{}]: before test", getTestClass().getSimpleName(), getTestName());
@@ -1318,6 +1315,11 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         double transportClientRatio() default -1;
 
         /**
+         * Returns whether the transport client sniff mode can be enabled or not
+         */
+        boolean enableTransportClientSniffMode() default true;
+
+        /**
          * Return whether or not to enable dynamic templates for the mappings.
          */
         boolean randomDynamicTemplates() default true;
@@ -1484,6 +1486,19 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         }
         assert perTestRatio >= 0.0 && perTestRatio <= 1.0;
         return perTestRatio;
+    }
+
+    /**
+     * Returns whether the transport client sniff mode can be enabled. If it returns <tt>false</tt>
+     * sniff mode won't be utilised, otherwise it will get randomized, meaning that it might get enabled.
+     */
+    protected boolean getPerTestEnableSniffMode() {
+        final ClusterScope annotation = getAnnotation(this.getClass());
+        boolean perTestSniffMode = true;
+        if (annotation != null) {
+            perTestSniffMode = annotation.enableTransportClientSniffMode();
+        }
+        return perTestSniffMode;
     }
 
     /**

@@ -94,6 +94,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.frequently;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomBoolean;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.systemPropertyAsBoolean;
 import static org.apache.lucene.util.LuceneTestCase.rarely;
 import static org.apache.lucene.util.LuceneTestCase.usually;
@@ -106,7 +107,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTi
  * The cluster supports randomized configuration such that nodes started in the cluster will
  * automatically load asserting services tracking resources like file handles or open searchers.
  * <p>
- * The Cluster is bound to a test lifecycle where tests must call {@link #beforeTest(java.util.Random, double)} and
+ * The Cluster is bound to a test lifecycle where tests must call {@link #beforeTest(java.util.Random, double, boolean)} and
  * {@link #afterTest()} to initialize and reset the cluster in order to be more reproducible. The term "more" relates
  * to the async nature of Elasticsearch in combination with randomized testing. Once Threads and asynchronous calls
  * are involved reproducibility is very limited. This class should only be used through {@link ElasticsearchIntegrationTest}.
@@ -701,7 +702,7 @@ public final class InternalTestCluster extends TestCluster {
                 if (maybeTransportClient instanceof TransportClient) {
                     transportClient = maybeTransportClient;
                 } else {
-                    transportClient = TransportClientFactory.NO_SNIFF_CLIENT_FACTORY.client(node, clusterName, random);
+                    transportClient = new TransportClientFactory(transportClientEnableSniffMode).client(node, clusterName, random);
                 }
             }
             return transportClient;
@@ -758,8 +759,6 @@ public final class InternalTestCluster extends TestCluster {
     static class TransportClientFactory extends ClientFactory {
 
         private boolean sniff;
-        public static TransportClientFactory NO_SNIFF_CLIENT_FACTORY = new TransportClientFactory(false);
-        public static TransportClientFactory SNIFF_CLIENT_FACTORY = new TransportClientFactory(true);
 
         private TransportClientFactory(boolean sniff) {
             this.sniff = sniff;
@@ -794,10 +793,7 @@ public final class InternalTestCluster extends TestCluster {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Using transport client for node [{}] sniff: [{}]", node.settings().get("name"), false);
                 }
-                /* no sniff client for now - doesn't work will all tests since it might throw NoNodeAvailableException if nodes are shut down.
-                 * we first need support of transportClientRatio as annotations or so
-                 */
-                return TransportClientFactory.NO_SNIFF_CLIENT_FACTORY.client(node, clusterName, random);
+                return new TransportClientFactory(transportClientEnableSniffMode ? randomBoolean() : false).client(node, clusterName, random);
             } else {
                 return node.client();
             }
@@ -805,8 +801,8 @@ public final class InternalTestCluster extends TestCluster {
     }
 
     @Override
-    public synchronized void beforeTest(Random random, double transportClientRatio) throws IOException {
-        super.beforeTest(random, transportClientRatio);
+    public synchronized void beforeTest(Random random, double transportClientRatio, boolean transportClientEnableSniffMode) throws IOException {
+        super.beforeTest(random, transportClientRatio, transportClientEnableSniffMode);
         reset(true);
     }
 

@@ -52,14 +52,16 @@ public abstract class TestCluster implements Iterable<Client>, Closeable {
     protected Random random;
 
     protected double transportClientRatio = 0.0;
+    protected boolean transportClientEnableSniffMode = true;
 
     /**
      * This method should be executed before each test to reset the cluster to its initial state.
      */
-    public void beforeTest(Random random, double transportClientRatio) throws IOException {
+    public void beforeTest(Random random, double transportClientRatio, boolean transportClientEnableSniffMode) throws IOException {
         assert transportClientRatio >= 0.0 && transportClientRatio <= 1.0;
-        logger.debug("Reset test cluster with transport client ratio: [{}]", transportClientRatio);
+        logger.debug("Reset test cluster with transport client ratio: [{}], sniff mode enabled: [{}]", transportClientRatio, transportClientEnableSniffMode);
         this.transportClientRatio = transportClientRatio;
+        this.transportClientEnableSniffMode = transportClientEnableSniffMode;
         this.random = new Random(random.nextLong());
     }
 

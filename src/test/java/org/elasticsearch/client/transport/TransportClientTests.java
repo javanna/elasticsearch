@@ -19,23 +19,22 @@
 
 package org.elasticsearch.client.transport;
 
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.elasticsearch.test.ElasticsearchIntegrationTest.*;
+import static org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import static org.hamcrest.Matchers.equalTo;
 
-@ClusterScope(scope = Scope.TEST, numDataNodes = 0, transportClientRatio = 1.0)
+@ClusterScope(scope = Scope.TEST, numDataNodes = 0)
 public class TransportClientTests extends ElasticsearchIntegrationTest {
 
     @Test
     public void testPickingUpChangesInDiscoveryNode() {
-        String nodeName = internalCluster().startNode(ImmutableSettings.builder().put("node.data", false));
+        String node = internalCluster().startNode();
 
-        TransportClient client = (TransportClient) internalCluster().client(nodeName);
-        assertThat(client.connectedNodes().get(0).dataNode(), Matchers.equalTo(false));
-
+        TransportClient client = (TransportClient) internalCluster().transportClient();
+        assertThat(client.connectedNodes().size(), equalTo(1));
+        assertThat(client.connectedNodes().get(0).name(), equalTo(node));
     }
 }
