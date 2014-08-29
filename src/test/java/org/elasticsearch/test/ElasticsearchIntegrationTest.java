@@ -329,7 +329,7 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
             if (randomizeNumberOfShardsAndReplicas()) {
                 randomSettingsBuilder.put(SETTING_NUMBER_OF_SHARDS, between(DEFAULT_MIN_NUM_SHARDS, DEFAULT_MAX_NUM_SHARDS))
                         //use either 0 or 1 replica, yet a higher amount when possible, but only rarely
-                        .put(SETTING_NUMBER_OF_REPLICAS, between(0, getRandom().nextInt(10) > 0 ? 1 : cluster().numDataNodes() - 1));
+                        .put(SETTING_NUMBER_OF_REPLICAS, between(0, getRandom().nextInt(10) > 0 ? 1 : maximumNumberOfReplicas()));
             }
             XContentBuilder mappings = null;
             if (frequently() && randomDynamicTemplates()) {
