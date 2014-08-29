@@ -129,7 +129,7 @@ public abstract class ElasticsearchBackwardsCompatIntegrationTest extends Elasti
     protected int maximumNumberOfReplicas() {
         //NodeVersionAllocationDecider prevents replicas from being allocated if the primary is on a newer node
         //that's why we only take into account data nodes that belong to the internal cluster
-        return backwardsCluster().internalCluster().numDataNodes() - 1;
+        return Math.max(0, backwardsCluster().internalCluster().numDataNodes() - 1);
     }
 
     @Before
