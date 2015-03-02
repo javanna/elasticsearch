@@ -26,8 +26,12 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.FilterBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.script.ScriptService;
@@ -366,9 +370,6 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
 
     /**
      * Indicates whether the response should contain the stored _source for every hit
-     *
-     * @param fetch
-     * @return
      */
     public SearchRequestBuilder setFetchSource(boolean fetch) {
         sourceBuilder().fetchSource(fetch);
@@ -1008,7 +1009,36 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
 
     @Override
     public String toString() {
-        return internalBuilder().toString();
+        if (sourceBuilder != null && request.extraSource() != null) {
+            return finalSourceAsString(sourceBuilder.buildAsBytes());
+        }
+        if (sourceBuilder != null) {
+            return sourceBuilder.toString();
+        }
+        if (request.source() != null && request.extraSource() != null) {
+            return finalSourceAsString(request.source());
+        }
+        if (request.source() != null) {
+            return request.source().toUtf8();
+        }
+        if (request.extraSource() != null) {
+            return request.extraSource().toUtf8();
+        }
+        return new SearchSourceBuilder().toString();
+    }
+
+    private String finalSourceAsString(BytesReference source) {
+        try {
+            Tuple<XContentType, Map<String, Object>> sourceMap = XContentHelper.convertToMap(source, false);
+            Tuple<XContentType, Map<String, Object>> extraSourceMap = XContentHelper.convertToMap(request.extraSource(), false);
+            //extraSource wins against source (e.g. params provided in the url win against params provided in the body)
+            XContentHelper.mergeDefaults(extraSourceMap.v2(), sourceMap.v2());
+            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
+            builder.map(extraSourceMap.v2());
+            return builder.string();
+        } catch(Exception e) {
+            return "{ \"error\" : \"" + e.getMessage() + "\"}";
+        }
     }
 
     @Override
