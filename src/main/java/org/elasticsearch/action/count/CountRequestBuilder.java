@@ -152,4 +152,15 @@ public class CountRequestBuilder extends BroadcastOperationRequestBuilder<CountR
         }
         return sourceBuilder;
     }
+
+    @Override
+    public String toString() {
+        if (sourceBuilder != null) {
+            return sourceBuilder.toString();
+        }
+        if (request.source() != null) {
+            return request.source().toUtf8();
+        }
+        return new QuerySourceBuilder().toString();
+    }
 }
