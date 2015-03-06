@@ -18,13 +18,14 @@
  */
 package org.elasticsearch.script;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.settings.NodeSettingsService;
+import org.elasticsearch.script.ScriptService.ScriptType;
 import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.elasticsearch.watcher.ResourceWatcherService;
@@ -44,6 +45,8 @@ import static org.hamcrest.Matchers.equalTo;
  */
 public class ScriptServiceTests extends ElasticsearchTestCase {
 
+    //TODO add unit tests here!
+
     @Test
     public void testScriptsWithoutExtensions() throws IOException {
         Path homeFolder = newTempDirPath();
@@ -59,7 +62,7 @@ public class ScriptServiceTests extends ElasticsearchTestCase {
 
         logger.info("--> setup script service");
         ScriptService scriptService = new ScriptService(settings, environment,
-                ImmutableSet.of(new TestEngineService()), resourceWatcherService, new NodeSettingsService(settings));
+                ImmutableSet.<ScriptEngineService>of(new TestEngineService()), resourceWatcherService, new NodeSettingsService(settings));
         Path scriptsFile = genericConfigFolder.resolve("scripts");
         Files.createDirectories(scriptsFile);
         resourceWatcherService.notifyNow();
@@ -72,7 +75,7 @@ public class ScriptServiceTests extends ElasticsearchTestCase {
         resourceWatcherService.notifyNow();
 
         logger.info("--> verify that file with extension was correctly processed");
-        CompiledScript compiledScript = scriptService.compile("test", "test_script", ScriptService.ScriptType.FILE);
+        CompiledScript compiledScript = scriptService.compile("test", "test_script", ScriptType.FILE, ScriptedOp.SEARCH);
         assertThat(compiledScript.compiled(), equalTo((Object) "compiled_test_file"));
 
         logger.info("--> delete both files");
@@ -82,7 +85,7 @@ public class ScriptServiceTests extends ElasticsearchTestCase {
 
         logger.info("--> verify that file with extension was correctly removed");
         try {
-            scriptService.compile("test", "test_script", ScriptService.ScriptType.FILE);
+            scriptService.compile("test", "test_script", ScriptType.FILE, ScriptedOp.SEARCH);
             fail("the script test_script should no longer exist");
         } catch (ElasticsearchIllegalArgumentException ex) {
             assertThat(ex.getMessage(), containsString("Unable to find on disk script test_script"));

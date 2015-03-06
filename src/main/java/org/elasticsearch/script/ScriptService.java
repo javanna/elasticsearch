@@ -81,12 +81,14 @@ import java.util.concurrent.TimeUnit;
 public class ScriptService extends AbstractComponent {
 
     public static final String DEFAULT_SCRIPTING_LANGUAGE_SETTING = "script.default_lang";
+    @Deprecated
     public static final String DISABLE_DYNAMIC_SCRIPTING_SETTING = "script.disable_dynamic";
     public static final String SCRIPT_CACHE_SIZE_SETTING = "script.cache.max_size";
     public static final String SCRIPT_CACHE_EXPIRE_SETTING = "script.cache.expire";
+    @Deprecated
     public static final String DISABLE_DYNAMIC_SCRIPTING_DEFAULT = "sandbox";
     public static final String SCRIPT_INDEX = ".scripts";
-    public static final String DEFAULT_LANG = "groovy";
+    public static final String DEFAULT_LANG = GroovyScriptEngineService.NAME;
     public static final String SCRIPT_AUTO_RELOAD_ENABLED_SETTING = "script.auto_reload_enabled";
 
     private final String defaultLang;
@@ -101,6 +103,8 @@ public class ScriptService extends AbstractComponent {
 
     private final DynamicScriptDisabling dynamicScriptingDisabled;
 
+    private final ScriptModes scriptModes;
+
     private Client client = null;
 
     /**
@@ -108,7 +112,12 @@ public class ScriptService extends AbstractComponent {
      * ONLY_DISK_ALLOWED (scripts must be placed on disk), EVERYTHING_ALLOWED
      * (all dynamic scripting is enabled), or SANDBOXED_ONLY (only sandboxed
      * scripting languages are allowed)
+     *
+     * @deprecated replaced by {@link ScriptModes} which holds
+     * fine grained settings that allow to enable/disable scripts based on their language,
+     * where they are loaded from and the api that executes them.
      */
+    @Deprecated
     enum DynamicScriptDisabling {
         EVERYTHING_ALLOWED,
         ONLY_DISK_ALLOWED,
@@ -161,13 +170,8 @@ public class ScriptService extends AbstractComponent {
         cacheBuilder.removalListener(new ScriptCacheRemovalListener());
         this.cache = cacheBuilder.build();
 
-        ImmutableMap.Builder<String, ScriptEngineService> builder = ImmutableMap.builder();
-        for (ScriptEngineService scriptEngine : scriptEngines) {
-            for (String type : scriptEngine.types()) {
-                builder.put(type, scriptEngine);
-            }
-        }
-        this.scriptEngines = builder.build();
+        this.scriptEngines = buildScriptEnginesMap(scriptEngines);
+        this.scriptModes = new ScriptModes(this.scriptEngines, settings);
 
         // add file watcher for static scripts
         scriptsDirectory = env.configFile().resolve("scripts");
@@ -185,6 +189,16 @@ public class ScriptService extends AbstractComponent {
             fileWatcher.init();
         }
         nodeSettingsService.addListener(new ApplySettings());
+    }
+
+    static ImmutableMap<String, ScriptEngineService> buildScriptEnginesMap(Set<ScriptEngineService> scriptEngines) {
+        ImmutableMap.Builder<String, ScriptEngineService> builder = ImmutableMap.builder();
+        for (ScriptEngineService scriptEngine : scriptEngines) {
+            for (String type : scriptEngine.types()) {
+                builder.put(type, scriptEngine);
+            }
+        }
+        return builder.build();
     }
 
     //This isn't set in the ctor because doing so creates a guice circular
@@ -223,9 +237,24 @@ public class ScriptService extends AbstractComponent {
     }
 
     /**
+     * Checks if a script can be executed and compiles it if needed, or returns the previously compiled and cached script.
+     */
+    public CompiledScript compile(String lang,  String script, ScriptType scriptType, ScriptedOp scriptedOp) {
+        assert scriptType != null;
+        assert scriptedOp != null;
+        if (lang == null) {
+            lang = defaultLang;
+        }
+        if (canExecuteScript(lang, getScriptEngineService(lang), scriptType, scriptedOp) == false) {
+            throw new ScriptException("scripts of type [" + scriptType + "], operation [" + scriptedOp + "] and lang [" + lang + "] are disabled");
+        }
+        return compileInternal(lang, script, scriptType);
+    }
+
+    /**
      * Compiles a script straight-away, or returns the previously compiled and cached script, without checking if it can be executed based on settings.
      */
-    public CompiledScript compile(String lang,  String script, ScriptType scriptType) {
+    private CompiledScript compileInternal(String lang,  String script, ScriptType scriptType) {
         if (lang == null) {
             lang = defaultLang;
         }
@@ -307,7 +336,15 @@ public class ScriptService extends AbstractComponent {
                 //Just try and compile it
                 //This will have the benefit of also adding the script to the cache if it compiles
                 try {
-                    CompiledScript compiledScript = compile(scriptLang, context.template(), ScriptType.INLINE);
+                    //TODO test this behaviour
+                    //we don't know yet what the script will be used for, but if all of the operations for this lang with
+                    //indexed scripts are disabled, it makes no sense to even compile it and store it. Throw error straight-away (or better to just log it?).
+                    //Otherwise script will go in cache and we will do another check at run time, to verify if it can be executed when called.
+                    if (areAllScriptedOpsDisabled(scriptLang, getScriptEngineService(scriptLang), ScriptType.INDEXED)) {
+                        throw new ScriptException(ScriptType.INDEXED + " scripts and lang [" + scriptLang + "] disabled");
+                    }
+
+                    CompiledScript compiledScript = compileInternal(scriptLang, context.template(), ScriptType.INLINE);
                     if (compiledScript == null) {
                         throw new ElasticsearchIllegalArgumentException("Unable to parse [" + context.template() +
                                 "] lang [" + scriptLang + "] (ScriptService.compile returned null)");
@@ -374,8 +411,8 @@ public class ScriptService extends AbstractComponent {
     /**
      * Compiles (or retrieves from cache) and executes the provided script
      */
-    public ExecutableScript executable(String lang, String script, ScriptType scriptType, Map<String, Object> vars) {
-        return executable(compile(lang, script, scriptType), vars);
+    public ExecutableScript executable(String lang, String script, ScriptType scriptType, ScriptedOp scriptedOp, Map<String, Object> vars) {
+        return executable(compile(lang, script, scriptType, scriptedOp), vars);
     }
 
     /**
@@ -388,9 +425,37 @@ public class ScriptService extends AbstractComponent {
     /**
      * Compiles (or retrieves from cache) and executes the provided search script
      */
-    public SearchScript search(SearchLookup lookup, String lang, String script, ScriptType scriptType, @Nullable Map<String, Object> vars) {
-        CompiledScript compiledScript = compile(lang, script, scriptType);
+    public SearchScript search(SearchLookup lookup, String lang, String script, ScriptType scriptType, ScriptedOp scriptedOp, @Nullable Map<String, Object> vars) {
+        CompiledScript compiledScript = compile(lang, script, scriptType, scriptedOp);
         return scriptEngines.get(compiledScript.lang()).search(compiledScript.compiled(), lookup, vars);
+    }
+
+    private boolean areAllScriptedOpsDisabled(String lang, ScriptEngineService scriptEngineService, ScriptType scriptType) {
+        for (ScriptedOp scriptedOp : ScriptedOp.values()) {
+            if (canExecuteScript(lang, scriptEngineService, scriptType, scriptedOp)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean canExecuteScript(String lang, ScriptEngineService scriptEngineService, ScriptType scriptType, ScriptedOp scriptedOp) {
+        assert lang != null;
+        //native scripts are always as they are static by definition
+        if (NativeScriptEngineService.NAME.equals(lang)) {
+            return true;
+        }
+        ScriptMode mode = scriptModes.getScriptMode(lang, scriptType, scriptedOp);
+        switch (mode) {
+            case ENABLE:
+                return true;
+            case DISABLE:
+                return false;
+            case SANDBOX:
+                return scriptEngineService.sandboxed();
+            default:
+                throw new ElasticsearchIllegalArgumentException("script mode [" + mode + "] not supported");
+        }
     }
 
     private boolean dynamicScriptEnabled(String lang, ScriptEngineService scriptEngineService) {
@@ -457,9 +522,18 @@ public class ScriptService extends AbstractComponent {
                         if (s.equals(scriptNameExt.v2())) {
                             found = true;
                             try {
-                                logger.info("compiling script file [{}]", file.toAbsolutePath());
-                                String script = Streams.copyToString(new InputStreamReader(Files.newInputStream(file), Charsets.UTF_8));
-                                staticCache.put(scriptNameExt.v1(), new CompiledScript(engineService.types()[0], engineService.compile(script)));
+                                //TODO test this behaviour
+                                //we don't know yet what the script will be used for, but if all of the operations for this lang with
+                                //file scripts are disabled, it makes no sense to even compile it and store it. Log it warn (as we can't return an error, this happens in the background).
+                                //Otherwise script will go in cache and we will do another check at run time, to verify if it can be executed when called.
+                                //That said at execution time we won't even look for the script, we will return the usual "can't execute" error rather than "script not found"
+                                if (areAllScriptedOpsDisabled(engineService.types()[0], engineService, ScriptType.FILE) == false) {
+                                    logger.info("compiling script file [{}]", file.toAbsolutePath());
+                                    String script = Streams.copyToString(new InputStreamReader(Files.newInputStream(file), Charsets.UTF_8));
+                                    staticCache.put(scriptNameExt.v1(), new CompiledScript(engineService.types()[0], engineService.compile(script)));
+                                } else {
+                                    logger.warn("skipping compile of script file [{}] as all scripted operations are disabled for file scripts", file.toAbsolutePath());
+                                }
                             } catch (Throwable e) {
                                 logger.warn("failed to load/compile script [{}]", e, scriptNameExt.v1());
                             }
@@ -546,6 +620,15 @@ public class ScriptService extends AbstractComponent {
             } else {
                 out.writeVInt(INLINE_VAL); //Default to inline
             }
+        }
+
+        @Override
+        public String toString() {
+            //ScriptModes looks for 'dynamic' rather than 'inline' when reading settings, we should rename but we want to keep bw comp for now.
+            if (this == INLINE) {
+                return "dynamic";
+            }
+            return name().toLowerCase(Locale.ENGLISH);
         }
     }
 

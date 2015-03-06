@@ -48,7 +48,7 @@ public class OnDiskScriptTests extends ElasticsearchIntegrationTest {
     @Test
     public void testFieldOnDiskScript()  throws ExecutionException, InterruptedException {
 
-        List<IndexRequestBuilder> builders = new ArrayList();
+        List<IndexRequestBuilder> builders = new ArrayList<>();
         builders.add(client().prepareIndex("test", "scriptTest", "1").setSource("{\"theField\":\"foo\"}"));
         builders.add(client().prepareIndex("test", "scriptTest", "2").setSource("{\"theField\":\"foo 2\"}"));
         builders.add(client().prepareIndex("test", "scriptTest", "3").setSource("{\"theField\":\"foo 3\"}"));

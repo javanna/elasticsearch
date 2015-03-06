@@ -25,6 +25,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
+import org.elasticsearch.script.ScriptService.ScriptType;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolModule;
@@ -35,6 +36,8 @@ import java.util.Map;
 import static org.hamcrest.Matchers.equalTo;
 
 public class NativeScriptTests extends ElasticsearchTestCase {
+
+    //TODO add fine grained settings tests here
 
     @Test
     public void testNativeScript() throws InterruptedException {
@@ -49,7 +52,7 @@ public class NativeScriptTests extends ElasticsearchTestCase {
 
         ScriptService scriptService = injector.getInstance(ScriptService.class);
 
-        ExecutableScript executable = scriptService.executable(NativeScriptEngineService.NAME, "my", ScriptService.ScriptType.INLINE, null);
+        ExecutableScript executable = scriptService.executable(NativeScriptEngineService.NAME, "my", ScriptType.INLINE, ScriptedOp.SEARCH, null);
         assertThat(executable.run().toString(), equalTo("test"));
         terminate(injector.getInstance(ThreadPool.class));
     }
