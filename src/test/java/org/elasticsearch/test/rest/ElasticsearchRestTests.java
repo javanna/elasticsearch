@@ -111,6 +111,8 @@ public class ElasticsearchRestTests extends ElasticsearchIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return ImmutableSettings.builder()
             .put(InternalNode.HTTP_ENABLED, true)
+            .put("script.inline", "on")
+            .put("script.indexed", "on")
             .put(super.nodeSettings(nodeOrdinal)).build();
     }
 

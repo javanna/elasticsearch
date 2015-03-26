@@ -141,6 +141,7 @@ public class IndicesRequestTests extends ElasticsearchIntegrationTest {
         return ImmutableSettings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put(TransportModule.TRANSPORT_SERVICE_TYPE_KEY, InterceptingTransportService.class.getName())
+                .put("script.inline", "on")
                 .build();
     }
 

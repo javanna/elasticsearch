@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.suggest.SuggestResponse;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -52,6 +54,13 @@ import static org.hamcrest.Matchers.not;
  * Tests for transforming the source document before indexing.
  */
 public class TransformOnIndexMapperIntegrationTest extends ElasticsearchIntegrationTest {
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
+                .put("script.inline", "on").build();
+    }
+
     @Test
     public void searchOnTransformed() throws Exception {
         setup(true);

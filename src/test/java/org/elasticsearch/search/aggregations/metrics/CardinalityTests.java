@@ -41,6 +41,12 @@ import static org.hamcrest.core.IsNull.notNullValue;
 public class CardinalityTests extends ElasticsearchIntegrationTest {
 
     @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
+                .put("script.inline", "on").build();
+    }
+
+    @Override
     public Settings indexSettings() {
         return ImmutableSettings.builder()
                 .put("index.number_of_shards", between(1, 5))

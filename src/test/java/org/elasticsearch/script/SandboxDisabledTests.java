@@ -20,9 +20,6 @@
 package org.elasticsearch.script;
 
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.script.groovy.GroovyScriptEngineService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
@@ -32,15 +29,7 @@ import static org.hamcrest.Matchers.containsString;
  * Test that a system where the sandbox is disabled while dynamic scripting is
  * also disabled does not allow a script to be sent
  */
-@ElasticsearchIntegrationTest.ClusterScope(scope=ElasticsearchIntegrationTest.Scope.SUITE)
 public class SandboxDisabledTests extends ElasticsearchIntegrationTest {
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder().put(super.nodeSettings(nodeOrdinal))
-                .put(GroovyScriptEngineService.GROOVY_SCRIPT_SANDBOX_ENABLED, false)
-                .put("script.inline", false).build();
-    }
 
     @Test
     public void testScriptingDisabledWhileSandboxDisabled() {
