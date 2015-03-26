@@ -71,7 +71,7 @@ import static org.hamcrest.Matchers.*;
 public class SimpleSortTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

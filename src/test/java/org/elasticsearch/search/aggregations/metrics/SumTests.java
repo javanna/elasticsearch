@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.notNullValue;
 public class SumTests extends AbstractNumericTests {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

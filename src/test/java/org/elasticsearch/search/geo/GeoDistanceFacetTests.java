@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.*;
 public class GeoDistanceFacetTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

@@ -54,7 +54,7 @@ public class RangeTests extends ElasticsearchIntegrationTest {
     static int numDocs;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

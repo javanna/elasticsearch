@@ -63,7 +63,7 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
     static long[] valueCounts, valuesCounts;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

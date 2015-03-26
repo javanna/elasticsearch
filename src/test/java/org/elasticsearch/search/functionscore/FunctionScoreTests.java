@@ -62,7 +62,7 @@ public class FunctionScoreTests extends ElasticsearchIntegrationTest {
     static final XContentBuilder MAPPING_WITH_DOUBLE_AND_GEO_POINT_AND_TEXT_FIELD;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

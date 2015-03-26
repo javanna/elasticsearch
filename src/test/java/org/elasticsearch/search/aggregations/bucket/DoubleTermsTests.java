@@ -63,7 +63,7 @@ public class DoubleTermsTests extends AbstractTermsTests {
     private static HashMap<Double, Map<String, Object>> expectedMultiSortBuckets;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

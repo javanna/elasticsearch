@@ -53,7 +53,7 @@ import static org.hamcrest.Matchers.*;
 public class BulkTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

@@ -68,7 +68,7 @@ public class DateRangeTests extends ElasticsearchIntegrationTest {
     private static int numDocs;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

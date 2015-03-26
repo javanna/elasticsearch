@@ -59,7 +59,7 @@ import static org.hamcrest.Matchers.*;
 public class SimpleNestedTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

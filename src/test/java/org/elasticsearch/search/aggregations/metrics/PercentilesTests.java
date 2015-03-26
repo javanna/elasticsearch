@@ -92,7 +92,7 @@ public class PercentilesTests extends AbstractNumericTests {
     }
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

@@ -757,11 +757,11 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         }
     }
 
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return false;
     }
 
-    protected boolean enableIndexedScripts() {
+    protected boolean requiresIndexedScripts() {
         return false;
     }
 
@@ -1641,11 +1641,21 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
                 // from failing on nodes without enough disk space
                 .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK, "1b")
                 .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK, "1b");
-        if (enableInlineScripts()) {
+        if (requiresInlineScripts()) {
             builder.put("script.inline", "on");
+        } else {
+            if (randomBoolean()) {
+                //randomly disable inline scripts (rather than sandbox default)
+                builder.put("script.inline", "off");
+            }
         }
-        if (enableIndexedScripts()) {
+        if (requiresIndexedScripts()) {
             builder.put("script.indexed", "on");
+        } else {
+            if (randomBoolean()) {
+                //randomly disable indexed scripts (rather than sandbox default)
+                builder.put("script.indexed", "off");
+            }
         }
         return builder.build();
     }

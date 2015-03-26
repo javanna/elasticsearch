@@ -49,7 +49,7 @@ import static org.hamcrest.core.IsNull.nullValue;
 public class IPv4RangeTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

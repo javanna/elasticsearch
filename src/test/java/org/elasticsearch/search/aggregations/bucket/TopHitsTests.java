@@ -71,7 +71,7 @@ public class TopHitsTests extends ElasticsearchIntegrationTest {
     static int numArticles;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

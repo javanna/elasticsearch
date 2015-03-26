@@ -54,7 +54,7 @@ public class MinDocCountTests extends AbstractTermsTests {
     private static int cardinality;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

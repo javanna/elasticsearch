@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.equalTo;
 public class ScriptFilterSearchTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

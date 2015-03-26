@@ -41,7 +41,7 @@ import static org.hamcrest.core.IsNull.notNullValue;
 public class CardinalityTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

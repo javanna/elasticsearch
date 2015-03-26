@@ -57,7 +57,7 @@ public class IndexedScriptTests extends ElasticsearchIntegrationTest {
     }
 
     @Override
-    protected boolean enableIndexedScripts() {
+    protected boolean requiresIndexedScripts() {
         return true;
     }
 

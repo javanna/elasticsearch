@@ -67,7 +67,7 @@ public class StringTermsTests extends AbstractTermsTests {
     private static Map<String, Map<String, Object>> expectedMultiSortBuckets;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

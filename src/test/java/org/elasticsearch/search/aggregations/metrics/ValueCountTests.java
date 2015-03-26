@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.notNullValue;
 public class ValueCountTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

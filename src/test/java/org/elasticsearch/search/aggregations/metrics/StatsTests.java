@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.*;
 public class StatsTests extends AbstractNumericTests {
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

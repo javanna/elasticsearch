@@ -61,7 +61,7 @@ public class LongTermsTests extends AbstractTermsTests {
     private static HashMap<Long, Map<String, Object>> expectedMultiSortBuckets;
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 

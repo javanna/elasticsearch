@@ -84,12 +84,12 @@ public class SignificantTermsSignificanceScoreTests extends ElasticsearchIntegra
     }
 
     @Override
-    protected boolean enableInlineScripts() {
+    protected boolean requiresInlineScripts() {
         return true;
     }
 
     @Override
-    protected boolean enableIndexedScripts() {
+    protected boolean requiresIndexedScripts() {
         return true;
     }
 
