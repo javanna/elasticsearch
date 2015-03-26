@@ -67,9 +67,8 @@ import static org.hamcrest.Matchers.*;
 public class SearchQueryTests extends ElasticsearchIntegrationTest {
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
-                .put("script.inline", "on").build();
+    protected boolean enableInlineScripts() {
+        return true;
     }
 
     @Override

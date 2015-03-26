@@ -757,6 +757,14 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         }
     }
 
+    protected boolean enableInlineScripts() {
+        return false;
+    }
+
+    protected boolean enableIndexedScripts() {
+        return false;
+    }
+
     /** overridable method to turn custom data paths on or off */
     public boolean useCustomDataPath() {
         return true;
@@ -1628,12 +1636,18 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
      * In other words subclasses must ensure this method is idempotent.
      */
     protected Settings nodeSettings(int nodeOrdinal) {
-        return settingsBuilder()
+        ImmutableSettings.Builder builder = settingsBuilder()
                 // Default the watermarks to absurdly low to prevent the tests
                 // from failing on nodes without enough disk space
                 .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK, "1b")
-                .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK, "1b")
-                .build();
+                .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK, "1b");
+        if (enableInlineScripts()) {
+            builder.put("script.inline", "on");
+        }
+        if (enableIndexedScripts()) {
+            builder.put("script.indexed", "on");
+        }
+        return builder.build();
     }
 
     /**

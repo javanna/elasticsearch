@@ -63,9 +63,8 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
     static long[] valueCounts, valuesCounts;
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
-                .put("script.inline", "on").build();
+    protected boolean enableInlineScripts() {
+        return true;
     }
 
     @Override

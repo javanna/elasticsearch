@@ -106,9 +106,17 @@ public class ScriptedMetricTests extends ElasticsearchIntegrationTest {
         return ImmutableSettings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("path.conf", getResource("/org/elasticsearch/search/aggregations/metrics/scripted/conf"))
-                .put("script.inline", "on")
-                .put("script.indexed", "on")
                 .build();
+    }
+
+    @Override
+    protected boolean enableInlineScripts() {
+        return true;
+    }
+
+    @Override
+    protected boolean enableIndexedScripts() {
+        return true;
     }
 
     @Test

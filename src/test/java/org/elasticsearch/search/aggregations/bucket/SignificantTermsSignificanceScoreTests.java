@@ -80,9 +80,17 @@ public class SignificantTermsSignificanceScoreTests extends ElasticsearchIntegra
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("plugin.types", CustomSignificanceHeuristicPlugin.class.getName())
                 .put("path.conf", this.getResource("config").getPath())
-                .put("script.inline", "on")
-                .put("script.indexed", "on")
                 .build();
+    }
+
+    @Override
+    protected boolean enableInlineScripts() {
+        return true;
+    }
+
+    @Override
+    protected boolean enableIndexedScripts() {
+        return true;
     }
 
     public String randomExecutionHint() {
