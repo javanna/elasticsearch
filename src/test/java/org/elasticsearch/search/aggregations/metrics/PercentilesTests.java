@@ -21,11 +21,13 @@ package org.elasticsearch.search.aggregations.metrics;
 import com.google.common.collect.Lists;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram.Order;
 import org.elasticsearch.search.aggregations.metrics.percentiles.Percentile;
 import org.elasticsearch.search.aggregations.metrics.percentiles.Percentiles;
 import org.elasticsearch.search.aggregations.metrics.percentiles.PercentilesBuilder;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -36,9 +38,7 @@ import static org.elasticsearch.search.aggregations.AggregationBuilders.histogra
 import static org.elasticsearch.search.aggregations.AggregationBuilders.percentiles;
 import static org.hamcrest.Matchers.*;
 
-/**
- *
- */
+@RequiresScripts(context = ScriptContext.AGGS)
 public class PercentilesTests extends AbstractNumericTests {
 
     private static double[] randomPercentiles() {
@@ -89,11 +89,6 @@ public class PercentilesTests extends AbstractNumericTests {
         for (int i = 1; i < percentileList.size(); ++i) {
             assertThat(percentileList.get(i).getValue(), greaterThanOrEqualTo(percentileList.get(i - 1).getValue()));
         }
-    }
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
     }
 
     @Test

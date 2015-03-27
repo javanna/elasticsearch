@@ -20,7 +20,9 @@
 package org.elasticsearch.search.timeout;
 
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import static org.elasticsearch.index.query.FilterBuilders.scriptFilter;
@@ -28,14 +30,8 @@ import static org.elasticsearch.index.query.QueryBuilders.filteredQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.hamcrest.Matchers.equalTo;
 
-/**
- */
+@RequiresScripts(context = ScriptContext.SEARCH)
 public class SearchTimeoutTests extends ElasticsearchIntegrationTest {
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
 
     @Test
     public void simpleTimeoutTest() throws Exception {

@@ -29,9 +29,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.weight.WeightBuilder;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -51,6 +53,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertSearchResponse;
 import static org.hamcrest.Matchers.*;
 
+@RequiresScripts(context = {ScriptContext.SEARCH, ScriptContext.AGGS})
 public class FunctionScoreTests extends ElasticsearchIntegrationTest {
 
     static final String TYPE = "type";
@@ -60,11 +63,6 @@ public class FunctionScoreTests extends ElasticsearchIntegrationTest {
     static final String GEO_POINT_FIELD = "geo_point_field";
     static final XContentBuilder SIMPLE_DOC;
     static final XContentBuilder MAPPING_WITH_DOUBLE_AND_GEO_POINT_AND_TEXT_FIELD;
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
 
     @Test
     public void testExplainQueryOnlyOnce() throws IOException, ExecutionException, InterruptedException {

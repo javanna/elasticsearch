@@ -31,11 +31,11 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.search.facet.FacetBuilders;
 import org.elasticsearch.search.facet.filter.FilterFacet;
 import org.elasticsearch.search.facet.statistical.StatisticalFacet;
@@ -43,6 +43,7 @@ import org.elasticsearch.search.facet.termsstats.TermsStatsFacet;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -56,12 +57,8 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.*;
 import static org.hamcrest.Matchers.*;
 
+@RequiresScripts(context = ScriptContext.SEARCH)
 public class SimpleNestedTests extends ElasticsearchIntegrationTest {
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
 
     @Test
     public void simpleNested() throws Exception {

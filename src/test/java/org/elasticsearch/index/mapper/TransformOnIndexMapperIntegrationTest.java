@@ -26,10 +26,12 @@ import org.elasticsearch.action.suggest.SuggestResponse;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.script.groovy.GroovyScriptEngineService;
 import org.elasticsearch.search.suggest.SuggestBuilders;
 import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -43,12 +45,8 @@ import static org.hamcrest.Matchers.*;
 /**
  * Tests for transforming the source document before indexing.
  */
+@RequiresScripts(context = ScriptContext.MAPPING)
 public class TransformOnIndexMapperIntegrationTest extends ElasticsearchIntegrationTest {
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
 
     @Test
     public void searchOnTransformed() throws Exception {

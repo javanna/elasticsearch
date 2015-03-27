@@ -110,7 +110,8 @@ import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.script.ScriptContext;
+import org.elasticsearch.script.ScriptModes;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.test.client.RandomizingClient;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
@@ -135,6 +136,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
+import static org.elasticsearch.script.ScriptService.*;
 import static org.elasticsearch.test.InternalTestCluster.clusterName;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.*;
 import static org.hamcrest.Matchers.*;
@@ -483,10 +485,10 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
 
     private static ImmutableSettings.Builder setRandomScriptingSettings(Random random, ImmutableSettings.Builder builder) {
         if (random.nextBoolean()) {
-            builder.put(ScriptService.SCRIPT_CACHE_SIZE_SETTING, RandomInts.randomIntBetween(random, -100, 2000));
+            builder.put(SCRIPT_CACHE_SIZE_SETTING, RandomInts.randomIntBetween(random, -100, 2000));
         }
         if (random.nextBoolean()) {
-            builder.put(ScriptService.SCRIPT_CACHE_EXPIRE_SETTING, TimeValue.timeValueMillis(RandomInts.randomIntBetween(random, 750, 10000000)));
+            builder.put(SCRIPT_CACHE_EXPIRE_SETTING, TimeValue.timeValueMillis(RandomInts.randomIntBetween(random, 750, 10000000)));
         }
         return builder;
     }
@@ -755,14 +757,6 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         if (isInternalCluster()) {
             internalCluster().clearDisruptionScheme();
         }
-    }
-
-    protected boolean requiresInlineScripts() {
-        return false;
-    }
-
-    protected boolean requiresIndexedScripts() {
-        return false;
     }
 
     /** overridable method to turn custom data paths on or off */
@@ -1582,15 +1576,15 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         assertThat(clearResponse.isSucceeded(), equalTo(true));
     }
 
-    private static ClusterScope getAnnotation(Class<?> clazz) {
+    private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
         if (clazz == Object.class || clazz == ElasticsearchIntegrationTest.class) {
             return null;
         }
-        ClusterScope annotation = clazz.getAnnotation(ClusterScope.class);
+        A annotation = clazz.getAnnotation(annotationClass);
         if (annotation != null) {
             return annotation;
         }
-        return getAnnotation(clazz.getSuperclass());
+        return getAnnotation(clazz.getSuperclass(), annotationClass);
     }
 
     private Scope getCurrentClusterScope() {
@@ -1598,33 +1592,33 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
     }
 
     private static Scope getCurrentClusterScope(Class<?> clazz) {
-        ClusterScope annotation = getAnnotation(clazz);
+        ClusterScope annotation = getAnnotation(clazz, ClusterScope.class);
         // if we are not annotated assume suite!
         return annotation == null ? Scope.SUITE : annotation.scope();
     }
 
     private int getNumDataNodes() {
-        ClusterScope annotation = getAnnotation(this.getClass());
+        ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         return annotation == null ? -1 : annotation.numDataNodes();
     }
 
     private int getMinNumDataNodes() {
-        ClusterScope annotation = getAnnotation(this.getClass());
+        ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         return annotation == null ? InternalTestCluster.DEFAULT_MIN_NUM_DATA_NODES : annotation.minNumDataNodes();
     }
 
     private int getMaxNumDataNodes() {
-        ClusterScope annotation = getAnnotation(this.getClass());
+        ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         return annotation == null ? InternalTestCluster.DEFAULT_MAX_NUM_DATA_NODES : annotation.maxNumDataNodes();
     }
 
     private int getNumClientNodes() {
-        ClusterScope annotation = getAnnotation(this.getClass());
+        ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         return annotation == null ? InternalTestCluster.DEFAULT_NUM_CLIENT_NODES : annotation.numClientNodes();
     }
 
     private boolean randomDynamicTemplates() {
-        ClusterScope annotation = getAnnotation(this.getClass());
+        ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         return annotation == null || annotation.randomDynamicTemplates();
     }
 
@@ -1641,23 +1635,49 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
                 // from failing on nodes without enough disk space
                 .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK, "1b")
                 .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK, "1b");
-        if (requiresInlineScripts()) {
-            builder.put("script.inline", "on");
-        } else {
-            if (randomBoolean()) {
-                //randomly disable inline scripts (rather than sandbox default)
-                builder.put("script.inline", "off");
-            }
-        }
-        if (requiresIndexedScripts()) {
-            builder.put("script.indexed", "on");
-        } else {
-            if (randomBoolean()) {
-                //randomly disable indexed scripts (rather than sandbox default)
-                builder.put("script.indexed", "off");
-            }
-        }
+        addScriptSettings(builder);
         return builder.build();
+    }
+
+    private void addScriptSettings(ImmutableSettings.Builder builder) {
+        RequiresScripts requiresScripts = getAnnotation(this.getClass(), RequiresScripts.class);
+        if (requiresScripts == null) {
+            //randomize script settings if scripting is not required (annotation is not there)
+            if (randomBoolean()) {
+                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + randomFrom(ScriptType.values()), randomFrom("on", "off", "sandbox"));
+            }
+            if (randomBoolean()) {
+                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + randomFrom(ScriptContext.values()), randomFrom("on", "off", "sandbox"));
+            }
+        } else {
+            for (ScriptType scriptType : requiresScripts.type()) {
+                addScriptSettings(builder, requiresScripts.lang(), scriptType, requiresScripts.context());
+            }
+        }
+    }
+
+    private void addScriptSettings(ImmutableSettings.Builder builder, String[] langs, ScriptType scriptType, ScriptContext[] scriptContexts) {
+        int randomInt = randomIntBetween(1, 3);
+        switch(randomInt) {
+            case 1:
+                //enable scripts for any lang, any operation, required type only
+                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + scriptType, "on");
+                break;
+            case 2:
+                for (ScriptContext scriptContext : scriptContexts) {
+                    //enable scripts for any lang, any type, required operations only
+                    builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + scriptContext, "on");
+                }
+                break;
+            case 3:
+                for (String lang : langs) {
+                    //enable scripts for specific lang only, required type and required operations
+                    for (ScriptContext scriptContext : scriptContexts) {
+                        builder.put(ScriptModes.ENGINE_SETTINGS_PREFIX + "." + lang + "." + scriptType + "." + scriptContext , "on");
+                    }
+                }
+                break;
+        }
     }
 
     /**
@@ -1753,7 +1773,7 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
      * return a random ratio in the interval <tt>[0..1]</tt>
      */
     protected double getPerTestTransportClientRatio() {
-        final ClusterScope annotation = getAnnotation(this.getClass());
+        final ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         double perTestRatio = -1;
         if (annotation != null) {
             perTestRatio = annotation.transportClientRatio();

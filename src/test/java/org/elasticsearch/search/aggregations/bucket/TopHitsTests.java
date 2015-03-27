@@ -25,6 +25,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.FilterBuilders;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.SearchHits;
@@ -40,6 +41,7 @@ import org.elasticsearch.search.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -55,9 +57,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 
-/**
- *
- */
+@RequiresScripts(context = {ScriptContext.SEARCH, ScriptContext.AGGS})
 @ElasticsearchIntegrationTest.SuiteScopeTest()
 public class TopHitsTests extends ElasticsearchIntegrationTest {
 
@@ -69,11 +69,6 @@ public class TopHitsTests extends ElasticsearchIntegrationTest {
     }
 
     static int numArticles;
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
 
     @Override
     public void setupSuiteScopeCluster() throws Exception {

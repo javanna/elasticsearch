@@ -24,6 +24,7 @@ import org.elasticsearch.action.indexedscripts.put.PutIndexedScriptResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.script.groovy.GroovyScriptEngineService;
 import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.aggregations.Aggregations;
@@ -31,8 +32,7 @@ import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram.Bucket;
 import org.elasticsearch.search.aggregations.metrics.scripted.ScriptedMetric;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -42,13 +42,14 @@ import java.util.Map;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
+import static org.elasticsearch.script.ScriptService.ScriptType;
 import static org.elasticsearch.search.aggregations.AggregationBuilders.histogram;
 import static org.elasticsearch.search.aggregations.AggregationBuilders.scriptedMetric;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertSearchResponse;
 import static org.hamcrest.Matchers.*;
 
-@ClusterScope(scope = Scope.SUITE)
 @ElasticsearchIntegrationTest.SuiteScopeTest
+@RequiresScripts(type = {ScriptType.INDEXED, ScriptType.INLINE}, context = ScriptContext.AGGS)
 public class ScriptedMetricTests extends ElasticsearchIntegrationTest {
 
     private static long numDocs;
@@ -107,16 +108,6 @@ public class ScriptedMetricTests extends ElasticsearchIntegrationTest {
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("path.conf", getResource("/org/elasticsearch/search/aggregations/metrics/scripted/conf"))
                 .build();
-    }
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
-
-    @Override
-    protected boolean requiresIndexedScripts() {
-        return true;
     }
 
     @Test

@@ -23,6 +23,7 @@ import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.search.aggregations.Aggregator.SubAggCollectionMode;
 import org.elasticsearch.search.aggregations.bucket.filter.Filter;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
@@ -33,6 +34,7 @@ import org.elasticsearch.search.aggregations.metrics.stats.Stats;
 import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStats;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -50,22 +52,15 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 
-/**
- *
- */
 @ElasticsearchIntegrationTest.SuiteScopeTest
 @TestLogging("org.elasticsearch.action.search:TRACE,org.elasticsearch.search:TRACE")
+@RequiresScripts(context = {ScriptContext.AGGS, ScriptContext.SEARCH})
 public class DoubleTermsTests extends AbstractTermsTests {
 
     private static final int NUM_DOCS = 5; // TODO: randomize the size?
     private static final String SINGLE_VALUED_FIELD_NAME = "d_value";
     private static final String MULTI_VALUED_FIELD_NAME = "d_values";
     private static HashMap<Double, Map<String, Object>> expectedMultiSortBuckets;
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
 
     public void setupSuiteScopeCluster() throws Exception {
         createIndex("idx");

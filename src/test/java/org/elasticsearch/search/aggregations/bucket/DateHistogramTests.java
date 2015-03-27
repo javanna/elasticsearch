@@ -25,12 +25,14 @@ import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.core.DateFieldMapper;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogram;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 import org.elasticsearch.search.aggregations.metrics.max.Max;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -54,9 +56,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertSear
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsNull.notNullValue;
 
-/**
- *
- */
+@RequiresScripts(context = ScriptContext.AGGS)
 @ElasticsearchIntegrationTest.SuiteScopeTest
 public class DateHistogramTests extends ElasticsearchIntegrationTest {
 
@@ -88,11 +88,6 @@ public class DateHistogramTests extends ElasticsearchIntegrationTest {
                 .field("date", date(month, day))
                 .startArray("dates").value(date(month, day)).value(date(month + 1, day + 1)).endArray()
                 .endObject());
-    }
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
     }
 
     @Override

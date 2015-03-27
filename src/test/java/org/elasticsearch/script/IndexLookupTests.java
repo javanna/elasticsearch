@@ -29,6 +29,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -43,6 +44,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertHitCount;
 import static org.hamcrest.Matchers.equalTo;
 
+@RequiresScripts(context = ScriptContext.SEARCH)
 public class IndexLookupTests extends ElasticsearchIntegrationTest {
 
     String includeAllFlag = "_FREQUENCIES | _OFFSETS | _PAYLOADS | _POSITIONS | _CACHE";
@@ -142,11 +144,6 @@ public class IndexLookupTests extends ElasticsearchIntegrationTest {
                 .prepareIndex("test", "type1", "2").setSource("int_payload_field", "b|1 b|2 c|3 d|4 a "),
                 client().prepareIndex("test", "type1", "3").setSource("int_payload_field", "b|1 c|2 d|3 a|4 b "));
         ensureGreen();
-    }
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
     }
 
     @Test

@@ -30,6 +30,7 @@ import org.elasticsearch.script.expression.ExpressionScriptEngineService;
 import org.elasticsearch.script.groovy.GroovyScriptEngineService;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -40,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertHitCount;
 import static org.hamcrest.Matchers.*;
 
+@RequiresScripts(context = ScriptContext.SEARCH)
 public class IndexedScriptTests extends ElasticsearchIntegrationTest {
 
     @Override
@@ -54,11 +56,6 @@ public class IndexedScriptTests extends ElasticsearchIntegrationTest {
         builder.put("script.engine.expression.indexed.aggs", "off");
         builder.put("script.engine.expression.indexed.mapping", "off");
         return builder.build();
-    }
-
-    @Override
-    protected boolean requiresIndexedScripts() {
-        return true;
     }
 
     @Test

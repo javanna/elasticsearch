@@ -22,8 +22,10 @@ package org.elasticsearch.search.scriptfilter;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.RequiresScripts;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,15 +36,8 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 
-/**
- *
- */
+@RequiresScripts(context = ScriptContext.SEARCH)
 public class ScriptFilterSearchTests extends ElasticsearchIntegrationTest {
-
-    @Override
-    protected boolean requiresInlineScripts() {
-        return true;
-    }
 
     @Test
     public void testCustomScriptBoost() throws Exception {
