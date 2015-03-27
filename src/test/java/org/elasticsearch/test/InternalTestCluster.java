@@ -82,6 +82,8 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.plugins.PluginsService;
+import org.elasticsearch.script.ScriptContext;
+import org.elasticsearch.script.ScriptModes;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.test.cache.recycler.MockBigArraysModule;
 import org.elasticsearch.test.cache.recycler.MockPageCacheRecyclerModule;
@@ -112,6 +114,7 @@ import static junit.framework.Assert.fail;
 import static org.apache.lucene.util.LuceneTestCase.*;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
+import static org.elasticsearch.script.ScriptService.ScriptType;
 import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 import static org.hamcrest.Matchers.equalTo;
@@ -199,12 +202,12 @@ public final class InternalTestCluster extends TestCluster {
 
     public InternalTestCluster(long clusterSeed, int minNumDataNodes, int maxNumDataNodes, String clusterName, int numClientNodes,
                                boolean enableHttpPipelining, int jvmOrdinal, String nodePrefix) {
-        this(clusterSeed, minNumDataNodes, maxNumDataNodes, clusterName, DEFAULT_SETTINGS_SOURCE, numClientNodes, enableHttpPipelining, jvmOrdinal, nodePrefix);
+        this(clusterSeed, minNumDataNodes, maxNumDataNodes, clusterName, DEFAULT_SETTINGS_SOURCE, numClientNodes, enableHttpPipelining, jvmOrdinal, nodePrefix, null);
     }
 
     public InternalTestCluster(long clusterSeed,
                                int minNumDataNodes, int maxNumDataNodes, String clusterName, SettingsSource settingsSource, int numClientNodes,
-                                boolean enableHttpPipelining, int jvmOrdinal, String nodePrefix) {
+                                boolean enableHttpPipelining, int jvmOrdinal, String nodePrefix, RequiresScripts requiresScripts) {
         super(clusterSeed);
         this.clusterName = clusterName;
 
@@ -292,6 +295,7 @@ public final class InternalTestCluster extends TestCluster {
         }
         // always reduce this - it can make tests really slow
         builder.put(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC, TimeValue.timeValueMillis(RandomInts.randomIntBetween(random, 20, 50)));
+        addScriptSettings(builder, random, requiresScripts);
         defaultSettings = builder.build();
         executor = EsExecutors.newCached(0, TimeUnit.SECONDS, EsExecutors.daemonThreadFactory("test_" + clusterName));
         this.hasFilterCache = random.nextBoolean();
@@ -312,6 +316,48 @@ public final class InternalTestCluster extends TestCluster {
             return "local";
         } else {
             return "network";
+        }
+    }
+
+    private static void addScriptSettings(ImmutableSettings.Builder builder, Random random, RequiresScripts requiresScripts) {
+        if (requiresScripts == null) {
+            //randomize script settings if scripting is not required (annotation is not there)
+            if (random.nextBoolean()) {
+                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + RandomPicks.randomFrom(random, ScriptType.values()), RandomPicks.randomFrom(random, new String[]{"on", "off", "sandbox"}));
+            }
+            if (random.nextBoolean()) {
+                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + RandomPicks.randomFrom(random, ScriptContext.values()), RandomPicks.randomFrom(random, new String[]{"on", "off", "sandbox"}));
+            }
+        } else {
+            addScriptSettings(builder, random, requiresScripts.lang(), requiresScripts.type(), requiresScripts.context());
+        }
+    }
+
+    private static void addScriptSettings(ImmutableSettings.Builder builder, Random random, String[] langs, ScriptType[] scriptTypes, ScriptContext[] scriptContexts) {
+        int randomInt = RandomInts.randomIntBetween(random, 1, 3);
+        switch(randomInt) {
+            case 1:
+                //enable scripts for any lang, required sources only, any operation
+                for (ScriptType scriptType : scriptTypes) {
+                    builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + scriptType, "on");
+                }
+                break;
+            case 2:
+                for (ScriptContext scriptContext : scriptContexts) {
+                    //enable scripts for any lang, any source, required operations only
+                    builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + scriptContext, "on");
+                }
+                break;
+            case 3:
+                //enable scripts for specific lang only, required sources and required operations
+                for (String lang : langs) {
+                    for (ScriptType scriptType : scriptTypes) {
+                        for (ScriptContext scriptContext : scriptContexts) {
+                            builder.put(ScriptModes.ENGINE_SETTINGS_PREFIX + "." + lang + "." + scriptType + "." + scriptContext , "on");
+                        }
+                    }
+                }
+                break;
         }
     }
 

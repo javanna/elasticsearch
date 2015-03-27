@@ -110,8 +110,6 @@ import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.script.ScriptContext;
-import org.elasticsearch.script.ScriptModes;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.test.client.RandomizingClient;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
@@ -136,7 +134,8 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
-import static org.elasticsearch.script.ScriptService.*;
+import static org.elasticsearch.script.ScriptService.SCRIPT_CACHE_EXPIRE_SETTING;
+import static org.elasticsearch.script.ScriptService.SCRIPT_CACHE_SIZE_SETTING;
 import static org.elasticsearch.test.InternalTestCluster.clusterName;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.*;
 import static org.hamcrest.Matchers.*;
@@ -1576,7 +1575,7 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         assertThat(clearResponse.isSucceeded(), equalTo(true));
     }
 
-    private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
+    protected static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
         if (clazz == Object.class || clazz == ElasticsearchIntegrationTest.class) {
             return null;
         }
@@ -1630,54 +1629,11 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
      * In other words subclasses must ensure this method is idempotent.
      */
     protected Settings nodeSettings(int nodeOrdinal) {
-        ImmutableSettings.Builder builder = settingsBuilder()
+        return settingsBuilder()
                 // Default the watermarks to absurdly low to prevent the tests
                 // from failing on nodes without enough disk space
                 .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK, "1b")
-                .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK, "1b");
-        addScriptSettings(builder);
-        return builder.build();
-    }
-
-    private void addScriptSettings(ImmutableSettings.Builder builder) {
-        RequiresScripts requiresScripts = getAnnotation(this.getClass(), RequiresScripts.class);
-        if (requiresScripts == null) {
-            //randomize script settings if scripting is not required (annotation is not there)
-            if (randomBoolean()) {
-                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + randomFrom(ScriptType.values()), randomFrom("on", "off", "sandbox"));
-            }
-            if (randomBoolean()) {
-                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + randomFrom(ScriptContext.values()), randomFrom("on", "off", "sandbox"));
-            }
-        } else {
-            for (ScriptType scriptType : requiresScripts.type()) {
-                addScriptSettings(builder, requiresScripts.lang(), scriptType, requiresScripts.context());
-            }
-        }
-    }
-
-    private void addScriptSettings(ImmutableSettings.Builder builder, String[] langs, ScriptType scriptType, ScriptContext[] scriptContexts) {
-        int randomInt = randomIntBetween(1, 3);
-        switch(randomInt) {
-            case 1:
-                //enable scripts for any lang, any operation, required type only
-                builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + scriptType, "on");
-                break;
-            case 2:
-                for (ScriptContext scriptContext : scriptContexts) {
-                    //enable scripts for any lang, any type, required operations only
-                    builder.put(ScriptModes.SCRIPT_SETTINGS_PREFIX + scriptContext, "on");
-                }
-                break;
-            case 3:
-                for (String lang : langs) {
-                    //enable scripts for specific lang only, required type and required operations
-                    for (ScriptContext scriptContext : scriptContexts) {
-                        builder.put(ScriptModes.ENGINE_SETTINGS_PREFIX + "." + lang + "." + scriptType + "." + scriptContext , "on");
-                    }
-                }
-                break;
-        }
+                .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK, "1b").build();
     }
 
     /**
@@ -1728,11 +1684,12 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
             default:
                 throw new ElasticsearchException("Scope not supported: " + scope);
         }
+
         SettingsSource settingsSource = new SettingsSource() {
             @Override
             public Settings node(int nodeOrdinal) {
-                return ImmutableSettings.builder().put(InternalNode.HTTP_ENABLED, false).
-                        put(nodeSettings(nodeOrdinal)).build();
+                return ImmutableSettings.builder().put(InternalNode.HTTP_ENABLED, false)
+                        .put(nodeSettings(nodeOrdinal)).build();
             }
             
             @Override
@@ -1753,7 +1710,7 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
 
         return new InternalTestCluster(seed, minNumDataNodes, maxNumDataNodes,
                 clusterName(scope.name(), Integer.toString(CHILD_JVM_ID), seed), settingsSource, getNumClientNodes(),
-                InternalTestCluster.DEFAULT_ENABLE_HTTP_PIPELINING, CHILD_JVM_ID, nodePrefix);
+                InternalTestCluster.DEFAULT_ENABLE_HTTP_PIPELINING, CHILD_JVM_ID, nodePrefix, getAnnotation(getClass(), RequiresScripts.class));
     }
 
     /**
