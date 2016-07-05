@@ -22,6 +22,7 @@ package org.elasticsearch.client;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
 import org.apache.http.RequestLine;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -39,9 +40,9 @@ public class Response implements Closeable {
 
     private final RequestLine requestLine;
     private final HttpHost host;
-    private final CloseableHttpResponse response;
+    private final HttpResponse response;
 
-    Response(RequestLine requestLine, HttpHost host, CloseableHttpResponse response) {
+    Response(RequestLine requestLine, HttpHost host, HttpResponse response) {
         Objects.requireNonNull(requestLine, "requestLine cannot be null");
         Objects.requireNonNull(host, "node cannot be null");
         Objects.requireNonNull(response, "response cannot be null");
@@ -110,6 +111,8 @@ public class Response implements Closeable {
 
     @Override
     public void close() throws IOException {
-        this.response.close();
+        if (this.response instanceof CloseableHttpResponse) {
+            ((CloseableHttpResponse)this.response).close();
+        }
     }
 }

@@ -38,6 +38,7 @@ import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
+import org.elasticsearch.client.AbstractRestClient;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.PathUtils;
@@ -147,7 +148,7 @@ public class RestTestClient implements Closeable {
             String path = "/"+ Objects.requireNonNull(queryStringParams.remove("path"), "Path must be set to use raw request");
             HttpEntity entity = null;
             if (body != null && body.length() > 0) {
-                entity = new StringEntity(body, RestClient.JSON_CONTENT_TYPE);
+                entity = new StringEntity(body, AbstractRestClient.JSON_CONTENT_TYPE);
             }
             // And everything else is a url parameter!
             Response response = restClient.performRequest(method, path, queryStringParams, entity);
@@ -212,7 +213,7 @@ public class RestTestClient implements Closeable {
                 requestMethod = "GET";
             } else {
                 requestMethod = RandomizedTest.randomFrom(supportedMethods);
-                requestBody = new StringEntity(body, RestClient.JSON_CONTENT_TYPE);
+                requestBody = new StringEntity(body, AbstractRestClient.JSON_CONTENT_TYPE);
             }
         } else {
             if (restApi.isBodyRequired()) {
@@ -322,16 +323,18 @@ public class RestTestClient implements Closeable {
             hosts[i] = new HttpHost(url.getHost(), url.getPort(), protocol);
         }
 
-        RestClient.Builder builder = RestClient.builder(hosts).setHttpClient(httpClient).setMaxRetryTimeoutMillis(MAX_RETRY_TIMEOUT_MILLIS);
+        RestClient.Builder restClientBuilder = RestClient.builder(hosts);
+        restClientBuilder.setHttpClient(httpClient);
+        restClientBuilder.setMaxRetryTimeoutMillis(MAX_RETRY_TIMEOUT_MILLIS);
         try (ThreadContext threadContext = new ThreadContext(settings)) {
             Header[] defaultHeaders = new Header[threadContext.getHeaders().size()];
             int i = 0;
             for (Map.Entry<String, String> entry : threadContext.getHeaders().entrySet()) {
                 defaultHeaders[i++] = new BasicHeader(entry.getKey(), entry.getValue());
             }
-            builder.setDefaultHeaders(defaultHeaders);
+            restClientBuilder.setDefaultHeaders(defaultHeaders);
         }
-        return builder.build();
+        return restClientBuilder.build();
     }
 
     /**

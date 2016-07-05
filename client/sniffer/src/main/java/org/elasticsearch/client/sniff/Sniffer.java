@@ -22,7 +22,7 @@ package org.elasticsearch.client.sniff;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
-import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.AbstractRestClient;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -35,12 +35,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Class responsible for sniffing nodes from an elasticsearch cluster and setting them to a provided instance of {@link RestClient}.
+ * Class responsible for sniffing nodes from an elasticsearch cluster and setting them to a provided instance of {@link AbstractRestClient}.
  * Must be created via {@link Builder}, which allows to set all of the different options or rely on defaults.
- * A background task fetches the nodes through the {@link HostsSniffer} and sets them to the {@link RestClient} instance.
+ * A background task fetches the nodes through the {@link HostsSniffer} and sets them to the {@link AbstractRestClient} instance.
  * It is possible to perform sniffing on failure by creating a {@link SniffOnFailureListener} and providing it as an argument to
- * {@link org.elasticsearch.client.RestClient.Builder#setFailureListener(RestClient.FailureListener)}. The Sniffer implementation
- * needs to be lazily set to the previously created SniffOnFailureListener through {@link SniffOnFailureListener#setSniffer(Sniffer)}.
+ * {@link AbstractRestClient.Builder#setFailureListener(AbstractRestClient.FailureListener)}. The Sniffer implementation
+ * needs to be lazily set to the previously created {@link SniffOnFailureListener} through
+ * {@link SniffOnFailureListener#setSniffer(Sniffer)}.
  */
 public final class Sniffer implements Closeable {
 
@@ -48,7 +49,7 @@ public final class Sniffer implements Closeable {
 
     private final Task task;
 
-    private Sniffer(RestClient restClient, HostsSniffer hostsSniffer, long sniffInterval, long sniffAfterFailureDelay) {
+    private Sniffer(AbstractRestClient restClient, HostsSniffer hostsSniffer, long sniffInterval, long sniffAfterFailureDelay) {
         this.task = new Task(hostsSniffer, restClient, sniffInterval, sniffAfterFailureDelay);
     }
 
@@ -66,7 +67,7 @@ public final class Sniffer implements Closeable {
 
     private static class Task implements Runnable {
         private final HostsSniffer hostsSniffer;
-        private final RestClient restClient;
+        private final AbstractRestClient restClient;
 
         private final long sniffIntervalMillis;
         private final long sniffAfterFailureDelayMillis;
@@ -74,7 +75,8 @@ public final class Sniffer implements Closeable {
         private final AtomicBoolean running = new AtomicBoolean(false);
         private ScheduledFuture<?> scheduledFuture;
 
-        private Task(HostsSniffer hostsSniffer, RestClient restClient, long sniffIntervalMillis, long sniffAfterFailureDelayMillis) {
+        private Task(HostsSniffer hostsSniffer, AbstractRestClient restClient, long sniffIntervalMillis,
+                     long sniffAfterFailureDelayMillis) {
             this.hostsSniffer = hostsSniffer;
             this.restClient = restClient;
             this.sniffIntervalMillis = sniffIntervalMillis;
@@ -145,7 +147,7 @@ public final class Sniffer implements Closeable {
     /**
      * Returns a new {@link Builder} to help with {@link Sniffer} creation.
      */
-    public static Builder builder(RestClient restClient, HostsSniffer hostsSniffer) {
+    public static Builder builder(AbstractRestClient restClient, HostsSniffer hostsSniffer) {
         return new Builder(restClient, hostsSniffer);
     }
 
@@ -156,16 +158,16 @@ public final class Sniffer implements Closeable {
         public static final long DEFAULT_SNIFF_INTERVAL = TimeUnit.MINUTES.toMillis(5);
         public static final long DEFAULT_SNIFF_AFTER_FAILURE_DELAY = TimeUnit.MINUTES.toMillis(1);
 
-        private final RestClient restClient;
+        private final AbstractRestClient restClient;
         private final HostsSniffer hostsSniffer;
         private long sniffIntervalMillis = DEFAULT_SNIFF_INTERVAL;
         private long sniffAfterFailureDelayMillis = DEFAULT_SNIFF_AFTER_FAILURE_DELAY;
 
         /**
-         * Creates a new builder instance by providing the {@link RestClient} that will be used to communicate with elasticsearch,
+         * Creates a new builder instance by providing the {@link AbstractRestClient} that will be used to communicate with elasticsearch,
          * and the
          */
-        private Builder(RestClient restClient, HostsSniffer hostsSniffer) {
+        private Builder(AbstractRestClient restClient, HostsSniffer hostsSniffer) {
             Objects.requireNonNull(restClient, "restClient cannot be null");
             this.restClient = restClient;
             Objects.requireNonNull(hostsSniffer, "hostsSniffer cannot be null");

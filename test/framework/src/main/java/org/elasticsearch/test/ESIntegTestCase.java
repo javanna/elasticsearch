@@ -57,6 +57,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
+import org.elasticsearch.client.AbstractRestClient;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
@@ -2029,7 +2030,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Returns an instance of {@link RestClient} pointing to the current test cluster.
+     * Returns an instance of {@link AbstractRestClient} pointing to the current test cluster.
      * Creates a new client if the method is invoked for the first time in the context of the current test scope.
      * The returned client gets automatically closed when needed, it shouldn't be closed as part of tests otherwise
      * it cannot be reused by other tests anymore.

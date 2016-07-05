@@ -21,8 +21,9 @@ package org.elasticsearch.client.sniff;
 
 import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import org.apache.http.HttpHost;
-import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.AbstractRestClient;
 import org.elasticsearch.client.RestClientTestCase;
+import org.elasticsearch.client.RestClient;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -39,7 +40,7 @@ public class SnifferBuilderTests extends RestClientTestCase {
 
         HostsSniffer hostsSniffer = new MockHostsSniffer();
 
-        try (RestClient client = RestClient.builder(hosts).build()) {
+        try (AbstractRestClient client = RestClient.builder(hosts).build()) {
             try {
                 Sniffer.builder(null, hostsSniffer).build();
                 fail("should have failed");

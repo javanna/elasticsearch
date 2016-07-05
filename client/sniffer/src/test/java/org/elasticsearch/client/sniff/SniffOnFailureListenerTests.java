@@ -20,8 +20,9 @@
 package org.elasticsearch.client.sniff;
 
 import org.apache.http.HttpHost;
-import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.AbstractRestClient;
 import org.elasticsearch.client.RestClientTestCase;
+import org.elasticsearch.client.RestClient;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -45,7 +46,7 @@ public class SniffOnFailureListenerTests extends RestClientTestCase {
             assertEquals("sniffer must not be null", e.getMessage());
         }
 
-        RestClient restClient = RestClient.builder(new HttpHost("localhost", 9200)).build();
+        AbstractRestClient restClient = RestClient.builder(new HttpHost("localhost", 9200)).build();
         try (Sniffer sniffer = Sniffer.builder(restClient, new MockHostsSniffer()).build()) {
             listener.setSniffer(sniffer);
             try {

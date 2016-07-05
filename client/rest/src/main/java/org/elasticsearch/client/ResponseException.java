@@ -31,7 +31,7 @@ public class ResponseException extends IOException {
     private Response response;
     private final String responseBody;
 
-    ResponseException(Response response, String responseBody) throws IOException {
+    ResponseException(Response response, String responseBody) {
         super(buildMessage(response,responseBody));
         this.response = response;
         this.responseBody = responseBody;

@@ -28,6 +28,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HttpContext;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.client.AbstractRestClient;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
@@ -46,7 +47,7 @@ public class NettyHttpCompressionIT extends ESIntegTestCase {
         "      \"first name\": \"Steve\",\n" +
         "      \"last name\": \"Jobs\"\n" +
         "   }\n" +
-        "}", RestClient.JSON_CONTENT_TYPE);
+        "}", AbstractRestClient.JSON_CONTENT_TYPE);
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

@@ -19,7 +19,6 @@
 
 package org.elasticsearch.client;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import org.apache.http.Header;
@@ -78,7 +77,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests for basic functionality of {@link RestClient} against one single host: tests http requests being sent, headers,
+ * Tests for basic functionality of {@link AbstractRestClient} against one single host: tests http requests being sent, headers,
  * body, different status codes and corresponding responses/exceptions.
  * Relies on a mock http client to intercept requests and return desired responses based on request path.
  */
@@ -129,8 +128,11 @@ public class RestClientSingleHostTests extends RestClientTestCase {
         }
         httpHost = new HttpHost("localhost", 9200);
         failureListener = new TrackingFailureListener();
-        restClient = RestClient.builder(httpHost).setHttpClient(httpClient).setDefaultHeaders(defaultHeaders)
-                .setFailureListener(failureListener).build();
+        RestClient.Builder builder = RestClient.builder(httpHost);
+        builder.setHttpClient(httpClient);
+        builder.setDefaultHeaders(defaultHeaders);
+        builder.setFailureListener(failureListener);
+        restClient = builder.build();
     }
 
     /**

@@ -20,19 +20,18 @@
 package org.elasticsearch.client.sniff;
 
 import org.apache.http.HttpHost;
-import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.AbstractRestClient;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * {@link org.elasticsearch.client.RestClient.FailureListener} implementation that allows to perform
+ * {@link AbstractRestClient.FailureListener} implementation that allows to perform
  * sniffing on failure. Gets notified whenever a failure happens and uses a {@link Sniffer} instance
- * to manually reload hosts and sets them back to the {@link RestClient}. The {@link Sniffer} instance
+ * to manually reload hosts and sets them back to the {@link AbstractRestClient}. The {@link Sniffer} instance
  * needs to be lazily set through {@link #setSniffer(Sniffer)}.
  */
-public class SniffOnFailureListener extends RestClient.FailureListener {
+public class SniffOnFailureListener extends AbstractRestClient.FailureListener {
 
     private volatile Sniffer sniffer;
     private final AtomicBoolean set;
@@ -55,7 +54,7 @@ public class SniffOnFailureListener extends RestClient.FailureListener {
     }
 
     @Override
-    public void onFailure(HttpHost host) throws IOException {
+    public void onFailure(HttpHost host) {
         if (sniffer == null) {
             throw new IllegalStateException("sniffer was not set, unable to sniff on failure");
         }

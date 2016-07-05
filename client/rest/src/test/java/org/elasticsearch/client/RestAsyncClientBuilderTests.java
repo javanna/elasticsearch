@@ -22,7 +22,7 @@ package org.elasticsearch.client;
 import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.message.BasicHeader;
 
 import java.io.IOException;
@@ -31,32 +31,32 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class RestClientBuilderTests extends RestClientTestCase {
+public class RestAsyncClientBuilderTests extends RestClientTestCase {
 
     public void testBuild() throws IOException {
         try {
-            RestClient.builder((HttpHost[])null);
+            RestAsyncClient.builder((HttpHost[])null);
             fail("should have failed");
         } catch(IllegalArgumentException e) {
             assertEquals("no hosts provided", e.getMessage());
         }
 
         try {
-            RestClient.builder();
+            RestAsyncClient.builder();
             fail("should have failed");
         } catch(IllegalArgumentException e) {
             assertEquals("no hosts provided", e.getMessage());
         }
 
         try {
-            RestClient.builder(new HttpHost[]{new HttpHost("localhost", 9200), null}).build();
+            RestAsyncClient.builder(new HttpHost[]{new HttpHost("localhost", 9200), null}).build();
             fail("should have failed");
         } catch(NullPointerException e) {
             assertEquals("host cannot be null", e.getMessage());
         }
 
         try {
-            RestClient.builder(new HttpHost("localhost", 9200))
+            RestAsyncClient.builder(new HttpHost("localhost", 9200))
                     .setMaxRetryTimeoutMillis(RandomInts.randomIntBetween(getRandom(), Integer.MIN_VALUE, 0));
             fail("should have failed");
         } catch(IllegalArgumentException e) {
@@ -64,21 +64,21 @@ public class RestClientBuilderTests extends RestClientTestCase {
         }
 
         try {
-            RestClient.builder(new HttpHost("localhost", 9200)).setDefaultHeaders(null);
+            RestAsyncClient.builder(new HttpHost("localhost", 9200)).setDefaultHeaders(null);
             fail("should have failed");
         } catch(NullPointerException e) {
             assertEquals("default headers must not be null", e.getMessage());
         }
 
         try {
-            RestClient.builder(new HttpHost("localhost", 9200)).setDefaultHeaders(new Header[]{null});
+            RestAsyncClient.builder(new HttpHost("localhost", 9200)).setDefaultHeaders(new Header[]{null});
             fail("should have failed");
         } catch(NullPointerException e) {
             assertEquals("default header must not be null", e.getMessage());
         }
 
         try {
-            RestClient.builder(new HttpHost("localhost", 9200)).setFailureListener(null);
+            RestAsyncClient.builder(new HttpHost("localhost", 9200)).setFailureListener(null);
             fail("should have failed");
         } catch(NullPointerException e) {
             assertEquals("failure listener must not be null", e.getMessage());
@@ -89,9 +89,9 @@ public class RestClientBuilderTests extends RestClientTestCase {
         for (int i = 0; i < numNodes; i++) {
             hosts[i] = new HttpHost("localhost", 9200 + i);
         }
-        RestClient.Builder builder = RestClient.builder(hosts);
+        RestAsyncClient.Builder builder = RestAsyncClient.builder(hosts);
         if (getRandom().nextBoolean()) {
-            builder.setHttpClient(HttpClientBuilder.create().build());
+            builder.setHttpClient(HttpAsyncClientBuilder.create().build());
         }
         if (getRandom().nextBoolean()) {
             int numHeaders = RandomInts.randomIntBetween(getRandom(), 1, 5);
@@ -104,7 +104,7 @@ public class RestClientBuilderTests extends RestClientTestCase {
         if (getRandom().nextBoolean()) {
             builder.setMaxRetryTimeoutMillis(RandomInts.randomIntBetween(getRandom(), 1, Integer.MAX_VALUE));
         }
-        try (RestClient restClient = builder.build()) {
+        try (RestAsyncClient restClient = builder.build()) {
             assertNotNull(restClient);
         }
     }

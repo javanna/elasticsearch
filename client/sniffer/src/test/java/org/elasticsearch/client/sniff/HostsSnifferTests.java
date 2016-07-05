@@ -33,8 +33,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientTestCase;
+import org.elasticsearch.client.RestClient;
 import org.junit.After;
 import org.junit.Before;
 
@@ -88,7 +88,8 @@ public class HostsSnifferTests extends RestClientTestCase {
 
     public void testSniffNodes() throws IOException, URISyntaxException {
         HttpHost httpHost = new HttpHost(httpServer.getAddress().getHostString(), httpServer.getAddress().getPort());
-        try (RestClient restClient = RestClient.builder(httpHost).build()) {
+        RestClient.Builder builder = RestClient.builder(httpHost);
+        try (RestClient restClient = builder.build()) {
             HostsSniffer sniffer = new HostsSniffer(restClient, sniffRequestTimeout, scheme);
             try {
                 List<HttpHost> sniffedHosts = sniffer.sniffHosts();
