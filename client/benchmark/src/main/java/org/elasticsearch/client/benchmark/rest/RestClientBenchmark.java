@@ -22,7 +22,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
+import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
@@ -74,21 +74,12 @@ public final class RestClientBenchmark extends AbstractBenchmark<RestClient> {
                 bulkRequestBody.append(bulkItem);
                 bulkRequestBody.append("\n");
             }
-            StringEntity entity = new StringEntity(bulkRequestBody.toString(), ContentType.APPLICATION_JSON);
-            Response response = null;
+            HttpEntity entity = new NStringEntity(bulkRequestBody.toString(), ContentType.APPLICATION_JSON);
             try {
-                response = client.performRequest("POST", "/_bulk", Collections.emptyMap(), entity);
+                Response response = client.performRequest("POST", "/_bulk", Collections.emptyMap(), entity);
                 return response.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             } catch (Exception e) {
                 throw new ElasticsearchException(e);
-            } finally {
-                if (response != null) {
-                    try {
-                        response.close();
-                    } catch (IOException e) {
-                        // ignore
-                    }
-                }
             }
         }
     }
@@ -104,21 +95,12 @@ public final class RestClientBenchmark extends AbstractBenchmark<RestClient> {
 
         @Override
         public boolean search(String source) {
-            HttpEntity searchBody = new StringEntity(source, StandardCharsets.UTF_8);
-            Response response = null;
+            HttpEntity searchBody = new NStringEntity(source, StandardCharsets.UTF_8);
             try {
-                response = client.performRequest("GET", endpoint, Collections.emptyMap(), searchBody);
+                Response response = client.performRequest("GET", endpoint, Collections.emptyMap(), searchBody);
                 return response.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             } catch (IOException e) {
                 throw new ElasticsearchException(e);
-            } finally {
-                try {
-                    if (response != null) {
-                        response.close();
-                    }
-                } catch (IOException e) {
-                    // close quietly
-                }
             }
         }
     }

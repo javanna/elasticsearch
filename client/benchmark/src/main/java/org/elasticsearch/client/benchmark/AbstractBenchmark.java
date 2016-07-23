@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.client.benchmark;
 
-import org.elasticsearch.client.benchmark.ops.bulk.BulkBenchmarkTask;
 import org.elasticsearch.client.benchmark.ops.bulk.BulkRequestExecutor;
 import org.elasticsearch.client.benchmark.ops.search.SearchBenchmarkTask;
 import org.elasticsearch.client.benchmark.ops.search.SearchRequestExecutor;
@@ -57,12 +56,12 @@ public abstract class AbstractBenchmark<T extends Closeable> {
 
         T client = client(benchmarkTargetHost);
 
-        BenchmarkRunner benchmark = new BenchmarkRunner(warmupIterations, iterations,
+        /*BenchmarkRunner benchmark = new BenchmarkRunner(warmupIterations, iterations,
             new BulkBenchmarkTask(
-                bulkRequestExecutor(client, indexName, typeName), indexFilePath, warmupIterations + iterations, bulkSize));
+                bulkRequestExecutor(client, indexName, typeName), indexFilePath, warmupIterations + iterations, bulkSize));*/
 
         try {
-            benchmark.run();
+            //benchmark.run();
             if (searchBody != null) {
                 for (int run = 1; run <= 5; run++) {
                     System.out.println("=============");
