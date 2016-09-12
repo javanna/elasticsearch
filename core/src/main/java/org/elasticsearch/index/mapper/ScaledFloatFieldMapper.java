@@ -244,7 +244,7 @@ public class ScaledFloatFieldMapper extends FieldMapper {
                 lo = Math.round(Math.ceil(dValue * scalingFactor));
             }
             Long hi = null;
-            if (lowerTerm != null) {
+            if (upperTerm != null) {
                 double dValue = NumberFieldMapper.NumberType.DOUBLE.parse(upperTerm).doubleValue();
                 if (includeUpper == false) {
                     dValue = Math.nextDown(dValue);
@@ -364,7 +364,9 @@ public class ScaledFloatFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<Field> fields) throws IOException {
+    protected void parseCreateField(ParseContext originalContext, List<Field> fields) throws IOException {
+        // Numeric fields, by default, will not be included in _all
+        final ParseContext context = originalContext.setIncludeInAllDefault(false);
         final boolean includeInAll = context.includeInAll(this.includeInAll, this);
 
         XContentParser parser = context.parser();

@@ -48,7 +48,7 @@ import org.elasticsearch.index.shard.ShadowIndexShard;
 import org.elasticsearch.index.store.FsDirectoryService;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.recovery.RecoveryTargetService;
+import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
@@ -495,7 +495,7 @@ public class IndexWithShadowReplicasIT extends ESIntegTestCase {
                     public void sendRequest(DiscoveryNode node, long requestId, String action,
                                             TransportRequest request, TransportRequestOptions options)
                             throws IOException, TransportException {
-                        if (keepFailing.get() && action.equals(RecoveryTargetService.Actions.TRANSLOG_OPS)) {
+                        if (keepFailing.get() && action.equals(PeerRecoveryTargetService.Actions.TRANSLOG_OPS)) {
                             logger.info("--> failing translog ops");
                             throw new ElasticsearchException("failing on purpose");
                         }
@@ -594,6 +594,12 @@ public class IndexWithShadowReplicasIT extends ESIntegTestCase {
      * Tests that shadow replicas can be "naturally" rebalanced and relocated
      * around the cluster. By "naturally" I mean without using the reroute API
      */
+    // This test failed on CI when trying to assert that all the shard data has been deleted
+    // from the index path. It has not been reproduced locally. Despite the IndicesService
+    // deleting the index and hence, deleting all the shard data for the index, the test
+    // failure still showed some Lucene files in the data directory for that index. Not sure
+    // why that is, so turning on more logging here.
+    @TestLogging("indices:TRACE,env:TRACE")
     public void testShadowReplicaNaturalRelocation() throws Exception {
         Path dataPath = createTempDir();
         Settings nodeSettings = nodeSettings(dataPath);

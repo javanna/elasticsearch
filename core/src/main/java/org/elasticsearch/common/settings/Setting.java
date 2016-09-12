@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.common.settings;
 
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.support.ToXContentToBytes;
@@ -26,7 +27,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -374,7 +374,7 @@ public class Setting<T> extends ToXContentToBytes {
     /**
      * Build a new updater with a noop validator.
      */
-    final AbstractScopedSettings.SettingUpdater<T> newUpdater(Consumer<T> consumer, ESLogger logger) {
+    final AbstractScopedSettings.SettingUpdater<T> newUpdater(Consumer<T> consumer, Logger logger) {
         return newUpdater(consumer, logger, (s) -> {});
     }
 
@@ -382,7 +382,7 @@ public class Setting<T> extends ToXContentToBytes {
      * Build the updater responsible for validating new values, logging the new
      * value, and eventually setting the value where it belongs.
      */
-    AbstractScopedSettings.SettingUpdater<T> newUpdater(Consumer<T> consumer, ESLogger logger, Consumer<T> validator) {
+    AbstractScopedSettings.SettingUpdater<T> newUpdater(Consumer<T> consumer, Logger logger, Consumer<T> validator) {
         if (isDynamic()) {
             return new Updater(consumer, logger, validator);
         } else {
@@ -395,7 +395,7 @@ public class Setting<T> extends ToXContentToBytes {
      * and its usage for details.
      */
     static <A, B> AbstractScopedSettings.SettingUpdater<Tuple<A, B>> compoundUpdater(final BiConsumer<A, B> consumer,
-            final Setting<A> aSetting, final Setting<B> bSetting, ESLogger logger) {
+            final Setting<A> aSetting, final Setting<B> bSetting, Logger logger) {
         final AbstractScopedSettings.SettingUpdater<A> aSettingUpdater = aSetting.newUpdater(null, logger);
         final AbstractScopedSettings.SettingUpdater<B> bSettingUpdater = bSetting.newUpdater(null, logger);
         return new AbstractScopedSettings.SettingUpdater<Tuple<A, B>>() {
@@ -411,6 +411,12 @@ public class Setting<T> extends ToXContentToBytes {
 
             @Override
             public void apply(Tuple<A, B> value, Settings current, Settings previous) {
+                if (aSettingUpdater.hasChanged(current, previous)) {
+                    logger.info("updating [{}] from [{}] to [{}]", aSetting.key, aSetting.getRaw(previous), aSetting.getRaw(current));
+                }
+                if (bSettingUpdater.hasChanged(current, previous)) {
+                    logger.info("updating [{}] from [{}] to [{}]", bSetting.key, bSetting.getRaw(previous), bSetting.getRaw(current));
+                }
                 consumer.accept(value.v1(), value.v2());
             }
 
@@ -424,10 +430,10 @@ public class Setting<T> extends ToXContentToBytes {
 
     private final class Updater implements AbstractScopedSettings.SettingUpdater<T> {
         private final Consumer<T> consumer;
-        private final ESLogger logger;
+        private final Logger logger;
         private final Consumer<T> accept;
 
-        public Updater(Consumer<T> consumer, ESLogger logger, Consumer<T> accept) {
+        public Updater(Consumer<T> consumer, Logger logger, Consumer<T> accept) {
             this.consumer = consumer;
             this.logger = logger;
             this.accept = accept;
@@ -551,10 +557,6 @@ public class Setting<T> extends ToXContentToBytes {
         return new Setting<>(key, defaultValueFn, Booleans::parseBooleanExact, properties);
     }
 
-    public static Setting<ByteSizeValue> byteSizeSetting(String key, String percentage, Property... properties) {
-        return new Setting<>(key, (s) -> percentage, (s) -> MemorySizeValue.parseBytesSizeValueOrHeapRatio(s, key), properties);
-    }
-
     public static Setting<ByteSizeValue> byteSizeSetting(String key, ByteSizeValue value, Property... properties) {
         return byteSizeSetting(key, (s) -> value.toString(), properties);
     }
@@ -589,6 +591,49 @@ public class Setting<T> extends ToXContentToBytes {
             throw new IllegalArgumentException("Failed to parse value [" + s + "] for setting [" + key + "] must be <= " + maxValue);
         }
         return value;
+    }
+
+    /**
+     * Creates a setting which specifies a memory size. This can either be
+     * specified as an absolute bytes value or as a percentage of the heap
+     * memory.
+     *
+     * @param key the key for the setting
+     * @param defaultValue the default value for this setting
+     * @param properties properties properties for this setting like scope, filtering...
+     * @return the setting object
+     */
+    public static Setting<ByteSizeValue> memorySizeSetting(String key, ByteSizeValue defaultValue, Property... properties) {
+        return memorySizeSetting(key, (s) -> defaultValue.toString(), properties);
+    }
+
+
+    /**
+     * Creates a setting which specifies a memory size. This can either be
+     * specified as an absolute bytes value or as a percentage of the heap
+     * memory.
+     *
+     * @param key the key for the setting
+     * @param defaultValue a function that supplies the default value for this setting
+     * @param properties properties properties for this setting like scope, filtering...
+     * @return the setting object
+     */
+    public static Setting<ByteSizeValue> memorySizeSetting(String key, Function<Settings, String> defaultValue, Property... properties) {
+        return new Setting<>(key, defaultValue, (s) -> MemorySizeValue.parseBytesSizeValueOrHeapRatio(s, key), properties);
+    }
+
+    /**
+     * Creates a setting which specifies a memory size. This can either be
+     * specified as an absolute bytes value or as a percentage of the heap
+     * memory.
+     *
+     * @param key the key for the setting
+     * @param defaultPercentage the default value of this setting as a percentage of the heap memory
+     * @param properties properties properties for this setting like scope, filtering...
+     * @return the setting object
+     */
+    public static Setting<ByteSizeValue> memorySizeSetting(String key, String defaultPercentage, Property... properties) {
+        return new Setting<>(key, (s) -> defaultPercentage, (s) -> MemorySizeValue.parseBytesSizeValueOrHeapRatio(s, key), properties);
     }
 
     public static Setting<TimeValue> positiveTimeSetting(String key, TimeValue defaultValue, Property... properties) {
@@ -707,7 +752,7 @@ public class Setting<T> extends ToXContentToBytes {
             }
 
             @Override
-            public AbstractScopedSettings.SettingUpdater<Settings> newUpdater(Consumer<Settings> consumer, ESLogger logger,
+            public AbstractScopedSettings.SettingUpdater<Settings> newUpdater(Consumer<Settings> consumer, Logger logger,
                     Consumer<Settings> validator) {
                 if (isDynamic() == false) {
                     throw new IllegalStateException("setting [" + getKey() + "] is not dynamic");
@@ -831,7 +876,7 @@ public class Setting<T> extends ToXContentToBytes {
             }
 
             @Override
-            AbstractScopedSettings.SettingUpdater<T> newUpdater(Consumer<T> consumer, ESLogger logger, Consumer<T> validator) {
+            AbstractScopedSettings.SettingUpdater<T> newUpdater(Consumer<T> consumer, Logger logger, Consumer<T> validator) {
                 throw new UnsupportedOperationException("Affix settings can't be updated. Use #getConcreteSetting for updating.");
             }
 

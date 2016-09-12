@@ -61,14 +61,6 @@ import static org.hamcrest.Matchers.nullValue;
 public class BulkWithUpdatesIT extends ESIntegTestCase {
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("script.default_lang", CustomScriptPlugin.NAME)
-                .build();
-    }
-
-    @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return Collections.singleton(CustomScriptPlugin.class);
     }
@@ -243,14 +235,11 @@ public class BulkWithUpdatesIT extends ESIntegTestCase {
                 .add(client().prepareUpdate("test", "type", "e1")
                         .setDoc("field", "2").setVersion(10)) // INTERNAL
                 .add(client().prepareUpdate("test", "type", "e1")
-                        .setDoc("field", "3").setVersion(20).setVersionType(VersionType.FORCE))
-                .add(client().prepareUpdate("test", "type", "e1")
-                        .setDoc("field", "4").setVersion(20).setVersionType(VersionType.INTERNAL))
+                        .setDoc("field", "3").setVersion(13).setVersionType(VersionType.INTERNAL))
                 .get();
 
         assertThat(bulkResponse.getItems()[0].getFailureMessage(), containsString("version conflict"));
-        assertThat(bulkResponse.getItems()[1].getResponse().getVersion(), equalTo(20L));
-        assertThat(bulkResponse.getItems()[2].getResponse().getVersion(), equalTo(21L));
+        assertThat(bulkResponse.getItems()[1].getFailureMessage(), containsString("version conflict"));
     }
 
     public void testBulkUpdateMalformedScripts() throws Exception {
@@ -557,6 +546,7 @@ public class BulkWithUpdatesIT extends ESIntegTestCase {
                 "  \"script\" : {" +
                 "    \"inline\" : \"ctx._source.field2 = 'value2'\"" +
                 "  }," +
+                "  \"lang\" : \"" + CustomScriptPlugin.NAME + "\"," +
                 "  \"upsert\" : {" +
                 "    \"field1\" : \"value1'\"" +
                 "  }" +
@@ -589,7 +579,9 @@ public class BulkWithUpdatesIT extends ESIntegTestCase {
         assertThat(bulkResponse.getItems().length, equalTo(3));
         assertThat(bulkResponse.getItems()[0].isFailed(), equalTo(false));
         assertThat(bulkResponse.getItems()[1].isFailed(), equalTo(false));
-        assertThat(bulkResponse.getItems()[2].isFailed(), equalTo(false));
+        assertThat(bulkResponse.getItems()[2].isFailed(), equalTo(true));
+        assertThat(bulkResponse.getItems()[2].getFailure().getCause().getCause().getMessage(),
+                equalTo("script_lang not supported [painless]"));
 
         client().admin().indices().prepareRefresh("test").get();
 
