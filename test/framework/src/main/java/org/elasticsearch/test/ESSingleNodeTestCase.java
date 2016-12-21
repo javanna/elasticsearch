@@ -53,7 +53,6 @@ import org.junit.BeforeClass;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,7 +71,7 @@ public abstract class ESSingleNodeTestCase extends ESTestCase {
 
     protected void startNode(long seed) throws Exception {
         assert NODE == null;
-        NODE = RandomizedContext.current().runWithPrivateRandomness(seed, this::newNode);
+        NODE = RandomizedContext.current().runWithPrivateRandomness(seed, () -> newNode());
         // we must wait for the node to actually be up and running. otherwise the node might have started,
         // elected itself master but might not yet have removed the
         // SERVICE_UNAVAILABLE/1/state not recovered / initialized block
