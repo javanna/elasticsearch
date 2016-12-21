@@ -56,6 +56,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.Callable;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
@@ -71,7 +72,12 @@ public abstract class ESSingleNodeTestCase extends ESTestCase {
 
     protected void startNode(long seed) throws Exception {
         assert NODE == null;
-        NODE = RandomizedContext.current().runWithPrivateRandomness(seed, () -> newNode());
+        NODE = RandomizedContext.current().runWithPrivateRandomness(seed, new Callable<Node>() {
+            @Override
+            public Node call() throws Exception {
+                return newNode();
+            }
+        });
         // we must wait for the node to actually be up and running. otherwise the node might have started,
         // elected itself master but might not yet have removed the
         // SERVICE_UNAVAILABLE/1/state not recovered / initialized block
