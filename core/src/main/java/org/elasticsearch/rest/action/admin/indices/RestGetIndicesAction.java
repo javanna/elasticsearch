@@ -19,13 +19,13 @@
 package org.elasticsearch.rest.action.admin.indices;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest.Feature;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -79,7 +79,6 @@ public class RestGetIndicesAction extends BaseRestHandler {
         }
         getIndexRequest.indicesOptions(IndicesOptions.fromRequest(request, getIndexRequest.indicesOptions()));
         getIndexRequest.local(request.paramAsBoolean("local", getIndexRequest.local()));
-        getIndexRequest.humanReadable(request.paramAsBoolean("human", false));
         final boolean defaults = request.paramAsBoolean("include_defaults", false);
         return channel -> client.admin().indices().getIndex(getIndexRequest, new RestBuilderListener<GetIndexResponse>(channel) {
 
@@ -138,6 +137,9 @@ public class RestGetIndicesAction extends BaseRestHandler {
 
             private void writeSettings(Settings settings, XContentBuilder builder, Params params, boolean defaults) throws IOException {
                 builder.startObject(Fields.SETTINGS);
+                if (builder.humanReadable()) {
+                    settings = IndexMetaData.addHumanReadableSettings(settings);
+                }
                 settings.toXContent(builder, params);
                 builder.endObject();
                 if (defaults) {

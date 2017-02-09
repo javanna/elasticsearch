@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.admin.indices.get;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.info.ClusterInfoRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -98,7 +99,6 @@ public class GetIndexRequest extends ClusterInfoRequest<GetIndexRequest> {
 
     private static final Feature[] DEFAULT_FEATURES = new Feature[] { Feature.ALIASES, Feature.MAPPINGS, Feature.SETTINGS };
     private Feature[] features = DEFAULT_FEATURES;
-    private boolean humanReadable = false;
 
     public GetIndexRequest features(Feature... features) {
         if (features == null) {
@@ -126,15 +126,6 @@ public class GetIndexRequest extends ClusterInfoRequest<GetIndexRequest> {
         return null;
     }
 
-    public GetIndexRequest humanReadable(boolean humanReadable) {
-        this.humanReadable = humanReadable;
-        return this;
-    }
-
-    public boolean humanReadable() {
-        return humanReadable;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -143,7 +134,10 @@ public class GetIndexRequest extends ClusterInfoRequest<GetIndexRequest> {
         for (int i = 0; i < size; i++) {
             features[i] = Feature.fromId(in.readByte());
         }
-        humanReadable = in.readBoolean();
+        //TODO change to 5.4 once backported
+        if (in.getVersion().before(Version.V_5_3_0_UNRELEASED)) {
+            in.readBoolean();
+        }
     }
 
     @Override
@@ -153,7 +147,10 @@ public class GetIndexRequest extends ClusterInfoRequest<GetIndexRequest> {
         for (Feature feature : features) {
             out.writeByte(feature.id);
         }
-        out.writeBoolean(humanReadable);
+        //TODO change to 5.4 once backported
+        if (out.getVersion().before(Version.V_5_3_0_UNRELEASED)) {
+            out.writeBoolean(false);
+        }
     }
 
 }

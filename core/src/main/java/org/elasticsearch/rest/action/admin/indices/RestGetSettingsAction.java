@@ -20,11 +20,11 @@
 package org.elasticsearch.rest.action.admin.indices;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -64,7 +64,6 @@ public class RestGetSettingsAction extends BaseRestHandler {
         GetSettingsRequest getSettingsRequest = new GetSettingsRequest()
                 .indices(Strings.splitStringByCommaToArray(request.param("index")))
                 .indicesOptions(IndicesOptions.fromRequest(request, IndicesOptions.strictExpandOpen()))
-                .humanReadable(request.hasParam("human"))
                 .names(names);
         getSettingsRequest.local(request.paramAsBoolean("local", getSettingsRequest.local()));
 
@@ -75,16 +74,20 @@ public class RestGetSettingsAction extends BaseRestHandler {
                 builder.startObject();
                 for (ObjectObjectCursor<String, Settings> cursor : getSettingsResponse.getIndexToSettings()) {
                     // no settings, jump over it to shorten the response data
-                    if (cursor.value.isEmpty()) {
+                    Settings responseSettings = cursor.value;
+                    if (responseSettings.isEmpty()) {
                         continue;
                     }
                     builder.startObject(cursor.key);
                     builder.startObject("settings");
-                    cursor.value.toXContent(builder, request);
+                    if (builder.humanReadable()) {
+                        responseSettings = IndexMetaData.addHumanReadableSettings(settings);
+                    }
+                    responseSettings.toXContent(builder, request);
                     builder.endObject();
                     if (renderDefaults) {
                         builder.startObject("defaults");
-                        settingsFilter.filter(indexScopedSettings.diff(cursor.value, settings)).toXContent(builder, request);
+                        settingsFilter.filter(indexScopedSettings.diff(responseSettings, settings)).toXContent(builder, request);
                         builder.endObject();
                     }
                     builder.endObject();
