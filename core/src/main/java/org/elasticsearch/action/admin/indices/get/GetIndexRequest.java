@@ -135,7 +135,7 @@ public class GetIndexRequest extends ClusterInfoRequest<GetIndexRequest> {
             features[i] = Feature.fromId(in.readByte());
         }
         //TODO change to 5.4 once backported
-        if (in.getVersion().before(Version.V_5_3_0_UNRELEASED)) {
+        if (in.getVersion().before(Version.V_6_0_0_alpha1_UNRELEASED)) {
             in.readBoolean();
         }
     }
@@ -148,7 +148,7 @@ public class GetIndexRequest extends ClusterInfoRequest<GetIndexRequest> {
             out.writeByte(feature.id);
         }
         //TODO change to 5.4 once backported
-        if (out.getVersion().before(Version.V_5_3_0_UNRELEASED)) {
+        if (out.getVersion().before(Version.V_6_0_0_alpha1_UNRELEASED)) {
             out.writeBoolean(false);
         }
     }

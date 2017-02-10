@@ -83,7 +83,7 @@ public class GetSettingsRequest extends MasterNodeReadRequest<GetSettingsRequest
         indicesOptions = IndicesOptions.readIndicesOptions(in);
         names = in.readStringArray();
         //TODO change to 5.4 once backported
-        if (in.getVersion().before(Version.V_5_3_0_UNRELEASED)) {
+        if (in.getVersion().before(Version.V_6_0_0_alpha1_UNRELEASED)) {
             in.readBoolean();
         }
     }
@@ -95,7 +95,7 @@ public class GetSettingsRequest extends MasterNodeReadRequest<GetSettingsRequest
         indicesOptions.writeIndicesOptions(out);
         out.writeStringArray(names);
         //TODO change to 5.4 once backported
-        if (out.getVersion().before(Version.V_5_3_0_UNRELEASED)) {
+        if (out.getVersion().before(Version.V_6_0_0_alpha1_UNRELEASED)) {
             out.writeBoolean(false);
         }
     }
