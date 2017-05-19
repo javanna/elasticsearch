@@ -20,6 +20,7 @@
 package org.elasticsearch.test.test;
 
 import junit.framework.AssertionFailedError;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -158,5 +159,42 @@ public class ESTestCaseTests extends ESTestCase {
 
     public void testRandomUniqueNormalUsageAlwayMoreThanOne() {
         assertThat(randomUnique(() -> randomAlphaOfLengthBetween(1, 20), 10), hasSize(greaterThan(0)));
+    }
+
+    public void testAddRandomFields() throws IOException {
+        BytesReference bytes;
+        try (XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent())) {
+            builder.prettyPrint(); //TODO remove
+            builder.startObject();
+            builder.field("field", "value");
+            {
+                builder.startObject("object");
+                builder.field("field", "value");
+                {
+                    builder.startObject("object");
+                    builder.field("field", "value");
+                    builder.endObject();
+                }
+                builder.endObject();
+            }
+            builder.array("array", "value1", "value2", "value3");
+            {
+                builder.startArray("objectarray");
+                {
+                    builder.startObject();
+                    builder.field("field", "value");
+                    builder.endObject();
+                }
+                builder.endArray();
+            }
+            builder.endObject();
+            System.out.println(builder.string());
+            bytes = builder.bytes();
+        }
+
+        BytesReference newBytes = addRandomFields(bytes, XContentType.JSON);
+
+        //TODO add real tests
+
     }
 }

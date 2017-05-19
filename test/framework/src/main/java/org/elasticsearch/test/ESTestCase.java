@@ -29,7 +29,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.carrotsearch.randomizedtesting.rules.TestRuleAdapter;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -94,7 +93,6 @@ import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.script.MockScriptEngine;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptModule;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.MockSearchService;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
@@ -140,8 +138,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -906,6 +902,55 @@ public abstract class ESTestCase extends LuceneTestCase {
             try (XContentBuilder builder = shuffleXContent(parser, rarely(), exceptFieldNames)) {
                 return builder.bytes();
             }
+        }
+    }
+
+    protected BytesReference addRandomFields(BytesReference bytes, XContentType contentType) throws IOException {
+        try (XContentParser parser = createParser(contentType.xContent(), bytes)) {
+            try (XContentBuilder builder = XContentBuilder.builder(contentType.xContent())) {
+                String currentFieldName = null;
+                int currentLevel = -1;
+                XContentParser.Token token;
+                while( (token = parser.nextToken()) != XContentParser.Token.END_OBJECT || currentLevel > 0) {
+                    XContentHelper.copyCurrentEvent(builder.generator(), parser);
+                    if (token == XContentParser.Token.START_OBJECT) {
+                        currentLevel++;
+                        //TODO check exclusion
+                        // add a new field, object or array with random values
+                        String newField = "bogus_" + randomAlphaOfLength(10);
+                        if (randomBoolean()) {
+                            builder.field(newField, randomAlphaOfLength(10));
+                        } else {
+                            if (randomBoolean()) {
+                                builder.startObject(newField);
+                                builder.field(randomAlphaOfLength(10), randomAlphaOfLength(10));
+                                builder.endObject();
+                            } else {
+                                builder.array(newField, randomAlphaOfLength(10), randomAlphaOfLength(10));
+                            }
+                        }
+                    } else if (token == XContentParser.Token.FIELD_NAME) {
+                        currentFieldName = parser.currentName();
+                    } else if (token == XContentParser.Token.END_OBJECT) {
+                        currentLevel--;
+                    }
+                }
+                builder.endObject();
+                return builder.bytes();
+            }
+        }
+    }
+
+    /**
+     * Randomly shuffles the fields inside objects in the {@link XContentBuilder} passed in.
+     * Recursively goes through inner objects and also shuffles them. Exceptions for this
+     * recursive shuffling behavior can be made by passing in the names of fields which
+     * internally should stay untouched.
+     */
+    protected final XContentBuilder shuffleXContent(BytesReference bytes, XContentType xContentType, boolean prettyPrint,
+                                                    String... exceptFieldNames) throws IOException {
+        try (XContentParser parser = createParser(xContentType.xContent(), bytes)) {
+            return shuffleXContent(parser, prettyPrint, exceptFieldNames);
         }
     }
 

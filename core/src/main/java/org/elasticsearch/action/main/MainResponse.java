@@ -120,7 +120,7 @@ public class MainResponse extends ActionResponse implements ToXContentObject {
     }
 
     private static final ObjectParser<MainResponse, Void> PARSER = new ObjectParser<>(MainResponse.class.getName(), true,
-            () -> new MainResponse());
+            MainResponse::new);
 
     static {
         PARSER.declareString((response, value) -> response.nodeName = value, new ParseField("name"));
