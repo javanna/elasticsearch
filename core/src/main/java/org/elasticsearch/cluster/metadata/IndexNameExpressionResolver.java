@@ -229,7 +229,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
         }
         if (context.hasSeenDeprecatedAlias()) {
             DEPRECATION_LOGGER.deprecated("Support for providing / matching aliases as part of the index parameter in the " +
-                    "delete index, update aliases, put alias,and delete alias APIs is deprecated.");
+                    "delete index, update aliases, put alias, and delete alias APIs is deprecated.");
         }
 
         return concreteIndices.toArray(new Index[concreteIndices.size()]);

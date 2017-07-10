@@ -79,7 +79,7 @@
         index: test_alias
         name: new_alias
       warnings:
-        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias,and delete alias APIs is deprecated."
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias, and delete alias APIs is deprecated."
 
   - do:
       indices.exists_alias:
@@ -92,7 +92,7 @@
         index: test_a*
         name: new_alias2
       warnings:
-        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias,and delete alias APIs is deprecated."
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias, and delete alias APIs is deprecated."
 
   - do:
       indices.exists_alias:
