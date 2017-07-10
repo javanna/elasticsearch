@@ -35,3 +35,45 @@
   
   - match: { 'status': 404 }
   - match: { 'error': 'alias [testali] missing' }
+
+---
+"Specifying alias in the index side is deprecated":
+
+  - skip:
+      version: " - 5.5.99"
+      reason: deprecation was added in 5.6.0
+      features: "warnings"
+
+  - do:
+      indices.create:
+        index: test_index
+        body:
+          aliases :
+            test_alias: {}
+            test_alias2: {}
+
+  - do:
+      indices.delete_alias:
+        index: test_alias
+        name: test_alias
+      warnings:
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias,and delete alias APIs is deprecated."
+
+  - do:
+      indices.exists_alias:
+        name: test_alias
+
+  - is_false: ''
+
+  - do:
+      indices.delete_alias:
+        index: test_a*
+        name: test_alias2
+      warnings:
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias,and delete alias APIs is deprecated."
+
+  - do:
+      indices.exists_alias:
+        name: test_alias2
+
+  - is_false: ''

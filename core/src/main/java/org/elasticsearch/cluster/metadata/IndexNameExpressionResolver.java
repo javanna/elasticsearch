@@ -189,6 +189,10 @@ public class IndexNameExpressionResolver extends AbstractComponent {
                 } else {
                     continue;
                 }
+            } else {
+                if (aliasOrIndex.isAlias() && options.ignoreAliases()) {
+                    context.seenDeprecatedAlias();
+                }
             }
 
             Collection<IndexMetaData> resolvedIndices = aliasOrIndex.getIndices();
@@ -223,6 +227,11 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             infe.setResources("index_expression", indexExpressions);
             throw infe;
         }
+        if (context.hasSeenDeprecatedAlias()) {
+            DEPRECATION_LOGGER.deprecated("Support for providing / matching aliases as part of the index parameter in the " +
+                    "delete index, update aliases, put alias,and delete alias APIs is deprecated.");
+        }
+
         return concreteIndices.toArray(new Index[concreteIndices.size()]);
     }
 
@@ -504,6 +513,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
         private final IndicesOptions options;
         private final long startTime;
         private final boolean preserveAliases;
+        private boolean seenDeprecatedAlias = false;
 
         Context(ClusterState state, IndicesOptions options) {
             this(state, options, System.currentTimeMillis());
@@ -544,6 +554,14 @@ public class IndexNameExpressionResolver extends AbstractComponent {
         boolean isPreserveAliases() {
             return preserveAliases;
         }
+
+        void seenDeprecatedAlias() {
+            seenDeprecatedAlias = true;
+        }
+
+        boolean hasSeenDeprecatedAlias() {
+            return seenDeprecatedAlias;
+        }
     }
 
     private interface ExpressionResolver {
@@ -572,7 +590,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             }
 
             if (isEmptyOrTrivialWildcard(expressions)) {
-                return resolveEmptyOrTrivialWildcard(options, metaData, true);
+                return resolveEmptyOrTrivialWildcard(options, metaData);
             }
 
             Set<String> result = innerResolve(context, expressions, options, metaData);
@@ -594,14 +612,14 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             boolean plusSeen = false;
             for (int i = 0; i < expressions.size(); i++) {
                 String expression = expressions.get(i);
+                if (Strings.isEmpty(expression)) {
+                    throw infe(expression);
+                }
                 if (aliasOrIndexExists(metaData, expression)) {
                     if (result != null) {
                         result.add(expression);
                     }
                     continue;
-                }
-                if (Strings.isEmpty(expression)) {
-                    throw infe(expression);
                 }
                 boolean add = true;
                 if (expression.charAt(0) == '+') {
@@ -639,6 +657,14 @@ public class IndexNameExpressionResolver extends AbstractComponent {
 
                 final IndexMetaData.State excludeState = excludeState(options);
                 final Map<String, AliasOrIndex> matches = matches(metaData, expression);
+                if (options.ignoreAliases()) {
+                    for (Map.Entry<String, AliasOrIndex> entry : matches.entrySet()) {
+                        if (entry.getValue().isAlias()) {
+                            context.seenDeprecatedAlias();
+                            break;
+                        }
+                    }
+                }
                 Set<String> expand = expand(context, excludeState, matches);
                 if (add) {
                     result.addAll(expand);
@@ -655,7 +681,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
                 }
             }
             if (plusSeen) {
-              DEPRECATION_LOGGER.deprecated("support for '+' as part of index expressions is deprecated");
+                DEPRECATION_LOGGER.deprecated("support for '+' as part of index expressions is deprecated");
             }
             return result;
         }
@@ -668,7 +694,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             return options.ignoreUnavailable() || aliasOrIndexExists(metaData, expression);
         }
 
-        private boolean aliasOrIndexExists(MetaData metaData, String expression) {
+        private static boolean aliasOrIndexExists(MetaData metaData, String expression) {
             return metaData.getAliasAndIndexLookup().containsKey(expression);
         }
 
@@ -693,7 +719,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             return excludeState;
         }
 
-        private static Map<String, AliasOrIndex> matches(MetaData metaData, String expression) {
+        static Map<String, AliasOrIndex> matches(MetaData metaData, String expression) {
             if (Regex.isMatchAllPattern(expression)) {
                 // Can only happen if the expressions was initially: '-*'
                 return metaData.getAliasAndIndexLookup();
@@ -743,7 +769,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             return expressions.isEmpty() || (expressions.size() == 1 && (MetaData.ALL.equals(expressions.get(0)) || Regex.isMatchAllPattern(expressions.get(0))));
         }
 
-        private List<String> resolveEmptyOrTrivialWildcard(IndicesOptions options, MetaData metaData, boolean assertEmpty) {
+        private List<String> resolveEmptyOrTrivialWildcard(IndicesOptions options, MetaData metaData) {
             if (options.expandWildcardsOpen() && options.expandWildcardsClosed()) {
                 return Arrays.asList(metaData.getConcreteAllIndices());
             } else if (options.expandWildcardsOpen()) {
@@ -751,7 +777,6 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             } else if (options.expandWildcardsClosed()) {
                 return Arrays.asList(metaData.getConcreteAllClosedIndices());
             } else {
-                assert assertEmpty : "Shouldn't end up here";
                 return Collections.emptyList();
             }
         }
