@@ -1,0 +1,51 @@
+---
+"Delete alias is deprecated":
+  - skip:
+      version: " - 5.5.99"
+      reason: deprecation was added in 5.6.0
+      features: "warnings"
+
+  - do:
+      indices.create:
+        index: test_index
+        body:
+          aliases:
+            test_alias: {}
+
+  - do:
+      indices.delete:
+        index: test_alias
+      warnings:
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias,and delete alias APIs is deprecated."
+
+  - do:
+      indices.exists:
+        index: test_index
+
+  - is_false: ''
+
+---
+"Delete index with expressions that match aliases is deprecated":
+  - skip:
+      version: " - 5.5.99"
+      reason: deprecation was added in 5.6.0
+      features: "warnings"
+
+  - do:
+      indices.create:
+        index: test_index
+        body:
+          aliases :
+            test_alias: {}
+
+  - do:
+      indices.delete:
+        index: test_a*
+      warnings:
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias,and delete alias APIs is deprecated."
+
+  - do:
+      indices.exists:
+        index: test_index
+
+  - is_false: ''
