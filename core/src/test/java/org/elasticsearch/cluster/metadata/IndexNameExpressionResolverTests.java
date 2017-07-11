@@ -658,28 +658,32 @@ public class IndexNameExpressionResolverTests extends ESTestCase {
         
         String[] indexNamesIndexWildcard = indexNameExpressionResolver.concreteIndexNames(state, ignoreAliasesOptions, "foo*");
         assertWarnings("Support for providing / matching aliases as part of the index parameter in the " +
-                "delete index, update aliases, put alias, and delete alias APIs is deprecated.");
+                "delete index, update aliases, put alias, and delete alias APIs is deprecated. The following expressions match one" +
+                " or more aliases: [foo*], the corresponding concrete indices should be provided instead.");
         assertEquals(2, indexNamesIndexWildcard.length);
         assertEquals("foo_foo", indexNamesIndexWildcard[0]);
         assertEquals("bar_bar", indexNamesIndexWildcard[1]);
 
         indexNamesIndexWildcard = indexNameExpressionResolver.concreteIndexNames(state, ignoreAliasesOptions, "*o");
         assertWarnings("Support for providing / matching aliases as part of the index parameter in the " +
-                "delete index, update aliases, put alias, and delete alias APIs is deprecated.");
+                "delete index, update aliases, put alias, and delete alias APIs is deprecated. The following expressions match one" +
+                " or more aliases: [*o], the corresponding concrete indices should be provided instead.");
         assertEquals(2, indexNamesIndexWildcard.length);
         assertEquals("foo_foo", indexNamesIndexWildcard[0]);
         assertEquals("bar_bar", indexNamesIndexWildcard[1]);
 
         indexNamesIndexWildcard = indexNameExpressionResolver.concreteIndexNames(state, ignoreAliasesOptions, "f*o");
         assertWarnings("Support for providing / matching aliases as part of the index parameter in the " +
-                "delete index, update aliases, put alias, and delete alias APIs is deprecated.");
+                "delete index, update aliases, put alias, and delete alias APIs is deprecated. The following expressions match one" +
+                " or more aliases: [f*o], the corresponding concrete indices should be provided instead.");
         assertEquals(2, indexNamesIndexWildcard.length);
         assertEquals("foo_foo", indexNamesIndexWildcard[0]);
         assertEquals("bar_bar", indexNamesIndexWildcard[1]);
 
         List<String> indexNames = Arrays.asList(indexNameExpressionResolver.concreteIndexNames(state, ignoreAliasesOptions, "foo"));
         assertWarnings("Support for providing / matching aliases as part of the index parameter in the " +
-                "delete index, update aliases, put alias, and delete alias APIs is deprecated.");
+                "delete index, update aliases, put alias, and delete alias APIs is deprecated. The following expressions match one" +
+                " or more aliases: [foo], the corresponding concrete indices should be provided instead.");
         assertEquals(2, indexNames.size());
         assertTrue(indexNames.contains("foo_foo"));
         assertTrue(indexNames.contains("bar_bar"));

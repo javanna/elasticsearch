@@ -40,6 +40,8 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -191,7 +193,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
                 }
             } else {
                 if (aliasOrIndex.isAlias() && options.ignoreAliases()) {
-                    context.seenDeprecatedAlias();
+                    context.addDeprecatedAlias(expression);
                 }
             }
 
@@ -227,9 +229,12 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             infe.setResources("index_expression", indexExpressions);
             throw infe;
         }
-        if (context.hasSeenDeprecatedAlias()) {
+        if (context.getDeprecatedAliases().isEmpty() == false) {
+            StringWriter writer = new StringWriter();
+            new Exception().printStackTrace(new PrintWriter(writer));
             DEPRECATION_LOGGER.deprecated("Support for providing / matching aliases as part of the index parameter in the " +
-                    "delete index, update aliases, put alias, and delete alias APIs is deprecated.");
+                    "delete index, update aliases, put alias, and delete alias APIs is deprecated. The following expressions match one or " +
+                    "more aliases: " + context.getDeprecatedAliases() + ", the corresponding concrete indices should be provided instead.");
         }
 
         return concreteIndices.toArray(new Index[concreteIndices.size()]);
@@ -513,7 +518,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
         private final IndicesOptions options;
         private final long startTime;
         private final boolean preserveAliases;
-        private boolean seenDeprecatedAlias = false;
+        private final List<String> deprecatedAliases = new ArrayList<>();
 
         Context(ClusterState state, IndicesOptions options) {
             this(state, options, System.currentTimeMillis());
@@ -555,12 +560,12 @@ public class IndexNameExpressionResolver extends AbstractComponent {
             return preserveAliases;
         }
 
-        void seenDeprecatedAlias() {
-            seenDeprecatedAlias = true;
+        void addDeprecatedAlias(String alias) {
+            this.deprecatedAliases.add(alias);
         }
 
-        boolean hasSeenDeprecatedAlias() {
-            return seenDeprecatedAlias;
+        List<String> getDeprecatedAliases() {
+            return deprecatedAliases;
         }
     }
 
@@ -660,7 +665,7 @@ public class IndexNameExpressionResolver extends AbstractComponent {
                 if (options.ignoreAliases()) {
                     for (Map.Entry<String, AliasOrIndex> entry : matches.entrySet()) {
                         if (entry.getValue().isAlias()) {
-                            context.seenDeprecatedAlias();
+                            context.addDeprecatedAlias(expression);
                             break;
                         }
                     }

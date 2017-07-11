@@ -189,7 +189,7 @@
                 index: test_alias
                 alias: test_alias2
       warnings:
-        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias, and delete alias APIs is deprecated."
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias, and delete alias APIs is deprecated. The following expressions match one or more aliases: [test_alias], the corresponding concrete indices should be provided instead."
 
   - do:
       indices.exists_alias:
@@ -210,7 +210,7 @@
                 index: test_a*
                 alias: test_alias3
       warnings:
-        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias, and delete alias APIs is deprecated."
+        - "Support for providing / matching aliases as part of the index parameter in the delete index, update aliases, put alias, and delete alias APIs is deprecated. The following expressions match one or more aliases: [test_a*], the corresponding concrete indices should be provided instead."
 
   - do:
       indices.exists_alias:
