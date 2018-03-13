@@ -38,8 +38,8 @@ import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
@@ -61,7 +61,6 @@ import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.ClearScrollResponse;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.AdminClient;
@@ -1305,9 +1304,11 @@ public abstract class ESIntegTestCase extends ESTestCase {
     /**
      * Returns <code>true</code> iff the given index exists otherwise <code>false</code>
      */
-    protected boolean indexExists(String index) {
-        IndicesExistsResponse actionGet = client().admin().indices().prepareExists(index).execute().actionGet();
-        return actionGet.isExists();
+    protected static boolean indexExists(String index) {
+        GetIndexResponse getIndexResponse = client().admin().indices().prepareGetIndex().addIndices(index)
+                .setIndicesOptions(IndicesOptions.lenientExpandOpen()).execute().actionGet();
+        String[] indices = getIndexResponse.indices();
+        return indices.length > 0;
     }
 
     /**

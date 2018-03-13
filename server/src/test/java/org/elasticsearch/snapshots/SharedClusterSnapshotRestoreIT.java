@@ -19,6 +19,7 @@
 
 package org.elasticsearch.snapshots;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -35,6 +36,8 @@ import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotStatus;
 import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptResponse;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
@@ -55,6 +58,7 @@ import org.elasticsearch.cluster.SnapshotsInProgress.Entry;
 import org.elasticsearch.cluster.SnapshotsInProgress.ShardSnapshotStatus;
 import org.elasticsearch.cluster.SnapshotsInProgress.State;
 import org.elasticsearch.cluster.block.ClusterBlocks;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaDataIndexStateService;
@@ -101,6 +105,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1088,6 +1093,23 @@ public class SharedClusterSnapshotRestoreIT extends AbstractSnapshotIntegTestCas
         refresh(indexName);
 
         assertThat(client().prepareSearch(indexName).setSize(0).get().getHits().getTotalHits(), equalTo((long) nbDocs));
+    }
+
+    private static boolean aliasesExist(String... aliases) {
+        GetAliasesResponse getAliasesResponse = client().admin().indices().prepareGetAliases(aliases).get();
+        for (String alias : aliases) {
+            Iterator<List<AliasMetaData>> aliasesIt = getAliasesResponse.getAliases().valuesIt();
+            while(aliasesIt.hasNext()) {
+                List<AliasMetaData> next = aliasesIt.next();
+                for (AliasMetaData aliasMetaData : next) {
+                    assert aliasMetaData.alias()
+                }
+
+            }
+        }
+
+        getAliasesResponse.getAliases().contains
+
     }
 
     public void testDeletionOfFailingToRecoverIndexShouldStopRestore() throws Exception {

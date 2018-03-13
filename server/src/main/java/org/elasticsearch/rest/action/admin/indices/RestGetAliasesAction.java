@@ -31,6 +31,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.common.xcontent.StatusToXContentObject;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
@@ -156,6 +157,10 @@ public class RestGetAliasesAction extends BaseRestHandler {
             }
 
         });
+    }
+
+    public static StatusToXContentObject createResponse(XContentBuilder builder) {
+        
     }
 
     private static String toNamesString(final String... names) {

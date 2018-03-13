@@ -29,7 +29,6 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
@@ -103,7 +102,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -477,23 +475,6 @@ public class ElasticsearchAssertions {
         assertThat(templateNames, hasItem(name));
     }
 
-    /**
-     * Assert that aliases are missing
-     */
-    public static void assertAliasesMissing(AliasesExistResponse aliasesExistResponse) {
-        assertFalse("Aliases shouldn't exist", aliasesExistResponse.exists());
-    }
-
-    /**
-     * Assert that aliases exist
-     */
-    public static void assertAliasesExist(AliasesExistResponse aliasesExistResponse) {
-        assertTrue("Aliases should exist", aliasesExistResponse.exists());
-    }
-
-    /*
-     * matchers
-     */
     public static Matcher<SearchHit> hasId(final String id) {
         return new ElasticsearchMatchers.SearchHitHasIdMatcher(id);
     }
