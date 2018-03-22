@@ -42,6 +42,8 @@ import java.util.Objects;
 public final class RestClientBuilder {
     public static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 1000;
     public static final int DEFAULT_SOCKET_TIMEOUT_MILLIS = 30000;
+    //TODO increase default value otherwise retries won't happen when the first attempt times out
+    //TODO add a test to make sure that timeouts are retried
     public static final int DEFAULT_MAX_RETRY_TIMEOUT_MILLIS = DEFAULT_SOCKET_TIMEOUT_MILLIS;
     public static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT_MILLIS = 500;
     public static final int DEFAULT_MAX_CONN_PER_ROUTE = 10;
@@ -108,6 +110,7 @@ public final class RestClientBuilder {
      * @throws IllegalArgumentException if {@code maxRetryTimeoutMillis} is not greater than 0
      */
     public RestClientBuilder setMaxRetryTimeoutMillis(int maxRetryTimeoutMillis) {
+        //TODO can't set this to 0 => infinite ?
         if (maxRetryTimeoutMillis <= 0) {
             throw new IllegalArgumentException("maxRetryTimeoutMillis must be greater than 0");
         }
@@ -181,18 +184,7 @@ public final class RestClientBuilder {
         if (failureListener == null) {
             failureListener = new RestClient.FailureListener();
         }
-        CloseableHttpAsyncClient httpClient = AccessController.doPrivileged(new PrivilegedAction<CloseableHttpAsyncClient>() {
-            @Override
-            public CloseableHttpAsyncClient run() {
-                return createHttpClient();
-            }
-        });
-        RestClient restClient = new RestClient(httpClient, maxRetryTimeout, defaultHeaders, hosts, pathPrefix, failureListener);
-        httpClient.start();
-        return restClient;
-    }
 
-    private CloseableHttpAsyncClient createHttpClient() {
         //default timeouts are all infinite
         RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
                 .setConnectTimeout(DEFAULT_CONNECT_TIMEOUT_MILLIS)
@@ -201,9 +193,23 @@ public final class RestClientBuilder {
         if (requestConfigCallback != null) {
             requestConfigBuilder = requestConfigCallback.customizeRequestConfig(requestConfigBuilder);
         }
+        final RequestConfig defaultRequestConfig = requestConfigBuilder.build();
 
+        CloseableHttpAsyncClient httpClient = AccessController.doPrivileged(new PrivilegedAction<CloseableHttpAsyncClient>() {
+            @Override
+            public CloseableHttpAsyncClient run() {
+                return createHttpClient(defaultRequestConfig);
+            }
+        });
+        RestClient restClient = new RestClient(httpClient, defaultRequestConfig, maxRetryTimeout, defaultHeaders,
+                hosts, pathPrefix, failureListener);
+        httpClient.start();
+        return restClient;
+    }
+
+    private CloseableHttpAsyncClient createHttpClient(RequestConfig defaultRequestConfig) {
         try {
-            HttpAsyncClientBuilder httpClientBuilder = HttpAsyncClientBuilder.create().setDefaultRequestConfig(requestConfigBuilder.build())
+            HttpAsyncClientBuilder httpClientBuilder = HttpAsyncClientBuilder.create().setDefaultRequestConfig(defaultRequestConfig)
                 //default settings for connection pooling may be too constraining
                 .setMaxConnPerRoute(DEFAULT_MAX_CONN_PER_ROUTE).setMaxConnTotal(DEFAULT_MAX_CONN_TOTAL)
                 .setSSLContext(SSLContext.getDefault());

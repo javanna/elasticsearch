@@ -21,10 +21,10 @@ package org.elasticsearch.client;
 
 import org.apache.http.HttpHost;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -32,7 +32,7 @@ import static org.junit.Assert.assertThat;
  * {@link org.elasticsearch.client.RestClient.FailureListener} impl that allows to track when it gets called for which host.
  */
 class HostsTrackingFailureListener extends RestClient.FailureListener {
-    private volatile Set<HttpHost> hosts = new HashSet<>();
+    private final List<HttpHost> hosts = new CopyOnWriteArrayList<>();
 
     @Override
     public void onFailure(HttpHost host) {
@@ -40,8 +40,7 @@ class HostsTrackingFailureListener extends RestClient.FailureListener {
     }
 
     void assertCalled(HttpHost... hosts) {
-        assertEquals(hosts.length, this.hosts.size());
-        assertThat(this.hosts, containsInAnyOrder(hosts));
+        assertThat(this.hosts, contains(hosts));
         this.hosts.clear();
     }
 

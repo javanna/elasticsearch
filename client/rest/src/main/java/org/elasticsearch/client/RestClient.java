@@ -28,6 +28,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpOptions;
@@ -47,6 +48,7 @@ import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 
+import javax.net.ssl.SSLHandshakeException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -60,6 +62,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -72,7 +75,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.SSLHandshakeException;
 
 /**
  * Client that connects to an Elasticsearch cluster through HTTP.
@@ -99,16 +101,19 @@ public class RestClient implements Closeable {
     // We don't rely on default headers supported by HttpAsyncClient as those cannot be replaced.
     // These are package private for tests.
     final List<Header> defaultHeaders;
-    private final long maxRetryTimeoutMillis;
+    private final int maxRetryTimeoutMillis;
     private final String pathPrefix;
     private final AtomicInteger lastHostIndex = new AtomicInteger(0);
     private volatile HostTuple<Set<HttpHost>> hostTuple;
     private final ConcurrentMap<HttpHost, DeadHostState> blacklist = new ConcurrentHashMap<>();
     private final FailureListener failureListener;
+    //we save the default request config as the http client doesn't allow to retrieve it once built
+    private final RequestConfig defaultRequestConfig;
 
-    RestClient(CloseableHttpAsyncClient client, long maxRetryTimeoutMillis, Header[] defaultHeaders,
+    RestClient(CloseableHttpAsyncClient client, RequestConfig defaultRequestConfig, int maxRetryTimeoutMillis, Header[] defaultHeaders,
                HttpHost[] hosts, String pathPrefix, FailureListener failureListener) {
         this.client = client;
+        this.defaultRequestConfig = defaultRequestConfig;
         this.maxRetryTimeoutMillis = maxRetryTimeoutMillis;
         this.defaultHeaders = Collections.unmodifiableList(Arrays.asList(defaultHeaders));
         this.failureListener = failureListener;
@@ -132,7 +137,7 @@ public class RestClient implements Closeable {
         if (hosts == null || hosts.length == 0) {
             throw new IllegalArgumentException("hosts must not be null nor empty");
         }
-        Set<HttpHost> httpHosts = new HashSet<>();
+        Set<HttpHost> httpHosts = new LinkedHashSet<>();
         AuthCache authCache = new BasicAuthCache();
         for (HttpHost host : hosts) {
             Objects.requireNonNull(host, "host cannot be null");
@@ -348,12 +353,12 @@ public class RestClient implements Closeable {
         setHeaders(request, headers);
         FailureTrackingResponseListener failureTrackingResponseListener = new FailureTrackingResponseListener(responseListener);
         long startTime = System.nanoTime();
-        performRequestAsync(startTime, nextHost(), request, ignoreErrorCodes, httpAsyncResponseConsumerFactory,
+        performRequestAsync(startTime, nextHost(), request, RequestConfig.DEFAULT, ignoreErrorCodes, httpAsyncResponseConsumerFactory,
                 failureTrackingResponseListener);
     }
 
     private void performRequestAsync(final long startTime, final HostTuple<Iterator<HttpHost>> hostTuple, final HttpRequestBase request,
-                                     final Set<Integer> ignoreErrorCodes,
+                                     final RequestConfig requestConfig, final Set<Integer> ignoreErrorCodes,
                                      final HttpAsyncResponseConsumerFactory httpAsyncResponseConsumerFactory,
                                      final FailureTrackingResponseListener listener) {
         final HttpHost host = hostTuple.hosts.next();
@@ -363,68 +368,9 @@ public class RestClient implements Closeable {
             httpAsyncResponseConsumerFactory.createHttpAsyncResponseConsumer();
         final HttpClientContext context = HttpClientContext.create();
         context.setAuthCache(hostTuple.authCache);
-        client.execute(requestProducer, asyncResponseConsumer, context, new FutureCallback<HttpResponse>() {
-            @Override
-            public void completed(HttpResponse httpResponse) {
-                try {
-                    RequestLogger.logResponse(logger, request, host, httpResponse);
-                    int statusCode = httpResponse.getStatusLine().getStatusCode();
-                    Response response = new Response(request.getRequestLine(), host, httpResponse);
-                    if (isSuccessfulResponse(statusCode) || ignoreErrorCodes.contains(response.getStatusLine().getStatusCode())) {
-                        onResponse(host);
-                        listener.onSuccess(response);
-                    } else {
-                        ResponseException responseException = new ResponseException(response);
-                        if (isRetryStatus(statusCode)) {
-                            //mark host dead and retry against next one
-                            onFailure(host);
-                            retryIfPossible(responseException);
-                        } else {
-                            //mark host alive and don't retry, as the error should be a request problem
-                            onResponse(host);
-                            listener.onDefinitiveFailure(responseException);
-                        }
-                    }
-                } catch(Exception e) {
-                    listener.onDefinitiveFailure(e);
-                }
-            }
-
-            @Override
-            public void failed(Exception failure) {
-                try {
-                    RequestLogger.logFailedRequest(logger, request, host, failure);
-                    onFailure(host);
-                    retryIfPossible(failure);
-                } catch(Exception e) {
-                    listener.onDefinitiveFailure(e);
-                }
-            }
-
-            private void retryIfPossible(Exception exception) {
-                if (hostTuple.hosts.hasNext()) {
-                    //in case we are retrying, check whether maxRetryTimeout has been reached
-                    long timeElapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                    long timeout = maxRetryTimeoutMillis - timeElapsedMillis;
-                    if (timeout <= 0) {
-                        IOException retryTimeoutException = new IOException(
-                                "request retries exceeded max retry timeout [" + maxRetryTimeoutMillis + "]");
-                        listener.onDefinitiveFailure(retryTimeoutException);
-                    } else {
-                        listener.trackFailure(exception);
-                        request.reset();
-                        performRequestAsync(startTime, hostTuple, request, ignoreErrorCodes, httpAsyncResponseConsumerFactory, listener);
-                    }
-                } else {
-                    listener.onDefinitiveFailure(exception);
-                }
-            }
-
-            @Override
-            public void cancelled() {
-                listener.onDefinitiveFailure(new ExecutionException("request was cancelled", null));
-            }
-        });
+        context.setRequestConfig(requestConfig);
+        client.execute(requestProducer, asyncResponseConsumer, context, new RequestCallBack(request, host, ignoreErrorCodes,
+                listener, hostTuple, startTime, requestConfig, httpAsyncResponseConsumerFactory));
     }
 
     private void setHeaders(HttpRequest httpRequest, Header[] requestHeaders) {
@@ -455,20 +401,20 @@ public class RestClient implements Closeable {
         final HostTuple<Set<HttpHost>> hostTuple = this.hostTuple;
         Collection<HttpHost> nextHosts = Collections.emptySet();
         do {
-            Set<HttpHost> filteredHosts = new HashSet<>(hostTuple.hosts);
+            Set<HttpHost> filteredHosts = new LinkedHashSet<>(hostTuple.hosts);
             for (Map.Entry<HttpHost, DeadHostState> entry : blacklist.entrySet()) {
                 if (System.nanoTime() - entry.getValue().getDeadUntilNanos() < 0) {
                     filteredHosts.remove(entry.getKey());
                 }
             }
             if (filteredHosts.isEmpty()) {
-                //last resort: if there are no good host to use, return a single dead one, the one that's closest to being retried
+                //last resort: if there are no good hosts to use, return a single dead one, the one that's closest to being retried
                 List<Map.Entry<HttpHost, DeadHostState>> sortedHosts = new ArrayList<>(blacklist.entrySet());
                 if (sortedHosts.size() > 0) {
                     Collections.sort(sortedHosts, new Comparator<Map.Entry<HttpHost, DeadHostState>>() {
                         @Override
                         public int compare(Map.Entry<HttpHost, DeadHostState> o1, Map.Entry<HttpHost, DeadHostState> o2) {
-                            return Long.compare(o1.getValue().getDeadUntilNanos(), o2.getValue().getDeadUntilNanos());
+                            return o1.getValue().compareTo(o2.getValue());
                         }
                     });
                     HttpHost deadHost = sortedHosts.get(0).getKey();
@@ -499,9 +445,9 @@ public class RestClient implements Closeable {
      * Called after each failed attempt.
      * Receives as an argument the host that was used for the failed attempt.
      */
-    private void onFailure(HttpHost host) throws IOException {
+    private void onFailure(HttpHost host) {
         while(true) {
-            DeadHostState previousDeadHostState = blacklist.putIfAbsent(host, DeadHostState.INITIAL_DEAD_STATE);
+            DeadHostState previousDeadHostState = blacklist.putIfAbsent(host, new DeadHostState());
             if (previousDeadHostState == null) {
                 logger.debug("added host [" + host + "] to blacklist");
                 break;
@@ -763,6 +709,112 @@ public class RestClient implements Closeable {
         HostTuple(final T hosts, final AuthCache authCache) {
             this.hosts = hosts;
             this.authCache = authCache;
+        }
+    }
+
+    class RequestCallBack implements FutureCallback<HttpResponse> {
+
+        private final HttpRequestBase request;
+        private final HttpHost host;
+        private final Set<Integer> ignoreErrorCodes;
+        private final FailureTrackingResponseListener listener;
+        private final HostTuple<Iterator<HttpHost>> hostTuple;
+        private final long startTime;
+        private final RequestConfig requestConfig;
+        private final HttpAsyncResponseConsumerFactory httpAsyncResponseConsumerFactory;
+
+        RequestCallBack(HttpRequestBase request, HttpHost host, Set<Integer> ignoreErrorCodes,
+                        FailureTrackingResponseListener listener, HostTuple<Iterator<HttpHost>> hostTuple, long startTime,
+                        RequestConfig requestConfig, HttpAsyncResponseConsumerFactory httpAsyncResponseConsumerFactory) {
+            this.request = request;
+            this.host = host;
+            this.ignoreErrorCodes = ignoreErrorCodes;
+            this.listener = listener;
+            this.hostTuple = hostTuple;
+            this.startTime = startTime;
+            this.requestConfig = requestConfig;
+            this.httpAsyncResponseConsumerFactory = httpAsyncResponseConsumerFactory;
+        }
+
+        @Override
+        public void completed(HttpResponse httpResponse) {
+            try {
+                RequestLogger.logResponse(logger, request, host, httpResponse);
+                int statusCode = httpResponse.getStatusLine().getStatusCode();
+                Response response = new Response(request.getRequestLine(), host, httpResponse);
+                if (isSuccessfulResponse(statusCode) || ignoreErrorCodes.contains(response.getStatusLine().getStatusCode())) {
+                    onResponse(host);
+                    listener.onSuccess(response);
+                } else {
+                    ResponseException responseException = new ResponseException(response);
+                    if (isRetryStatus(statusCode)) {
+                        //mark host dead and retry against next one
+                        onFailure(host);
+                        retryIfPossible(responseException);
+                    } else {
+                        //mark host alive and don't retry, as the error should be a request problem
+                        onResponse(host);
+                        listener.onDefinitiveFailure(responseException);
+                    }
+                }
+            } catch(Exception e) {
+                listener.onDefinitiveFailure(e);
+            }
+        }
+
+        @Override
+        public void failed(Exception failure) {
+            try {
+                RequestLogger.logFailedRequest(logger, request, host, failure);
+                onFailure(host);
+                retryIfPossible(failure);
+            } catch(Exception e) {
+                listener.onDefinitiveFailure(e);
+            }
+        }
+
+        private void retryIfPossible(Exception exception) {
+            if (hostTuple.hosts.hasNext()) {
+                long timeElapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+                int timeLeftForRetriesMillis = maxRetryTimeoutMillis - (int)timeElapsedMillis;
+                //if we have only less than 50 ms left, it makes little sense to try another attempt with socket timeout
+                //set to 50, then we just throw an error like we do whenever max retry timeout has been reached.
+                if (timeLeftForRetriesMillis < 50) {
+                    IOException retryTimeoutException = new IOException(
+                            "request retries exceeded max retry timeout [" + maxRetryTimeoutMillis + "]", exception);
+                    //TODO test that the original isn't lost
+                    listener.onDefinitiveFailure(retryTimeoutException);
+                } else {
+                    listener.trackFailure(exception);
+                    request.reset();
+                    int socketTimeout = getSocketTimeout(timeLeftForRetriesMillis);
+                    RequestConfig newRequestConfig = RequestConfig.copy(requestConfig).setSocketTimeout(socketTimeout).build();
+                    performRequestAsync(startTime, hostTuple, request, newRequestConfig,
+                            ignoreErrorCodes, httpAsyncResponseConsumerFactory, listener);
+                }
+            } else {
+                listener.onDefinitiveFailure(exception);
+            }
+        }
+
+        @Override
+        public void cancelled() {
+            listener.onDefinitiveFailure(new ExecutionException("request was cancelled", null));
+        }
+
+        private int getSocketTimeout(int timeLeftForRetriesMillis) {
+            //best effort to respect the max retry timeout by calculating how much time is left and setting that
+            //as socket timeout of the following attempt. Socket timeout is a maximum period of inactivity between
+            //two consecutive data packets though, not the max time that the request takes overall.
+            int currentSocketTimeout;
+            if (requestConfig.getSocketTimeout() > 0) {
+                currentSocketTimeout = requestConfig.getSocketTimeout();
+            } else if (defaultRequestConfig.getSocketTimeout() > 0) {
+                currentSocketTimeout = defaultRequestConfig.getSocketTimeout();
+            } else {
+                return timeLeftForRetriesMillis;
+            }
+            return Math.min(currentSocketTimeout, timeLeftForRetriesMillis);
         }
     }
 }
