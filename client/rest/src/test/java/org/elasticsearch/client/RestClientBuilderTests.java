@@ -19,11 +19,9 @@
 
 package org.elasticsearch.client;
 
-import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-import org.apache.http.message.BasicHeader;
 
 import java.io.IOException;
 
@@ -70,20 +68,6 @@ public class RestClientBuilderTests extends RestClientTestCase {
         }
 
         try {
-            RestClient.builder(new HttpHost("localhost", 9200)).setDefaultHeaders(null);
-            fail("should have failed");
-        } catch(NullPointerException e) {
-            assertEquals("defaultHeaders must not be null", e.getMessage());
-        }
-
-        try {
-            RestClient.builder(new HttpHost("localhost", 9200)).setDefaultHeaders(new Header[]{null});
-            fail("should have failed");
-        } catch(NullPointerException e) {
-            assertEquals("default header must not be null", e.getMessage());
-        }
-
-        try {
             RestClient.builder(new HttpHost("localhost", 9200)).setFailureListener(null);
             fail("should have failed");
         } catch(NullPointerException e) {
@@ -125,14 +109,6 @@ public class RestClientBuilderTests extends RestClientTestCase {
                     return requestConfigBuilder;
                 }
             });
-        }
-        if (randomBoolean()) {
-            int numHeaders = randomIntBetween(1, 5);
-            Header[] headers = new Header[numHeaders];
-            for (int i = 0; i < numHeaders; i++) {
-                headers[i] = new BasicHeader("header" + i, "value");
-            }
-            builder.setDefaultHeaders(headers);
         }
         if (randomBoolean()) {
             builder.setMaxRetryTimeoutMillis(randomIntBetween(1, Integer.MAX_VALUE));

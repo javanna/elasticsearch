@@ -38,6 +38,16 @@ can be modified as follows:
 include-tagged::{doc-tests}/RestClientDocumentation.java[rest-client-config-threads]
 --------------------------------------------------
 
+=== Default headers
+
+It's also possible to set the default headers that need to be sent with each request, to
+prevent having to specify them with each single request
+
+["source","java",subs="attributes,callouts,macros"]
+--------------------------------------------------
+include-tagged::{doc-tests}/RestClientDocumentation.java[rest-client-config-default-headers]
+--------------------------------------------------
+
 === Basic authentication
 
 Configuring basic authentication can be done by providing an

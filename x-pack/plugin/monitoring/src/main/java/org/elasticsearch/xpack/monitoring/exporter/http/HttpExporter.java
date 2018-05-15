@@ -45,6 +45,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -393,7 +394,8 @@ public class HttpExporter extends Exporter {
     }
 
     /**
-     * Configures the {@linkplain RestClientBuilder#setDefaultHeaders(Header[]) default headers} to use with <em>all</em> requests.
+     * Configures the {@linkplain org.apache.http.impl.nio.client.HttpAsyncClientBuilder#setDefaultHeaders(Collection)}) default headers}
+     * to use with <em>all</em> requests.
      *
      * @param builder The REST client builder to configure
      * @param config The exporter's configuration

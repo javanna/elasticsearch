@@ -27,9 +27,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
@@ -53,7 +51,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -89,13 +86,6 @@ public class RestClientDocumentation {
         restClient.close();
         //end::rest-client-close
 
-        {
-            //tag::rest-client-init-default-headers
-            RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200, "http"));
-            Header[] defaultHeaders = new Header[]{new BasicHeader("header", "value")};
-            builder.setDefaultHeaders(defaultHeaders); // <1>
-            //end::rest-client-init-default-headers
-        }
         {
             //tag::rest-client-init-max-retry-timeout
             RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200, "http"));
@@ -251,6 +241,18 @@ public class RestClientDocumentation {
                         }
                     });
             //end::rest-client-config-threads
+        }
+        {
+            //tag::rest-client-config-default-headers
+            RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200))
+                    .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+                        @Override
+                        public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+                            Header defaultHeader = new BasicHeader("header", "value");
+                            return httpClientBuilder.setDefaultHeaders(Collections.singleton(defaultHeader));
+                        }
+                    });
+            //end::rest-client-config-default-headers
         }
         {
             //tag::rest-client-config-basic-auth

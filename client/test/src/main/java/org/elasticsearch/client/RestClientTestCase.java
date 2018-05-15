@@ -56,16 +56,15 @@ import static org.junit.Assert.assertTrue;
 public abstract class RestClientTestCase extends RandomizedTest {
 
     /**
-     * Assert that the actual headers are the expected ones given the original default and request headers. Some headers can be ignored,
+     * Assert that the actual headers are the expected ones. Some headers can be ignored,
      * for instance in case the http client is adding its own automatically.
      *
-     * @param defaultHeaders the default headers set to the REST client instance
      * @param requestHeaders the request headers sent with a particular request
      * @param actualHeaders the actual headers as a result of the provided default and request headers
      * @param ignoreHeaders header keys to be ignored as they are not part of default nor request headers, yet they
      *                      will be part of the actual ones
      */
-    protected static void assertHeaders(final Header[] defaultHeaders, final Header[] requestHeaders,
+    protected static void assertHeaders(final Header[] requestHeaders,
                                         final Header[] actualHeaders, final Set<String> ignoreHeaders) {
         final Map<String, List<String>> expectedHeaders = new HashMap<>();
         final Set<String> requestHeaderKeys = new HashSet<>();
@@ -73,12 +72,6 @@ public abstract class RestClientTestCase extends RandomizedTest {
             final String name = header.getName();
             addValueToListEntry(expectedHeaders, name, header.getValue());
             requestHeaderKeys.add(name);
-        }
-        for (final Header defaultHeader : defaultHeaders) {
-            final String name = defaultHeader.getName();
-            if (requestHeaderKeys.contains(name) == false) {
-                addValueToListEntry(expectedHeaders, name, defaultHeader.getValue());
-            }
         }
         Set<String> actualIgnoredHeaders = new HashSet<>();
         for (Header responseHeader : actualHeaders) {

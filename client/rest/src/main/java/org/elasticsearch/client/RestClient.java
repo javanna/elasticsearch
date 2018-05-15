@@ -24,7 +24,6 @@ import org.apache.http.ConnectionClosedException;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.ClientProtocolException;
@@ -54,7 +53,6 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -96,9 +94,6 @@ public class RestClient implements Closeable {
     private static final Log logger = LogFactory.getLog(RestClient.class);
 
     private final CloseableHttpAsyncClient client;
-    // We don't rely on default headers supported by HttpAsyncClient as those cannot be replaced.
-    // These are package private for tests.
-    final List<Header> defaultHeaders;
     private final long maxRetryTimeoutMillis;
     private final String pathPrefix;
     private final AtomicInteger lastHostIndex = new AtomicInteger(0);
@@ -106,11 +101,10 @@ public class RestClient implements Closeable {
     private final ConcurrentMap<HttpHost, DeadHostState> blacklist = new ConcurrentHashMap<>();
     private final FailureListener failureListener;
 
-    RestClient(CloseableHttpAsyncClient client, long maxRetryTimeoutMillis, Header[] defaultHeaders,
+    RestClient(CloseableHttpAsyncClient client, long maxRetryTimeoutMillis,
                HttpHost[] hosts, String pathPrefix, FailureListener failureListener) {
         this.client = client;
         this.maxRetryTimeoutMillis = maxRetryTimeoutMillis;
-        this.defaultHeaders = Collections.unmodifiableList(Arrays.asList(defaultHeaders));
         this.failureListener = failureListener;
         this.pathPrefix = pathPrefix;
         setHosts(hosts);
@@ -457,7 +451,9 @@ public class RestClient implements Closeable {
         }
         URI uri = buildUri(pathPrefix, request.getEndpoint(), requestParams);
         HttpRequestBase httpRequest = createHttpRequest(request.getMethod(), uri, request.getEntity());
-        setHeaders(httpRequest, request.getHeaders());
+        for (Header requestHeader : request.getHeaders()) {
+            httpRequest.addHeader(requestHeader);
+        }
         FailureTrackingResponseListener failureTrackingResponseListener = new FailureTrackingResponseListener(listener);
         long startTime = System.nanoTime();
         performRequestAsync(startTime, nextHost(), httpRequest, ignoreErrorCodes,
@@ -537,20 +533,6 @@ public class RestClient implements Closeable {
                 listener.onDefinitiveFailure(new ExecutionException("request was cancelled", null));
             }
         });
-    }
-
-    private void setHeaders(HttpRequest httpRequest, Header[] requestHeaders) {
-        // request headers override default headers, so we don't add default headers if they exist as request headers
-        final Set<String> requestNames = new HashSet<>(requestHeaders.length);
-        for (Header requestHeader : requestHeaders) {
-            httpRequest.addHeader(requestHeader);
-            requestNames.add(requestHeader.getName());
-        }
-        for (Header defaultHeader : defaultHeaders) {
-            if (requestNames.contains(defaultHeader.getName()) == false) {
-                httpRequest.addHeader(defaultHeader);
-            }
-        }
     }
 
     /**

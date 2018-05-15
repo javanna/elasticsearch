@@ -20,7 +20,6 @@
 package org.elasticsearch.client;
 
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.ProtocolVersion;
@@ -114,7 +113,7 @@ public class RestClientMultipleHostsTests extends RestClientTestCase {
             httpHosts[i] = new HttpHost("localhost", 9200 + i);
         }
         failureListener = new HostsTrackingFailureListener();
-        restClient = new RestClient(httpClient, 10000, new Header[0], httpHosts, null, failureListener);
+        restClient = new RestClient(httpClient, 10000, httpHosts, null, failureListener);
     }
 
     /**

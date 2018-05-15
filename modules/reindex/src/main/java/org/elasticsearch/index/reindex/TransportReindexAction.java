@@ -37,9 +37,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse.Failure;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.index.reindex.ScrollableHitSource.SearchFailure;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.ActionFilters;
@@ -52,18 +49,21 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.mapper.VersionFieldMapper;
+import org.elasticsearch.index.reindex.ScrollableHitSource.SearchFailure;
 import org.elasticsearch.index.reindex.remote.RemoteScrollableHitSource;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptService;
@@ -201,19 +201,18 @@ public class TransportReindexAction extends HandledTransportAction<ReindexReques
      * @param threadCollector a list in which we collect all the threads created by the client
      */
     static RestClient buildRestClient(RemoteInfo remoteInfo, long taskId, List<Thread> threadCollector) {
-        Header[] clientHeaders = new Header[remoteInfo.getHeaders().size()];
-        int i = 0;
+        List<Header> clientHeaders = new ArrayList<>(remoteInfo.getHeaders().size());
         for (Map.Entry<String, String> header : remoteInfo.getHeaders().entrySet()) {
-            clientHeaders[i++] = new BasicHeader(header.getKey(), header.getValue());
+            clientHeaders.add(new BasicHeader(header.getKey(), header.getValue()));
         }
         return RestClient.builder(new HttpHost(remoteInfo.getHost(), remoteInfo.getPort(), remoteInfo.getScheme()))
-                .setDefaultHeaders(clientHeaders)
                 .setRequestConfigCallback(c -> {
                     c.setConnectTimeout(Math.toIntExact(remoteInfo.getConnectTimeout().millis()));
                     c.setSocketTimeout(Math.toIntExact(remoteInfo.getSocketTimeout().millis()));
                     return c;
                 })
                 .setHttpClientConfigCallback(c -> {
+                    c.setDefaultHeaders(clientHeaders);
                     // Enable basic auth if it is configured
                     if (remoteInfo.getUsername() != null) {
                         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(remoteInfo.getUsername(),

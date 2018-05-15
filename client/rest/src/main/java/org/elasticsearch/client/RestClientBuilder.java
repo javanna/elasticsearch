@@ -46,11 +46,8 @@ public final class RestClientBuilder {
     public static final int DEFAULT_MAX_CONN_PER_ROUTE = 10;
     public static final int DEFAULT_MAX_CONN_TOTAL = 30;
 
-    private static final Header[] EMPTY_HEADERS = new Header[0];
-
     private final HttpHost[] hosts;
     private int maxRetryTimeout = DEFAULT_MAX_RETRY_TIMEOUT_MILLIS;
-    private Header[] defaultHeaders = EMPTY_HEADERS;
     private RestClient.FailureListener failureListener;
     private HttpClientConfigCallback httpClientConfigCallback;
     private RequestConfigCallback requestConfigCallback;
@@ -71,22 +68,6 @@ public final class RestClientBuilder {
             Objects.requireNonNull(host, "host cannot be null");
         }
         this.hosts = hosts;
-    }
-
-    /**
-     * Sets the default request headers, which will be sent along with each request.
-     * <p>
-     * Request-time headers will always overwrite any default headers.
-     *
-     * @throws NullPointerException if {@code defaultHeaders} or any header is {@code null}.
-     */
-    public RestClientBuilder setDefaultHeaders(Header[] defaultHeaders) {
-        Objects.requireNonNull(defaultHeaders, "defaultHeaders must not be null");
-        for (Header defaultHeader : defaultHeaders) {
-            Objects.requireNonNull(defaultHeader, "default header must not be null");
-        }
-        this.defaultHeaders = defaultHeaders;
-        return this;
     }
 
     /**
@@ -186,7 +167,7 @@ public final class RestClientBuilder {
                 return createHttpClient();
             }
         });
-        RestClient restClient = new RestClient(httpClient, maxRetryTimeout, defaultHeaders, hosts, pathPrefix, failureListener);
+        RestClient restClient = new RestClient(httpClient, maxRetryTimeout, hosts, pathPrefix, failureListener);
         httpClient.start();
         return restClient;
     }

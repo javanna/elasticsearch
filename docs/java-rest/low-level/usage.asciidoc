@@ -175,13 +175,6 @@ parameters while building the `RestClient` instance:
 
 ["source","java",subs="attributes,callouts,macros"]
 --------------------------------------------------
-include-tagged::{doc-tests}/RestClientDocumentation.java[rest-client-init-default-headers]
---------------------------------------------------
-<1> Set the default headers that need to be sent with each request, to
-prevent having to specify them with each single request
-
-["source","java",subs="attributes,callouts,macros"]
---------------------------------------------------
 include-tagged::{doc-tests}/RestClientDocumentation.java[rest-client-init-max-retry-timeout]
 --------------------------------------------------
 <1> Set the timeout that should be honoured in case multiple attempts are made

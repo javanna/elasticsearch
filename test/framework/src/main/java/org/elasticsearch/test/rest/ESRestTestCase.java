@@ -30,9 +30,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.ssl.SSLContexts;
-import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
@@ -48,6 +46,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
@@ -382,6 +381,7 @@ public abstract class ESRestTestCase extends ESTestCase {
 
     protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
         RestClientBuilder builder = RestClient.builder(hosts);
+        final SSLIOSessionStrategy sessionStrategy;
         String keystorePath = settings.get(TRUSTSTORE_PATH);
         if (keystorePath != null) {
             final String keystorePass = settings.get(TRUSTSTORE_PASSWORD);
@@ -398,21 +398,27 @@ public abstract class ESRestTestCase extends ESTestCase {
                     keyStore.load(is, keystorePass.toCharArray());
                 }
                 SSLContext sslcontext = SSLContexts.custom().loadTrustMaterial(keyStore, null).build();
-                SSLIOSessionStrategy sessionStrategy = new SSLIOSessionStrategy(sslcontext);
-                builder.setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setSSLStrategy(sessionStrategy));
+                sessionStrategy = new SSLIOSessionStrategy(sslcontext);
             } catch (KeyStoreException|NoSuchAlgorithmException|KeyManagementException|CertificateException e) {
                 throw new RuntimeException("Error setting up ssl", e);
             }
+        } else {
+            sessionStrategy = null;
         }
 
+        List<Header> defaultHeaders = new ArrayList<>();
         try (ThreadContext threadContext = new ThreadContext(settings)) {
-            Header[] defaultHeaders = new Header[threadContext.getHeaders().size()];
-            int i = 0;
             for (Map.Entry<String, String> entry : threadContext.getHeaders().entrySet()) {
-                defaultHeaders[i++] = new BasicHeader(entry.getKey(), entry.getValue());
+                defaultHeaders.add(new BasicHeader(entry.getKey(), entry.getValue()));
             }
-            builder.setDefaultHeaders(defaultHeaders);
         }
+        builder.setHttpClientConfigCallback(httpClientBuilder -> {
+            if (sessionStrategy != null) {
+                httpClientBuilder.setSSLStrategy(sessionStrategy);
+            }
+            httpClientBuilder.setDefaultHeaders(defaultHeaders);
+            return httpClientBuilder;
+        });
 
         final String requestTimeoutString = settings.get(CLIENT_RETRY_TIMEOUT);
         if (requestTimeoutString != null) {

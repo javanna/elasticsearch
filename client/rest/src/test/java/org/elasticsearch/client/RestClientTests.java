@@ -42,7 +42,7 @@ public class RestClientTests extends RestClientTestCase {
     public void testCloseIsIdempotent() throws IOException {
         HttpHost[] hosts = new HttpHost[]{new HttpHost("localhost", 9200)};
         CloseableHttpAsyncClient closeableHttpAsyncClient = mock(CloseableHttpAsyncClient.class);
-        RestClient restClient =  new RestClient(closeableHttpAsyncClient, 1_000, new Header[0], hosts, null, null);
+        RestClient restClient =  new RestClient(closeableHttpAsyncClient, 1_000, hosts, null, null);
         restClient.close();
         verify(closeableHttpAsyncClient, times(1)).close();
         restClient.close();
@@ -250,6 +250,6 @@ public class RestClientTests extends RestClientTestCase {
 
     private static RestClient createRestClient() {
         HttpHost[] hosts = new HttpHost[]{new HttpHost("localhost", 9200)};
-        return new RestClient(mock(CloseableHttpAsyncClient.class), randomIntBetween(1_000, 30_000), new Header[]{}, hosts, null, null);
+        return new RestClient(mock(CloseableHttpAsyncClient.class), randomIntBetween(1_000, 30_000), hosts, null, null);
     }
 }

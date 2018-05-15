@@ -93,7 +93,6 @@ public class RestClientSingleHostTests extends RestClientTestCase {
 
     private ExecutorService exec = Executors.newFixedThreadPool(1);
     private RestClient restClient;
-    private Header[] defaultHeaders;
     private HttpHost httpHost;
     private CloseableHttpAsyncClient httpClient;
     private HostsTrackingFailureListener failureListener;
@@ -145,10 +144,9 @@ public class RestClientSingleHostTests extends RestClientTestCase {
                     }
                 });
 
-        defaultHeaders = RestClientTestUtil.randomHeaders(getRandom(), "Header-default");
         httpHost = new HttpHost("localhost", 9200);
         failureListener = new HostsTrackingFailureListener();
-        restClient = new RestClient(httpClient, 10000, defaultHeaders, new HttpHost[]{httpHost}, null, failureListener);
+        restClient = new RestClient(httpClient, 10000, new HttpHost[]{httpHost}, null, failureListener);
     }
 
     /**
@@ -370,7 +368,7 @@ public class RestClientSingleHostTests extends RestClientTestCase {
                 esResponse = e.getResponse();
             }
             assertThat(esResponse.getStatusLine().getStatusCode(), equalTo(statusCode));
-            assertHeaders(defaultHeaders, requestHeaders, esResponse.getHeaders(), Collections.<String>emptySet());
+            assertHeaders(requestHeaders, esResponse.getHeaders(), Collections.<String>emptySet());
         }
     }
 
@@ -442,13 +440,6 @@ public class RestClientSingleHostTests extends RestClientTestCase {
                 uniqueNames.add(header.getName());
             }
         }
-        for (Header defaultHeader : defaultHeaders) {
-            // request level headers override default headers
-            if (uniqueNames.contains(defaultHeader.getName()) == false) {
-                expectedRequest.addHeader(defaultHeader);
-            }
-        }
-
         try {
             restClient.performRequest(request);
         } catch(ResponseException e) {

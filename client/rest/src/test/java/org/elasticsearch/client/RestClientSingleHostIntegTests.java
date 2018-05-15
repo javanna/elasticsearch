@@ -29,16 +29,13 @@ import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.mocksocket.MockHttpServer;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -74,13 +71,11 @@ public class RestClientSingleHostIntegTests extends RestClientTestCase {
     private HttpServer httpServer;
     private RestClient restClient;
     private String pathPrefix;
-    private Header[] defaultHeaders;
 
     @Before
     public void startHttpServer() throws Exception {
         pathPrefix = randomBoolean() ? "/testPathPrefix/" + randomAsciiLettersOfLengthBetween(1, 5) : "";
         httpServer = createHttpServer();
-        defaultHeaders = RestClientTestUtil.randomHeaders(getRandom(), "Header-default");
         restClient = createRestClient(false, true);
     }
 
@@ -135,7 +130,7 @@ public class RestClientSingleHostIntegTests extends RestClientTestCase {
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials("user", "pass"));
 
         final RestClientBuilder restClientBuilder = RestClient.builder(
-            new HttpHost(httpServer.getAddress().getHostString(), httpServer.getAddress().getPort())).setDefaultHeaders(defaultHeaders);
+            new HttpHost(httpServer.getAddress().getHostString(), httpServer.getAddress().getPort()));
         if (pathPrefix.length() > 0) {
             restClientBuilder.setPathPrefix(pathPrefix);
         }
@@ -224,7 +219,7 @@ public class RestClientSingleHostIntegTests extends RestClientTestCase {
             assertEquals(method, esResponse.getRequestLine().getMethod());
             assertEquals(statusCode, esResponse.getStatusLine().getStatusCode());
             assertEquals(pathPrefix + "/" + statusCode, esResponse.getRequestLine().getUri());
-            assertHeaders(defaultHeaders, requestHeaders, esResponse.getHeaders(), standardHeaders);
+            assertHeaders(requestHeaders, esResponse.getHeaders(), standardHeaders);
             for (final Header responseHeader : esResponse.getHeaders()) {
                 String name = responseHeader.getName();
                 if (name.startsWith("Header") == false) {
