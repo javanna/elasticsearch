@@ -19,7 +19,7 @@
 package org.elasticsearch.index.analysis;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.util.IOUtils;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -548,6 +548,10 @@ public final class AnalysisRegistry implements Closeable {
             TokenizerFactory keywordTokenizerFactory,
             Map<String, TokenFilterFactory> tokenFilters,
             Map<String, CharFilterFactory> charFilters) {
+        if (keywordTokenizerFactory == null) {
+            throw new IllegalStateException("keyword tokenizer factory is null, normalizers require analysis-common module");
+        }
+
         if (normalizerFactory instanceof CustomNormalizerProvider) {
             ((CustomNormalizerProvider) normalizerFactory).build(keywordTokenizerFactory, charFilters, tokenFilters);
         }

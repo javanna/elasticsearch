@@ -26,7 +26,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.lucene.util.Constants;
-import org.apache.lucene.util.IOUtils;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.apache.lucene.util.StringHelper;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -162,7 +162,7 @@ final class Bootstrap {
         Settings settings = environment.settings();
 
         try {
-            spawner.spawnNativePluginControllers(environment);
+            spawner.spawnNativeControllers(environment);
         } catch (IOException e) {
             throw new BootstrapException(e);
         }

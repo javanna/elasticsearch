@@ -24,15 +24,18 @@ import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -41,7 +44,7 @@ import java.util.Set;
 
 import static java.util.Collections.emptySet;
 
-public class AliasMetaData extends AbstractDiffable<AliasMetaData> {
+public class AliasMetaData extends AbstractDiffable<AliasMetaData> implements ToXContentFragment {
 
     private final String alias;
 
@@ -198,6 +201,17 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> {
         return readDiffFrom(AliasMetaData::new, in);
     }
 
+    @Override
+    public String toString() {
+        return Strings.toString(this, true, true);
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        AliasMetaData.Builder.toXContent(this, builder, params);
+        return builder;
+    }
+
     public static class Builder {
 
         private final String alias;
@@ -244,7 +258,7 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> {
             }
             try {
                 XContentBuilder builder = XContentFactory.jsonBuilder().map(filter);
-                this.filter = new CompressedXContent(builder.bytes());
+                this.filter = new CompressedXContent(BytesReference.bytes(builder));
                 return this;
             } catch (IOException e) {
                 throw new ElasticsearchGenerationException("Failed to build json for alias request", e);
@@ -252,11 +266,7 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> {
         }
 
         public Builder filter(XContentBuilder filterBuilder) {
-            try {
-                return filter(filterBuilder.string());
-            } catch (IOException e) {
-                throw new ElasticsearchGenerationException("Failed to build json for alias request", e);
-            }
+            return filter(Strings.toString(filterBuilder));
         }
 
         public Builder routing(String routing) {
@@ -317,6 +327,8 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> {
                     if ("filter".equals(currentFieldName)) {
                         Map<String, Object> filter = parser.mapOrdered();
                         builder.filter(filter);
+                    } else {
+                        parser.skipChildren();
                     }
                 } else if (token == XContentParser.Token.VALUE_EMBEDDED_OBJECT) {
                     if ("filter".equals(currentFieldName)) {
@@ -330,6 +342,8 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> {
                     } else if ("search_routing".equals(currentFieldName) || "searchRouting".equals(currentFieldName)) {
                         builder.searchRouting(parser.text());
                     }
+                } else if (token == XContentParser.Token.START_ARRAY) {
+                    parser.skipChildren();
                 }
             }
             return builder.build();

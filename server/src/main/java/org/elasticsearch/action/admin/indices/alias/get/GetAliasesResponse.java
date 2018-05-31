@@ -25,16 +25,13 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.StatusToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class GetAliasesResponse extends ActionResponse implements StatusToXContentObject {
+public class GetAliasesResponse extends ActionResponse {
 
     private ImmutableOpenMap<String, List<AliasMetaData>> aliases = ImmutableOpenMap.of();
 
@@ -77,15 +74,5 @@ public class GetAliasesResponse extends ActionResponse implements StatusToXConte
                 aliasMetaData.writeTo(out);
             }
         }
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return null;
-    }
-
-    @Override
-    public RestStatus status() {
-        return null;
     }
 }

@@ -27,7 +27,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ObjectParser.ValueType;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -75,10 +74,10 @@ public class RestReindexAction extends AbstractBaseReindexRestHandler<ReindexReq
             request.setRemoteInfo(buildRemoteInfo(source));
             XContentBuilder builder = XContentFactory.contentBuilder(parser.contentType());
             builder.map(source);
-            try (InputStream stream = builder.bytes().streamInput();
+            try (InputStream stream = BytesReference.bytes(builder).streamInput();
                  XContentParser innerParser = parser.contentType().xContent()
                      .createParser(parser.getXContentRegistry(), parser.getDeprecationHandler(), stream)) {
-                request.getSearchRequest().source().parseXContent(innerParser);
+                request.getSearchRequest().source().parseXContent(innerParser, false);
             }
         };
 
@@ -116,7 +115,7 @@ public class RestReindexAction extends AbstractBaseReindexRestHandler<ReindexReq
     @Override
     protected ReindexRequest buildRequest(RestRequest request) throws IOException {
         if (request.hasParam("pipeline")) {
-            throw new IllegalArgumentException("_reindex doesn't support [pipeline] as a query parmaeter. "
+            throw new IllegalArgumentException("_reindex doesn't support [pipeline] as a query parameter. "
                     + "Specify it in the [dest] object instead.");
         }
         ReindexRequest internal = new ReindexRequest(new SearchRequest(), new IndexRequest());
@@ -214,13 +213,13 @@ public class RestReindexAction extends AbstractBaseReindexRestHandler<ReindexReq
         XContentBuilder builder = JsonXContent.contentBuilder().prettyPrint();
         Object query = source.remove("query");
         if (query == null) {
-            return matchAllQuery().toXContent(builder, ToXContent.EMPTY_PARAMS).bytes();
+            return BytesReference.bytes(matchAllQuery().toXContent(builder, ToXContent.EMPTY_PARAMS));
         }
         if (!(query instanceof Map)) {
             throw new IllegalArgumentException("Expected [query] to be an object but was [" + query + "]");
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> map = (Map<String, Object>) query;
-        return builder.map(map).bytes();
+        return BytesReference.bytes(builder.map(map));
     }
 }

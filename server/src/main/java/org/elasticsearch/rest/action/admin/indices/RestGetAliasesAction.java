@@ -158,11 +158,7 @@ public class RestGetAliasesAction extends BaseRestHandler {
 
         });
     }
-
-    public static StatusToXContentObject createResponse(XContentBuilder builder) {
-        
-    }
-
+    
     private static String toNamesString(final String... names) {
         if (names == null || names.length == 0) {
             return "";

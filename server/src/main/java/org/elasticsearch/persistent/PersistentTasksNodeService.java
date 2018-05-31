@@ -19,7 +19,6 @@
 package org.elasticsearch.persistent;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksResponse;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -124,7 +123,7 @@ public class PersistentTasksNodeService extends AbstractComponent implements Clu
 
             for (Long id : notVisitedTasks) {
                 AllocatedPersistentTask task = runningTasks.get(id);
-                if (task.getState() == AllocatedPersistentTask.State.COMPLETED) {
+                if (task.isCompleted()) {
                     // Result was sent to the caller and the caller acknowledged acceptance of the result
                     logger.trace("Found completed persistent task [{}] with id [{}] and allocation id [{}] - removing",
                             task.getAction(), task.getPersistentTaskId(), task.getAllocationId());
@@ -197,7 +196,8 @@ public class PersistentTasksNodeService extends AbstractComponent implements Clu
         AllocatedPersistentTask task = runningTasks.remove(allocationId);
         if (task.markAsCancelled()) {
             // Cancel the local task using the task manager
-            persistentTasksService.sendTaskManagerCancellation(task.getId(), new ActionListener<CancelTasksResponse>() {
+            String reason = "task has been removed, cancelling locally";
+            persistentTasksService.sendCancelRequest(task.getId(), reason, new ActionListener<CancelTasksResponse>() {
                 @Override
                 public void onResponse(CancelTasksResponse cancelTasksResponse) {
                     logger.trace("Persistent task [{}] with id [{}] and allocation id [{}] was cancelled", task.getAction(),
@@ -207,9 +207,9 @@ public class PersistentTasksNodeService extends AbstractComponent implements Clu
                 @Override
                 public void onFailure(Exception e) {
                     // There is really nothing we can do in case of failure here
-                    logger.warn((Supplier<?>) () ->
-                            new ParameterizedMessage("failed to cancel task [{}] with id [{}] and allocation id [{}]", task.getAction(),
-                                    task.getPersistentTaskId(), task.getAllocationId()), e);
+                    logger.warn(() -> new ParameterizedMessage(
+                        "failed to cancel task [{}] with id [{}] and allocation id [{}]",
+                        task.getAction(), task.getPersistentTaskId(), task.getAllocationId()), e);
                 }
             });
         }
