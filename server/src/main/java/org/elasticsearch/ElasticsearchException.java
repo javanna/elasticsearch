@@ -86,6 +86,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
 
     private static final String TYPE = "type";
     private static final String REASON = "reason";
+    private static final String STATUS = "status";
     private static final String CAUSED_BY = "caused_by";
     private static final ParseField SUPPRESSED = new ParseField("suppressed");
     private static final String STACK_TRACE = "stack_trace";
@@ -238,6 +239,13 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         } else {
             return ExceptionsHelper.status(cause);
         }
+        /*if (cause == this) {
+            cause = getRootCause();
+            if (cause == this) {
+                return RestStatus.INTERNAL_SERVER_ERROR;
+            }
+        }
+        return ExceptionsHelper.status(cause);*/
     }
 
     /**
@@ -345,12 +353,14 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         builder.field(TYPE, type);
         builder.field(REASON, message);
 
+
         for (Map.Entry<String, List<String>> entry : metadata.entrySet()) {
             headerToXContent(builder, entry.getKey().substring("es.".length()), entry.getValue());
         }
 
         if (throwable instanceof ElasticsearchException) {
             ElasticsearchException exception = (ElasticsearchException) throwable;
+            builder.field(STATUS, exception.status().getStatus());
             exception.metadataToXContent(builder, params);
         }
 
@@ -425,6 +435,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         ensureExpectedToken(XContentParser.Token.FIELD_NAME, token, parser::getTokenLocation);
 
         String type = null, reason = null, stack = null;
+        RestStatus status = null;
         ElasticsearchException cause = null;
         Map<String, List<String>> metadata = new HashMap<>();
         Map<String, List<String>> headers = new HashMap<>();
@@ -440,7 +451,9 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                     type = parser.text();
                 } else if (REASON.equals(currentFieldName)) {
                     reason = parser.text();
-                } else if (STACK_TRACE.equals(currentFieldName)) {
+                } else if (STATUS.equals(currentFieldName)) {
+                    status = RestStatus.fromCode(parser.intValue());
+                }else if (STACK_TRACE.equals(currentFieldName)) {
                     stack = parser.text();
                 } else if (token == XContentParser.Token.VALUE_STRING) {
                     metadata.put(currentFieldName, Collections.singletonList(parser.text()));
@@ -506,7 +519,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             }
         }
 
-        ElasticsearchException e = new ElasticsearchException(buildMessage(type, reason, stack), cause);
+        ElasticsearchException e = new ElasticsearchStatusException(buildMessage(type, reason, stack), status, cause);
         for (Map.Entry<String, List<String>> entry : metadata.entrySet()) {
             //subclasses can print out additional metadata through the metadataToXContent method. Simple key-value pairs will be
             //parsed back and become part of this metadata set, while objects and arrays are not supported when parsing back.
