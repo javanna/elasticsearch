@@ -21,7 +21,6 @@ package org.elasticsearch.action.search;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
-
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.FieldDoc;
@@ -230,7 +229,7 @@ public final class SearchPhaseController {
         }
     }
 
-    TopDocs mergeTopDocs(Collection<TopDocs> results, int topN, int from) {
+    public static TopDocs mergeTopDocs(Collection<TopDocs> results, int topN, int from) {
         if (results.isEmpty()) {
             return null;
         }
@@ -674,9 +673,8 @@ public final class SearchPhaseController {
                     aggsBuffer[0] = reducedAggs;
                 }
                 if (hasTopDocs) {
-                    TopDocs reducedTopDocs = controller.mergeTopDocs(Arrays.asList(topDocsBuffer),
-                        // we have to merge here in the same way we collect on a shard
-                        querySearchResult.from() + querySearchResult.size()
+                    TopDocs reducedTopDocs = mergeTopDocs(Arrays.asList(topDocsBuffer),
+                        querySearchResult.from() + querySearchResult.size() // we have to merge here in the same way we collect on a shard
                         , 0);
                     Arrays.fill(topDocsBuffer, null);
                     topDocsBuffer[0] = reducedTopDocs;
