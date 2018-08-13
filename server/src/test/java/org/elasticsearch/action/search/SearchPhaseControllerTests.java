@@ -30,6 +30,8 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.SearchPhaseResult;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
@@ -38,8 +40,6 @@ import org.elasticsearch.search.aggregations.InternalAggregations;
 import org.elasticsearch.search.aggregations.metrics.InternalMax;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.FetchSearchResult;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.search.suggest.Suggest;
@@ -47,7 +47,6 @@ import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -137,7 +136,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
             () -> generateQueryResults(nShards, suggestions, searchHitsSize, useConstantScore));
     }
 
-    public void testMerge() throws IOException {
+    public void testMerge() {
         List<CompletionSuggestion> suggestions = new ArrayList<>();
         int maxSuggestSize = 0;
         for (int i = 0; i < randomIntBetween(1, 5); i++) {
@@ -150,7 +149,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         AtomicArray<SearchPhaseResult> queryResults = generateQueryResults(nShards, suggestions, queryResultSize, false);
         for (boolean trackTotalHits : new boolean[] {true, false}) {
             SearchPhaseController.ReducedQueryPhase reducedQueryPhase =
-                searchPhaseController.reducedQueryPhase(queryResults.asList(), false, trackTotalHits);
+                searchPhaseController.reducedQueryPhase(queryResults.asList(), false, trackTotalHits, true);
             AtomicArray<SearchPhaseResult> searchPhaseResultAtomicArray = generateFetchResults(nShards, reducedQueryPhase.scoreDocs,
                 reducedQueryPhase.suggest);
             InternalSearchResponse mergedResponse = searchPhaseController.merge(false,
@@ -507,4 +506,6 @@ public class SearchPhaseControllerTests extends ESTestCase {
         assertEquals(92.0f, reduce.scoreDocs[3].score, 0.0f);
         assertEquals(91.0f, reduce.scoreDocs[4].score, 0.0f);
     }
+
+    //TODO add a test for the new performFinalReduce flag
 }

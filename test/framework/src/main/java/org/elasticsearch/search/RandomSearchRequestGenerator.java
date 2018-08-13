@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static java.util.Collections.emptyMap;
+import static org.apache.lucene.util.LuceneTestCase.rarely;
 import static org.elasticsearch.test.ESTestCase.between;
 import static org.elasticsearch.test.ESTestCase.generateRandomStringArray;
 import static org.elasticsearch.test.ESTestCase.mockScript;
@@ -111,6 +112,9 @@ public class RandomSearchRequestGenerator {
         }
         if (randomBoolean()) {
             searchRequest.source(randomSearchSourceBuilder.get());
+        }
+        if (rarely()) {
+            searchRequest.setPerformFinalReduce(randomBoolean());
         }
         return searchRequest;
     }

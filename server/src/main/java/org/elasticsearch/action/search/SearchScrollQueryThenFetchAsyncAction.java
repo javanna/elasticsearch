@@ -35,7 +35,6 @@ import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.search.query.ScrollQuerySearchResult;
 import org.elasticsearch.transport.Transport;
 
-import java.io.IOException;
 import java.util.function.BiFunction;
 
 final class SearchScrollQueryThenFetchAsyncAction extends SearchScrollAsyncAction<ScrollQuerySearchResult> {
@@ -68,9 +67,9 @@ final class SearchScrollQueryThenFetchAsyncAction extends SearchScrollAsyncActio
     protected SearchPhase moveToNextPhase(BiFunction<String, String, DiscoveryNode> clusterNodeLookup) {
         return new SearchPhase("fetch") {
             @Override
-            public void run() throws IOException {
-                final SearchPhaseController.ReducedQueryPhase reducedQueryPhase = searchPhaseController.reducedQueryPhase(
-                    queryResults.asList(), true);
+            public void run() {
+                final SearchPhaseController.ReducedQueryPhase reducedQueryPhase =
+                    searchPhaseController.reducedQueryPhaseScroll(queryResults.asList());
                 if (reducedQueryPhase.scoreDocs.length == 0) {
                     sendResponse(reducedQueryPhase, fetchResults);
                     return;

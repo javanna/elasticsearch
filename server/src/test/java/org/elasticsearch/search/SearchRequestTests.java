@@ -157,6 +157,7 @@ public class SearchRequestTests extends AbstractSearchTestCase {
         mutators.add(() -> mutation.searchType(randomValueOtherThan(searchRequest.searchType(),
             () -> randomFrom(SearchType.DFS_QUERY_THEN_FETCH, SearchType.QUERY_THEN_FETCH))));
         mutators.add(() -> mutation.source(randomValueOtherThan(searchRequest.source(), this::createSearchSourceBuilder)));
+        mutators.add(() -> mutation.setPerformFinalReduce(searchRequest.isPerformFinalReduce() == false));
         randomFrom(mutators).run();
         return mutation;
     }
@@ -172,6 +173,7 @@ public class SearchRequestTests extends AbstractSearchTestCase {
         result.requestCache(searchRequest.requestCache());
         result.allowPartialSearchResults(searchRequest.allowPartialSearchResults());
         result.scroll(searchRequest.scroll());
+        result.setPerformFinalReduce(searchRequest.isPerformFinalReduce());
         if (searchRequest.source() != null) {
             result.source(searchRequest.source());
         }

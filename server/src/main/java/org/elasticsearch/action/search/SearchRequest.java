@@ -77,7 +77,6 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
 
     private Boolean allowPartialSearchResults;
 
-
     private Scroll scroll;
 
     private int batchedReduceSize = DEFAULT_BATCHED_REDUCE_SIZE;
@@ -91,6 +90,8 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
     public static final IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.strictExpandOpenAndForbidClosedIgnoreThrottled();
 
     private IndicesOptions indicesOptions = DEFAULT_INDICES_OPTIONS;
+
+    private boolean performFinalReduce = true;
 
     public SearchRequest() {
     }
@@ -140,6 +141,9 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
             allowPartialSearchResults = in.readOptionalBoolean();
         }
+        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            performFinalReduce = in.readBoolean();
+        }
     }
 
     @Override
@@ -162,6 +166,9 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         out.writeVInt(preFilterShardSize);
         if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
             out.writeOptionalBoolean(allowPartialSearchResults);
+        }
+        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            out.writeBoolean(performFinalReduce);
         }
     }
 
@@ -212,6 +219,14 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
     public SearchRequest indicesOptions(IndicesOptions indicesOptions) {
         this.indicesOptions = Objects.requireNonNull(indicesOptions, "indicesOptions must not be null");
         return this;
+    }
+
+    public boolean isPerformFinalReduce() {
+        return performFinalReduce;
+    }
+
+    public void setPerformFinalReduce(boolean performFinalReduce) {
+        this.performFinalReduce = performFinalReduce;
     }
 
     /**
@@ -511,14 +526,15 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
                 Objects.equals(maxConcurrentShardRequests, that.maxConcurrentShardRequests) &&
                 Objects.equals(preFilterShardSize, that.preFilterShardSize) &&
                 Objects.equals(indicesOptions, that.indicesOptions) &&
-                Objects.equals(allowPartialSearchResults, that.allowPartialSearchResults);
+                Objects.equals(allowPartialSearchResults, that.allowPartialSearchResults) &&
+                performFinalReduce == that.performFinalReduce;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(searchType, Arrays.hashCode(indices), routing, preference, source, requestCache,
                 scroll, Arrays.hashCode(types), indicesOptions, batchedReduceSize, maxConcurrentShardRequests, preFilterShardSize,
-                allowPartialSearchResults);
+                allowPartialSearchResults, performFinalReduce);
     }
 
     @Override
@@ -536,6 +552,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
                 ", batchedReduceSize=" + batchedReduceSize +
                 ", preFilterShardSize=" + preFilterShardSize +
                 ", allowPartialSearchResults=" + allowPartialSearchResults +
+                ", performFinalReduce=" + performFinalReduce +
                 ", source=" + source + '}';
     }
 }
