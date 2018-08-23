@@ -116,6 +116,26 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
     }
 
     /**
+     * Constructs a new search request from the provided search request
+     */
+    public SearchRequest(SearchRequest searchRequest) {
+        this.allowPartialSearchResults = searchRequest.allowPartialSearchResults;
+        this.batchedReduceSize = searchRequest.batchedReduceSize;
+        this.indices = searchRequest.indices;
+        this.indicesOptions = searchRequest.indicesOptions;
+        this.maxConcurrentShardRequests = searchRequest.maxConcurrentShardRequests;
+        this.performFinalReduce = searchRequest.performFinalReduce;
+        this.preference = searchRequest.preference;
+        this.preFilterShardSize = searchRequest.preFilterShardSize;
+        this.requestCache = searchRequest.requestCache;
+        this.routing = searchRequest.routing;
+        this.scroll = searchRequest.scroll;
+        this.searchType = searchRequest.searchType;
+        this.source = searchRequest.source;
+        this.types = searchRequest.types;
+    }
+
+    /**
      * Constructs a new search request from reading the specified stream.
      *
      * @param in The stream the request is read from
