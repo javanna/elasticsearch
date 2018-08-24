@@ -19,16 +19,6 @@
 
 package org.elasticsearch.search;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 import org.apache.lucene.search.Explanation;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.OriginalIndices;
@@ -60,6 +50,16 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.lookup.SourceLookup;
 import org.elasticsearch.transport.RemoteClusterAware;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -107,11 +107,10 @@ public final class SearchHit implements Streamable, ToXContentObject, Iterable<D
     @Nullable
     private SearchShardTarget shard;
 
-    //These two fields normally get set when setting the shard target, so they hold the same values as the target thus don't get
+    //This field normally gets set when setting the shard target, so it holds the same value as the target thus it doesn't get
     //serialized over the wire. When parsing hits back from xcontent though, in most of the cases (whenever explanation is disabled)
-    //we can't rebuild the shard target object so we need to set these manually for users retrieval.
+    //we can't rebuild the shard target object so we need to set it manually for users retrieval.
     private transient String index;
-    private transient String clusterAlias;
 
     private Map<String, Object> sourceAsMap;
 
@@ -346,16 +345,8 @@ public final class SearchHit implements Streamable, ToXContentObject, Iterable<D
 
         this.shard = target;
         if (target != null) {
-            this.index = target.getIndex();
-            this.clusterAlias = target.getClusterAlias();
+            this.index = RemoteClusterAware.buildRemoteIndexName(target.getIndexPrefix(), target.getIndex());
         }
-    }
-
-    /**
-     * Returns the cluster alias this hit comes from or null if it comes from a local cluster
-     */
-    public String getClusterAlias() {
-        return clusterAlias;
     }
 
     public void matchedQueries(String[] matchedQueries) {
@@ -431,7 +422,7 @@ public final class SearchHit implements Streamable, ToXContentObject, Iterable<D
             builder.field(Fields._NODE, shard.getNodeIdText());
         }
         if (index != null) {
-            builder.field(Fields._INDEX, RemoteClusterAware.buildRemoteIndexName(clusterAlias, index));
+            builder.field(Fields._INDEX, index);
         }
         if (type != null) {
             builder.field(Fields._TYPE, type);
@@ -571,12 +562,11 @@ public final class SearchHit implements Streamable, ToXContentObject, Iterable<D
         String nodeId = get(Fields._NODE, values, null);
         if (shardId != null && nodeId != null) {
             assert shardId.getIndexName().equals(index);
-            searchHit.shard(new SearchShardTarget(nodeId, shardId, clusterAlias, OriginalIndices.NONE));
+            searchHit.shard(new SearchShardTarget(nodeId, shardId, clusterAlias, OriginalIndices.NONE, null));
         } else {
-            //these fields get set anyways when setting the shard target,
-            //but we set them explicitly when we don't have enough info to rebuild the shard target
-            searchHit.index = index;
-            searchHit.clusterAlias = clusterAlias;
+            //this field gets set anyways when setting the shard target,
+            //but we set it explicitly when we don't have enough info to rebuild the shard target
+            searchHit.index = RemoteClusterAware.buildRemoteIndexName(clusterAlias, index);
         }
         searchHit.score(get(Fields._SCORE, values, DEFAULT_SCORE));
         searchHit.version(get(Fields._VERSION, values, -1L));
@@ -864,14 +854,13 @@ public final class SearchHit implements Streamable, ToXContentObject, Iterable<D
                 && Objects.equals(explanation, other.explanation)
                 && Objects.equals(shard, other.shard)
                 && Objects.equals(innerHits, other.innerHits)
-                && Objects.equals(index, other.index)
-                && Objects.equals(clusterAlias, other.clusterAlias);
+                && Objects.equals(index, other.index);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, type, nestedIdentity, version, source, fields, getHighlightFields(), Arrays.hashCode(matchedQueries),
-                explanation, shard, innerHits, index, clusterAlias);
+                explanation, shard, innerHits, index);
     }
 
     /**

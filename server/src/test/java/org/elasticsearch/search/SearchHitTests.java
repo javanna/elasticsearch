@@ -19,15 +19,6 @@
 
 package org.elasticsearch.search;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
 import org.apache.lucene.search.Explanation;
 import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.common.Strings;
@@ -50,6 +41,16 @@ import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightFieldTests;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.RandomObjects;
+import org.elasticsearch.transport.RemoteClusterAware;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 import static org.elasticsearch.common.xcontent.XContentHelper.toXContent;
 import static org.elasticsearch.test.XContentTestUtils.insertRandomFields;
@@ -122,7 +123,7 @@ public class SearchHitTests extends ESTestCase {
             String index = randomAlphaOfLengthBetween(5, 10);
             String clusterAlias = randomBoolean() ? null : randomAlphaOfLengthBetween(5, 10);
             hit.shard(new SearchShardTarget(randomAlphaOfLengthBetween(5, 10),
-                new ShardId(new Index(index, randomAlphaOfLengthBetween(5, 10)), randomInt()), clusterAlias, OriginalIndices.NONE));
+                new ShardId(new Index(index, randomAlphaOfLengthBetween(5, 10)), randomInt()), clusterAlias, OriginalIndices.NONE, null));
         }
         return hit;
     }
@@ -223,7 +224,6 @@ public class SearchHitTests extends ESTestCase {
 
         SearchHits hits = new SearchHits(new SearchHit[]{hit1, hit2}, 2, 1f);
 
-
         BytesStreamOutput output = new BytesStreamOutput();
         hits.writeTo(output);
         InputStream input = output.bytes().streamInput();
@@ -233,12 +233,13 @@ public class SearchHitTests extends ESTestCase {
         assertThat(results.getAt(0).getInnerHits().get("1").getAt(0).getInnerHits().get("1").getAt(0).getShard(), notNullValue());
         assertThat(results.getAt(0).getInnerHits().get("1").getAt(1).getShard(), notNullValue());
         assertThat(results.getAt(0).getInnerHits().get("2").getAt(0).getShard(), notNullValue());
+        String index = RemoteClusterAware.buildRemoteIndexName(clusterAlias, "_index");
         for (SearchHit hit : results) {
-            assertEquals(clusterAlias, hit.getClusterAlias());
+            assertEquals(index, hit.getIndex());
             if (hit.getInnerHits() != null) {
                 for (SearchHits innerhits : hit.getInnerHits().values()) {
                     for (SearchHit innerHit : innerhits) {
-                        assertEquals(clusterAlias, innerHit.getClusterAlias());
+                        assertEquals(index, innerHit.getIndex());
                     }
                 }
             }

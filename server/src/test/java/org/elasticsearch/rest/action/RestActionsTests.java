@@ -199,7 +199,7 @@ public class RestActionsTests extends ESTestCase {
 
     private static SearchShardTarget createSearchShardTarget(String nodeId, int shardId, String index, String clusterAlias) {
         return new SearchShardTarget(nodeId,
-            new ShardId(new Index(index, IndexMetaData.INDEX_UUID_NA_VALUE), shardId), clusterAlias, OriginalIndices.NONE);
+            new ShardId(new Index(index, IndexMetaData.INDEX_UUID_NA_VALUE), shardId), clusterAlias, OriginalIndices.NONE, null);
     }
 
     @Override

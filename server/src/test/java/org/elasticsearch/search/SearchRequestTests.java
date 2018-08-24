@@ -31,6 +31,7 @@ import org.elasticsearch.common.util.ArrayUtils;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.rescore.QueryRescorerBuilder;
+import org.elasticsearch.test.ESTestCase;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -142,7 +143,7 @@ public class SearchRequestTests extends AbstractSearchTestCase {
         checkEqualsAndHashCode(createSearchRequest(), SearchRequestTests::copyRequest, this::mutate);
     }
 
-    private SearchRequest mutate(SearchRequest searchRequest) throws IOException {
+    private SearchRequest mutate(SearchRequest searchRequest) {
         SearchRequest mutation = copyRequest(searchRequest);
         List<Runnable> mutators = new ArrayList<>();
         mutators.add(() -> mutation.indices(ArrayUtils.concat(searchRequest.indices(), new String[] { randomAlphaOfLength(10) })));
@@ -151,18 +152,20 @@ public class SearchRequestTests extends AbstractSearchTestCase {
         mutators.add(() -> mutation.types(ArrayUtils.concat(searchRequest.types(), new String[] { randomAlphaOfLength(10) })));
         mutators.add(() -> mutation.preference(randomValueOtherThan(searchRequest.preference(), () -> randomAlphaOfLengthBetween(3, 10))));
         mutators.add(() -> mutation.routing(randomValueOtherThan(searchRequest.routing(), () -> randomAlphaOfLengthBetween(3, 10))));
-        mutators.add(() -> mutation.requestCache((randomValueOtherThan(searchRequest.requestCache(), () -> randomBoolean()))));
+        mutators.add(() -> mutation.requestCache((randomValueOtherThan(searchRequest.requestCache(), ESTestCase::randomBoolean))));
         mutators.add(() -> mutation
                 .scroll(randomValueOtherThan(searchRequest.scroll(), () -> new Scroll(new TimeValue(randomNonNegativeLong() % 100000)))));
         mutators.add(() -> mutation.searchType(randomValueOtherThan(searchRequest.searchType(),
             () -> randomFrom(SearchType.DFS_QUERY_THEN_FETCH, SearchType.QUERY_THEN_FETCH))));
         mutators.add(() -> mutation.source(randomValueOtherThan(searchRequest.source(), this::createSearchSourceBuilder)));
         mutators.add(() -> mutation.setPerformFinalReduce(searchRequest.isPerformFinalReduce() == false));
+        mutators.add(() -> mutation.setIndexPrefix(
+            randomValueOtherThan(searchRequest.getIndexPrefix(), () -> randomAlphaOfLengthBetween(5, 10))));
         randomFrom(mutators).run();
         return mutation;
     }
 
-    private static SearchRequest copyRequest(SearchRequest searchRequest) throws IOException {
+    private static SearchRequest copyRequest(SearchRequest searchRequest) {
         SearchRequest result = new SearchRequest();
         result.indices(searchRequest.indices());
         result.indicesOptions(searchRequest.indicesOptions());
@@ -174,6 +177,7 @@ public class SearchRequestTests extends AbstractSearchTestCase {
         result.allowPartialSearchResults(searchRequest.allowPartialSearchResults());
         result.scroll(searchRequest.scroll());
         result.setPerformFinalReduce(searchRequest.isPerformFinalReduce());
+        result.setIndexPrefix(searchRequest.getIndexPrefix());
         if (searchRequest.source() != null) {
             result.source(searchRequest.source());
         }

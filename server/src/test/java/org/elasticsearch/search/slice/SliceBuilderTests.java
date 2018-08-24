@@ -203,6 +203,11 @@ public class SliceBuilderTests extends ESTestCase {
         }
 
         @Override
+        public String getIndexPrefix() {
+            return null;
+        }
+
+        @Override
         public Rewriteable<Rewriteable> getRewriteable() {
             return null;
         }
@@ -492,7 +497,7 @@ public class SliceBuilderTests extends ESTestCase {
         OperationRouting routing = mock(OperationRouting.class);
         GroupShardsIterator<ShardIterator> it = new GroupShardsIterator<>(
             Collections.singletonList(
-                new SearchShardIterator(null, new ShardId("index", "index", 1), null, null)
+                new SearchShardIterator(null, new ShardId("index", "index", 1), null, null, null)
             )
         );
         when(routing.searchShards(any(), any(), any(), any())).thenReturn(it);

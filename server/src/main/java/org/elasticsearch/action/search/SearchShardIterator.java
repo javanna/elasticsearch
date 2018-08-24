@@ -22,6 +22,7 @@ package org.elasticsearch.action.search;
 import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.cluster.routing.PlainShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.List;
@@ -33,7 +34,8 @@ import java.util.List;
 public final class SearchShardIterator extends PlainShardIterator {
 
     private final OriginalIndices originalIndices;
-    private String clusterAlias;
+    private final String clusterAlias;
+    private final String indexPrefix;
     private boolean skip = false;
 
     /**
@@ -43,10 +45,20 @@ public final class SearchShardIterator extends PlainShardIterator {
      * @param shardId shard id of the group
      * @param shards  shards to iterate
      */
-    public SearchShardIterator(String clusterAlias, ShardId shardId, List<ShardRouting> shards, OriginalIndices originalIndices) {
+    public SearchShardIterator(@Nullable String clusterAlias,
+                               ShardId shardId,
+                               List<ShardRouting> shards,
+                               OriginalIndices originalIndices,
+                               @Nullable String indexPrefix) {
         super(shardId, shards);
         this.originalIndices = originalIndices;
+        assert clusterAlias == null || indexPrefix == null;
         this.clusterAlias = clusterAlias;
+        if (clusterAlias != null) {
+            this.indexPrefix = clusterAlias;
+        } else {
+            this.indexPrefix = indexPrefix;
+        }
     }
 
     /**
@@ -56,8 +68,15 @@ public final class SearchShardIterator extends PlainShardIterator {
         return originalIndices;
     }
 
+    /**
+     * Returns the alias of the cluster where the shards are located in case a cross-cluster search is being executed. Null otherwise.
+     */
     public String getClusterAlias() {
         return clusterAlias;
+    }
+
+    public String getIndexPrefix() {
+        return indexPrefix;
     }
 
     /**

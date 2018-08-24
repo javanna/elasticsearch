@@ -57,6 +57,7 @@ import java.io.IOException;
  */
 
 public class ShardSearchLocalRequest implements ShardSearchRequest {
+    private String indexPrefix;
     private String clusterAlias;
     private ShardId shardId;
     private int numberOfShards;
@@ -77,7 +78,8 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
     }
 
     ShardSearchLocalRequest(SearchRequest searchRequest, ShardId shardId, int numberOfShards,
-                            AliasFilter aliasFilter, float indexBoost, long nowInMillis, String clusterAlias, String[] indexRoutings) {
+                            AliasFilter aliasFilter, float indexBoost, long nowInMillis, String clusterAlias, String[] indexRoutings,
+                            String indexPrefix) {
         this(shardId, numberOfShards, searchRequest.searchType(),
                 searchRequest.source(), searchRequest.types(), searchRequest.requestCache(), aliasFilter, indexBoost,
                 searchRequest.allowPartialSearchResults(), indexRoutings, searchRequest.preference());
@@ -87,6 +89,7 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
         this.scroll = searchRequest.scroll();
         this.nowInMillis = nowInMillis;
         this.clusterAlias = clusterAlias;
+        this.indexPrefix = indexPrefix;
     }
 
     public ShardSearchLocalRequest(ShardId shardId, String[] types, long nowInMillis, AliasFilter aliasFilter) {
@@ -112,7 +115,6 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
         this.indexRoutings = indexRoutings;
         this.preference = preference;
     }
-
 
     @Override
     public ShardId shardId() {
@@ -174,7 +176,6 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
         return allowPartialSearchResults;
     }
 
-
     @Override
     public Scroll scroll() {
         return scroll;
@@ -226,6 +227,9 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
             indexRoutings = Strings.EMPTY_ARRAY;
             preference = null;
         }
+        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            indexPrefix = in.readOptionalString();
+        }
     }
 
     protected void innerWriteTo(StreamOutput out, boolean asKey) throws IOException {
@@ -253,6 +257,9 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
                 out.writeOptionalString(preference);
             }
         }
+        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            out.writeOptionalString(indexPrefix);
+        }
     }
 
     @Override
@@ -267,6 +274,11 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
     @Override
     public String getClusterAlias() {
         return clusterAlias;
+    }
+
+    @Override
+    public String getIndexPrefix() {
+        return indexPrefix;
     }
 
     @Override
@@ -295,5 +307,4 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
             }
         }
     }
-
 }

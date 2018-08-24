@@ -157,6 +157,11 @@ public class SearchSlowLogTests extends ESSingleNodeTestCase {
                 public String getClusterAlias() {
                     return null;
                 }
+
+                @Override
+                public String getIndexPrefix() {
+                    return null;
+                }
             };
             @Override
             public ShardSearchRequest request() {

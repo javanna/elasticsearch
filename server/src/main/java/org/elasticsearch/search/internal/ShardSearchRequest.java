@@ -156,6 +156,8 @@ public interface ShardSearchRequest {
      */
     String getClusterAlias();
 
+    String getIndexPrefix();
+
     Rewriteable<Rewriteable> getRewriteable();
 
 }

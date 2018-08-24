@@ -91,7 +91,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
         // we always add the shard failure for a specific shard instance
         // we do make sure to clean it on a successful response from a shard
         SearchShardTarget shardTarget = new SearchShardTarget(nodeId, shardIt.shardId(), shardIt.getClusterAlias(),
-                shardIt.getOriginalIndices());
+                shardIt.getOriginalIndices(), shardIt.getIndexPrefix());
         onShardFailure(shardIndex, shardTarget, e);
 
         if (totalOps.incrementAndGet() == expectedTotalOps) {
@@ -261,7 +261,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
                 final Thread thread = Thread.currentThread();
                 try {
                     executePhaseOnShard(shardIt, shard, new SearchActionListener<FirstResult>(new SearchShardTarget(shard.currentNodeId(),
-                        shardIt.shardId(), shardIt.getClusterAlias(), shardIt.getOriginalIndices()), shardIndex) {
+                        shardIt.shardId(), shardIt.getClusterAlias(), shardIt.getOriginalIndices(), shardIt.getIndexPrefix()), shardIndex) {
                         @Override
                         public void innerOnResponse(FirstResult result) {
                             try {

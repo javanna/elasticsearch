@@ -264,7 +264,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
                 assert originalIndices != null : "original indices are null for clusterAlias: " + clusterAlias;
                 SearchShardIterator shardIterator = new SearchShardIterator(clusterAlias, shardId,
                     Arrays.asList(clusterSearchShardsGroup.getShards()), new OriginalIndices(finalIndices,
-                    originalIndices.indicesOptions()));
+                    originalIndices.indicesOptions()), null);
                 remoteShardIterators.add(shardIterator);
             }
         }
@@ -311,7 +311,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
         GroupShardsIterator<ShardIterator> localShardsIterator = clusterService.operationRouting().searchShards(clusterState,
                 concreteIndices, routingMap, searchRequest.preference(), searchService.getResponseCollectorService(), nodeSearchCounts);
         GroupShardsIterator<SearchShardIterator> shardIterators = mergeShardsIterators(localShardsIterator, localIndices,
-            remoteShardIterators);
+            searchRequest.getIndexPrefix(), remoteShardIterators);
 
         failIfOverShardCountLimit(clusterService, shardIterators.size());
 
@@ -359,10 +359,12 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
 
     static GroupShardsIterator<SearchShardIterator> mergeShardsIterators(GroupShardsIterator<ShardIterator> localShardsIterator,
                                                              OriginalIndices localIndices,
+                                                             String localClusterAlias,
                                                              List<SearchShardIterator> remoteShardIterators) {
         List<SearchShardIterator> shards = new ArrayList<>(remoteShardIterators);
         for (ShardIterator shardIterator : localShardsIterator) {
-            shards.add(new SearchShardIterator(null, shardIterator.shardId(), shardIterator.getShardRoutings(), localIndices));
+            shards.add(new SearchShardIterator(null, shardIterator.shardId(), shardIterator.getShardRoutings(),
+                localIndices, localClusterAlias));
         }
         return new GroupShardsIterator<>(shards);
     }

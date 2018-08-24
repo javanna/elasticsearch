@@ -82,6 +82,8 @@ public class TransportSearchActionTests extends ESTestCase {
         OriginalIndices localIndices = new OriginalIndices(new String[]{"local_alias", "local_index_2"},
                 SearchRequest.DEFAULT_INDICES_OPTIONS);
 
+        String localClusterAlias = randomBoolean() ? randomAlphaOfLengthBetween(5, 10) : null;
+
         OriginalIndices remoteIndices = new OriginalIndices(new String[]{"remote_alias", "remote_index_2"},
                 IndicesOptions.strictExpandOpen());
         List<SearchShardIterator> remoteShardIterators = new ArrayList<>();
@@ -89,14 +91,14 @@ public class TransportSearchActionTests extends ESTestCase {
             ShardId remoteShardId = new ShardId("remote_index", "remote_index_uuid", 2);
             ShardRouting remoteShardRouting = TestShardRouting.newShardRouting(remoteShardId, "remote_node", true, STARTED);
             SearchShardIterator remoteShardIterator = new SearchShardIterator("remote", remoteShardId,
-                    Collections.singletonList(remoteShardRouting), remoteIndices);
+                    Collections.singletonList(remoteShardRouting), remoteIndices, null);
             remoteShardIterators.add(remoteShardIterator);
         }
         {
             ShardId remoteShardId2 = new ShardId("remote_index_2", "remote_index_2_uuid", 3);
             ShardRouting remoteShardRouting2 = TestShardRouting.newShardRouting(remoteShardId2, "remote_node", true, STARTED);
             SearchShardIterator remoteShardIterator2 = new SearchShardIterator("remote", remoteShardId2,
-                    Collections.singletonList(remoteShardRouting2), remoteIndices);
+                    Collections.singletonList(remoteShardRouting2), remoteIndices, null);
             remoteShardIterators.add(remoteShardIterator2);
         }
         OriginalIndices remoteIndices2 = new OriginalIndices(new String[]{"remote_index_3"}, IndicesOptions.strictExpand());
@@ -105,12 +107,12 @@ public class TransportSearchActionTests extends ESTestCase {
             ShardId remoteShardId3 = new ShardId("remote_index_3", "remote_index_3_uuid", 4);
             ShardRouting remoteShardRouting3 = TestShardRouting.newShardRouting(remoteShardId3, "remote_node", true, STARTED);
             SearchShardIterator remoteShardIterator3 = new SearchShardIterator("remote", remoteShardId3,
-                    Collections.singletonList(remoteShardRouting3), remoteIndices2);
+                    Collections.singletonList(remoteShardRouting3), remoteIndices2, null);
             remoteShardIterators.add(remoteShardIterator3);
         }
 
         GroupShardsIterator<SearchShardIterator> searchShardIterators = TransportSearchAction.mergeShardsIterators(localShardsIterator,
-                localIndices, remoteShardIterators);
+                localIndices, localClusterAlias, remoteShardIterators);
 
         assertEquals(searchShardIterators.size(), 5);
         int i = 0;
@@ -120,26 +122,31 @@ public class TransportSearchActionTests extends ESTestCase {
                     assertEquals("local_index", searchShardIterator.shardId().getIndexName());
                     assertEquals(0, searchShardIterator.shardId().getId());
                     assertSame(localIndices, searchShardIterator.getOriginalIndices());
+                    assertEquals(searchShardIterator.getClusterAlias(), localClusterAlias);
                     break;
                 case 1:
                     assertEquals("local_index_2", searchShardIterator.shardId().getIndexName());
                     assertEquals(1, searchShardIterator.shardId().getId());
                     assertSame(localIndices, searchShardIterator.getOriginalIndices());
+                    assertEquals(searchShardIterator.getClusterAlias(), localClusterAlias);
                     break;
                 case 2:
                     assertEquals("remote_index", searchShardIterator.shardId().getIndexName());
                     assertEquals(2, searchShardIterator.shardId().getId());
                     assertSame(remoteIndices, searchShardIterator.getOriginalIndices());
+                    assertEquals(searchShardIterator.getClusterAlias(), "remote");
                     break;
                 case 3:
                     assertEquals("remote_index_2", searchShardIterator.shardId().getIndexName());
                     assertEquals(3, searchShardIterator.shardId().getId());
                     assertSame(remoteIndices, searchShardIterator.getOriginalIndices());
+                    assertEquals(searchShardIterator.getClusterAlias(), "remote");
                     break;
                 case 4:
                     assertEquals("remote_index_3", searchShardIterator.shardId().getIndexName());
                     assertEquals(4, searchShardIterator.shardId().getId());
                     assertSame(remoteIndices2, searchShardIterator.getOriginalIndices());
+                    assertEquals(searchShardIterator.getClusterAlias(), "remote");
                     break;
             }
         }

@@ -133,6 +133,7 @@ final class ExpandSearchPhase extends SearchPhase {
             groupRequest.allowPartialSearchResults(orig.allowPartialSearchResults());
         }
         groupRequest.setMaxConcurrentShardRequests(orig.getMaxConcurrentShardRequests());
+        groupRequest.setIndexPrefix(orig.getIndexPrefix());
         return groupRequest;
     }
 

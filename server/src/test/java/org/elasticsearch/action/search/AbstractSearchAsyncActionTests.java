@@ -69,7 +69,7 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
                 Collections.singletonMap("name", Sets.newHashSet("bar", "baz")),null, request, null,
                 new GroupShardsIterator<>(
                     Collections.singletonList(
-                        new SearchShardIterator(null, null, Collections.emptyList(), null)
+                        new SearchShardIterator(null, null, Collections.emptyList(), null, null)
                     )
                 ), timeProvider, 0, null,
                 new InitialSearchPhase.ArraySearchPhaseResults<>(10), request.getMaxConcurrentShardRequests(),
@@ -117,7 +117,7 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
         final AtomicLong expected = new AtomicLong();
         AbstractSearchAsyncAction<SearchPhaseResult> action = createAction(false, expected);
         SearchShardIterator iterator = new SearchShardIterator("test-cluster", new ShardId(new Index("name", "foo"), 1),
-            Collections.emptyList(), new OriginalIndices(new String[] {"name", "name1"}, IndicesOptions.strictExpand()));
+            Collections.emptyList(), new OriginalIndices(new String[] {"name", "name1"}, IndicesOptions.strictExpand()), null);
         ShardSearchTransportRequest shardSearchTransportRequest = action.buildShardSearchRequest(iterator);
         assertEquals(IndicesOptions.strictExpand(), shardSearchTransportRequest.indicesOptions());
         assertArrayEquals(new String[] {"name", "name1"}, shardSearchTransportRequest.indices());

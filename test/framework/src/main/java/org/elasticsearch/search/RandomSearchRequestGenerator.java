@@ -116,6 +116,9 @@ public class RandomSearchRequestGenerator {
         if (rarely()) {
             searchRequest.setPerformFinalReduce(randomBoolean());
         }
+        if (rarely()) {
+            searchRequest.setIndexPrefix(randomAlphaOfLengthBetween(5, 10));
+        }
         return searchRequest;
     }
 

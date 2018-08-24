@@ -92,6 +92,9 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
     private IndicesOptions indicesOptions = DEFAULT_INDICES_OPTIONS;
 
     private boolean performFinalReduce = true;
+    //TODO should we merge these two and say if a indexPrefix is set, skip the final reduction? Or shall we make the indexPrefix
+    //more generic and call it index prefix or something along those lines?
+    private String indexPrefix;
 
     public SearchRequest() {
     }
@@ -121,6 +124,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
     public SearchRequest(SearchRequest searchRequest) {
         this.allowPartialSearchResults = searchRequest.allowPartialSearchResults;
         this.batchedReduceSize = searchRequest.batchedReduceSize;
+        this.indexPrefix = searchRequest.indexPrefix;
         this.indices = searchRequest.indices;
         this.indicesOptions = searchRequest.indicesOptions;
         this.maxConcurrentShardRequests = searchRequest.maxConcurrentShardRequests;
@@ -163,6 +167,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         }
         if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
             performFinalReduce = in.readBoolean();
+            indexPrefix = in.readOptionalString();
         }
     }
 
@@ -189,6 +194,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         }
         if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
             out.writeBoolean(performFinalReduce);
+            out.writeOptionalString(indexPrefix);
         }
     }
 
@@ -247,6 +253,14 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
 
     public void setPerformFinalReduce(boolean performFinalReduce) {
         this.performFinalReduce = performFinalReduce;
+    }
+
+    public String getIndexPrefix() {
+        return indexPrefix;
+    }
+
+    public void setIndexPrefix(String indexPrefix) {
+        this.indexPrefix = indexPrefix;
     }
 
     /**
@@ -547,14 +561,15 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
                 Objects.equals(preFilterShardSize, that.preFilterShardSize) &&
                 Objects.equals(indicesOptions, that.indicesOptions) &&
                 Objects.equals(allowPartialSearchResults, that.allowPartialSearchResults) &&
-                performFinalReduce == that.performFinalReduce;
+                performFinalReduce == that.performFinalReduce &&
+                Objects.equals(indexPrefix, that.indexPrefix);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(searchType, Arrays.hashCode(indices), routing, preference, source, requestCache,
                 scroll, Arrays.hashCode(types), indicesOptions, batchedReduceSize, maxConcurrentShardRequests, preFilterShardSize,
-                allowPartialSearchResults, performFinalReduce);
+                allowPartialSearchResults, performFinalReduce, indexPrefix);
     }
 
     @Override
@@ -573,6 +588,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
                 ", preFilterShardSize=" + preFilterShardSize +
                 ", allowPartialSearchResults=" + allowPartialSearchResults +
                 ", performFinalReduce=" + performFinalReduce +
+                ", indexPrefix=" + indexPrefix +
                 ", source=" + source + '}';
     }
 }

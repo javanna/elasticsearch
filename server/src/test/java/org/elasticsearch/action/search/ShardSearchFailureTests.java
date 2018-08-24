@@ -48,7 +48,8 @@ public class ShardSearchFailureTests extends ESTestCase {
             String indexName = randomAlphaOfLengthBetween(5, 10);
             String clusterAlias = randomBoolean() ? randomAlphaOfLengthBetween(5, 10) : null;
             searchShardTarget = new SearchShardTarget(nodeId,
-                    new ShardId(new Index(indexName, indexUuid), randomInt()), clusterAlias, OriginalIndices.NONE);
+                    new ShardId(new Index(indexName, indexUuid), randomInt()), clusterAlias,
+                OriginalIndices.NONE, null);
         }
         return new ShardSearchFailure(ex, searchShardTarget);
     }
@@ -102,7 +103,7 @@ public class ShardSearchFailureTests extends ESTestCase {
 
     public void testToXContent() throws IOException {
         ShardSearchFailure failure = new ShardSearchFailure(new ParsingException(0, 0, "some message", null),
-                new SearchShardTarget("nodeId", new ShardId(new Index("indexName", "indexUuid"), 123), null, OriginalIndices.NONE));
+                new SearchShardTarget("nodeId", new ShardId(new Index("indexName", "indexUuid"), 123), null, OriginalIndices.NONE, null));
         BytesReference xContent = toXContent(failure, XContentType.JSON, randomBoolean());
         assertEquals(
                 "{\"shard\":123,"
@@ -120,7 +121,7 @@ public class ShardSearchFailureTests extends ESTestCase {
 
     public void testToXContentWithClusterAlias() throws IOException {
         ShardSearchFailure failure = new ShardSearchFailure(new ParsingException(0, 0, "some message", null),
-            new SearchShardTarget("nodeId", new ShardId(new Index("indexName", "indexUuid"), 123), "cluster1", OriginalIndices.NONE));
+            new SearchShardTarget("nodeId", new ShardId(new Index("indexName", "indexUuid"), 123), "cluster1", OriginalIndices.NONE, null));
         BytesReference xContent = toXContent(failure, XContentType.JSON, randomBoolean());
         assertEquals(
             "{\"shard\":123,"

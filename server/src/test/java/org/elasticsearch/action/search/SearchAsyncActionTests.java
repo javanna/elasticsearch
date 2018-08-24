@@ -401,7 +401,7 @@ public class SearchAsyncActionTests extends ESTestCase {
             }
             Collections.shuffle(started, random());
             started.addAll(initializing);
-            list.add(new SearchShardIterator(null, new ShardId(new Index(index, "_na_"), i), started, originalIndices));
+            list.add(new SearchShardIterator(null, new ShardId(new Index(index, "_na_"), i), started, originalIndices, null));
         }
         return new GroupShardsIterator<>(list);
     }
