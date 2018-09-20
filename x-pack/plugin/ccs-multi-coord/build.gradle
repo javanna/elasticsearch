@@ -1,0 +1,22 @@
+evaluationDependsOn(xpackModule('core'))
+
+apply plugin: 'elasticsearch.esplugin'
+esplugin {
+    name 'x-pack-ccs-multi-coord'
+    description 'Elasticsearch Expanded Pack Plugin - CCS Multi Coord'
+    classname 'org.elasticsearch.xpack.ccs.CCSMultiCoord'
+    extendedPlugins = ['x-pack-core']
+}
+archivesBaseName = 'x-pack-ccs-multi-coord'
+
+dependencies {
+    //not possible right now due to jarhell
+    //testCompile project(path: ':client:rest-high-level', configuration: 'runtime')
+    testCompile project(path: xpackProject('transport-client').path, configuration: 'runtime')
+}
+
+run {
+    plugin xpackModule('core')
+}
+
+integTest.enabled = false
