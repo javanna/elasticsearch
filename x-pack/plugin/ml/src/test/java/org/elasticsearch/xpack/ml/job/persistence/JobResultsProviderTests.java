@@ -856,7 +856,7 @@ public class JobResultsProviderTests extends ESTestCase {
 
             list.add(hit);
         }
-        SearchHits hits = new SearchHits(list.toArray(new SearchHit[0]), source.size(), 1);
+        SearchHits hits = new SearchHits(list.toArray(new SearchHit[0]), source.size(), 1, null);
         when(response.getHits()).thenReturn(hits);
 
         return response;

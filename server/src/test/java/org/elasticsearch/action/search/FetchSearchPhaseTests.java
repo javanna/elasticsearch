@@ -60,7 +60,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                     new ScoreDoc[] {new ScoreDoc(42, 1.0F)}), 1.0F), new DocValueFormat[0]);
             queryResult.size(1);
             FetchSearchResult fetchResult = new FetchSearchResult();
-            fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(42)}, 1, 1.0F));
+            fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(42)}, 1, 1.0F, null));
             QueryFetchSearchResult fetchSearchResult = new QueryFetchSearchResult(queryResult, fetchResult);
             fetchSearchResult.setShardIndex(0);
             results.consumeResult(fetchSearchResult);
@@ -115,10 +115,10 @@ public class FetchSearchPhaseTests extends ESTestCase {
                                          SearchActionListener<FetchSearchResult> listener) {
                 FetchSearchResult fetchResult = new FetchSearchResult();
                 if (request.id() == 321) {
-                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F));
+                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F, null));
                 } else {
                     assertEquals(123, request.id());
-                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(42)}, 1, 1.0F));
+                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(42)}, 1, 1.0F, null));
                 }
                 listener.onResponse(fetchResult);
             }
@@ -171,7 +171,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                                          SearchActionListener<FetchSearchResult> listener) {
                 if (request.id() == 321) {
                     FetchSearchResult fetchResult = new FetchSearchResult();
-                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F));
+                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F, null));
                     listener.onResponse(fetchResult);
                 } else {
                     listener.onFailure(new MockDirectoryWrapper.FakeIOException());
@@ -225,7 +225,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                                          SearchActionListener<FetchSearchResult> listener) {
                 new Thread(() -> {
                     FetchSearchResult fetchResult = new FetchSearchResult();
-                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit((int) (request.id()+1))}, 1, 100F));
+                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit((int) (request.id()+1))}, 1, 100F, null));
                     listener.onResponse(fetchResult);
                 }).start();
             }
@@ -291,10 +291,10 @@ public class FetchSearchPhaseTests extends ESTestCase {
                     throw new RuntimeException("BOOM");
                 }
                 if (request.id() == 321) {
-                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F));
+                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F, null));
                 } else {
                     assertEquals(request, 123);
-                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(42)}, 1, 1.0F));
+                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(42)}, 1, 1.0F, null));
                 }
                 listener.onResponse(fetchResult);
             }
@@ -343,7 +343,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                                          SearchActionListener<FetchSearchResult> listener) {
                 FetchSearchResult fetchResult = new FetchSearchResult();
                 if (request.id() == 321) {
-                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F));
+                    fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)}, 1, 2.0F, null));
                 } else {
                     fail("requestID 123 should not be fetched but was");
                 }

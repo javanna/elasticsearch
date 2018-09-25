@@ -232,7 +232,7 @@ public class ExpiredModelSnapshotsRemoverTests extends ESTestCase {
             modelSnapshots.get(i).toXContent(jsonBuilder, ToXContent.EMPTY_PARAMS);
             hitsArray[i].sourceRef(BytesReference.bytes(jsonBuilder));
         }
-        SearchHits hits = new SearchHits(hitsArray, hitsArray.length, 1.0f);
+        SearchHits hits = new SearchHits(hitsArray, hitsArray.length, 1.0f, null);
         SearchResponse searchResponse = mock(SearchResponse.class);
         when(searchResponse.getHits()).thenReturn(hits);
         return searchResponse;

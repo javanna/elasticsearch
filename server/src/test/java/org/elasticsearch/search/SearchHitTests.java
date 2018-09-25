@@ -205,7 +205,7 @@ public class SearchHitTests extends ESTestCase {
         innerHit1.shard(target);
         SearchHit innerInnerHit2 = new SearchHit(0, "_id", new Text("_type"), null);
         innerInnerHit2.shard(target);
-        innerHits.put("1", new SearchHits(new SearchHit[]{innerInnerHit2}, 1, 1f));
+        innerHits.put("1", new SearchHits(new SearchHit[]{innerInnerHit2}, 1, 1f, null));
         innerHit1.setInnerHits(innerHits);
         SearchHit innerHit2 = new SearchHit(0, "_id", new Text("_type"), null);
         innerHit2.shard(target);
@@ -214,15 +214,15 @@ public class SearchHitTests extends ESTestCase {
 
         innerHits = new HashMap<>();
         SearchHit hit1 = new SearchHit(0, "_id", new Text("_type"), null);
-        innerHits.put("1", new SearchHits(new SearchHit[]{innerHit1, innerHit2}, 1, 1f));
-        innerHits.put("2", new SearchHits(new SearchHit[]{innerHit3}, 1, 1f));
+        innerHits.put("1", new SearchHits(new SearchHit[]{innerHit1, innerHit2}, 1, 1f, null));
+        innerHits.put("2", new SearchHits(new SearchHit[]{innerHit3}, 1, 1f, null));
         hit1.shard(target);
         hit1.setInnerHits(innerHits);
 
         SearchHit hit2 = new SearchHit(0, "_id", new Text("_type"), null);
         hit2.shard(target);
 
-        SearchHits hits = new SearchHits(new SearchHit[]{hit1, hit2}, 2, 1f);
+        SearchHits hits = new SearchHits(new SearchHit[]{hit1, hit2}, 2, 1f, null);
 
         BytesStreamOutput output = new BytesStreamOutput();
         hits.writeTo(output);

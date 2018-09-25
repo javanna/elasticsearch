@@ -213,7 +213,7 @@ public class SearchResponseTests extends ESTestCase {
         SearchHit[] hits = new SearchHit[] { hit };
         {
             SearchResponse response = new SearchResponse(
-                    new InternalSearchResponse(new SearchHits(hits, 100, 1.5f), null, null, null, false, null, 1), null, 0, 0, 0, 0,
+                    new InternalSearchResponse(new SearchHits(hits, 100, 1.5f, null), null, null, null, false, null, 1), null, 0, 0, 0, 0,
                     ShardSearchFailure.EMPTY_ARRAY, SearchResponse.Clusters.EMPTY);
             StringBuilder expectedString = new StringBuilder();
             expectedString.append("{");
@@ -239,7 +239,7 @@ public class SearchResponseTests extends ESTestCase {
         }
         {
             SearchResponse response = new SearchResponse(
-                    new InternalSearchResponse(new SearchHits(hits, 100, 1.5f), null, null, null, false, null, 1), null, 0, 0, 0, 0,
+                    new InternalSearchResponse(new SearchHits(hits, 100, 1.5f, null), null, null, null, false, null, 1), null, 0, 0, 0, 0,
                     ShardSearchFailure.EMPTY_ARRAY, new SearchResponse.Clusters(5, 3, 2));
             StringBuilder expectedString = new StringBuilder();
             expectedString.append("{");

@@ -70,8 +70,8 @@ public class AsyncTwoPhaseIndexerTests extends ESTestCase {
         protected void doNextSearch(SearchRequest request, ActionListener<SearchResponse> nextPhase) {
             assertThat(step, equalTo(2));
             ++step;
-            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0), null, null, false,
-                    null, null, 1);
+            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0, null),
+                null, null, false, null, null, 1);
 
             nextPhase.onResponse(new SearchResponse(sections, null, 1, 1, 0, 0, ShardSearchFailure.EMPTY_ARRAY, null));
         }

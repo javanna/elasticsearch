@@ -95,6 +95,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
     //TODO should we merge these two and say if a indexPrefix is set, skip the final reduction? Or shall we make the indexPrefix
     //more generic and call it index prefix or something along those lines?
     private String indexPrefix;
+    private boolean serializeTopDocs = false;
 
     public SearchRequest() {
     }
@@ -135,6 +136,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         this.routing = searchRequest.routing;
         this.scroll = searchRequest.scroll;
         this.searchType = searchRequest.searchType;
+        this.serializeTopDocs = searchRequest.serializeTopDocs;
         this.source = searchRequest.source;
         this.types = searchRequest.types;
     }
@@ -168,6 +170,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
             performFinalReduce = in.readBoolean();
             indexPrefix = in.readOptionalString();
+            serializeTopDocs = in.readBoolean();
         }
     }
 
@@ -195,6 +198,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
             out.writeBoolean(performFinalReduce);
             out.writeOptionalString(indexPrefix);
+            out.writeBoolean(serializeTopDocs);
         }
     }
 
@@ -261,6 +265,14 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
 
     public void setIndexPrefix(String indexPrefix) {
         this.indexPrefix = indexPrefix;
+    }
+
+    public boolean isSerializeTopDocs() {
+        return serializeTopDocs;
+    }
+
+    public void setSerializeTopDocs(boolean serializeTopDocs) {
+        this.serializeTopDocs = serializeTopDocs;
     }
 
     /**
@@ -562,14 +574,15 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
                 Objects.equals(indicesOptions, that.indicesOptions) &&
                 Objects.equals(allowPartialSearchResults, that.allowPartialSearchResults) &&
                 performFinalReduce == that.performFinalReduce &&
-                Objects.equals(indexPrefix, that.indexPrefix);
+                Objects.equals(indexPrefix, that.indexPrefix) &&
+                serializeTopDocs == that.serializeTopDocs;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(searchType, Arrays.hashCode(indices), routing, preference, source, requestCache,
                 scroll, Arrays.hashCode(types), indicesOptions, batchedReduceSize, maxConcurrentShardRequests, preFilterShardSize,
-                allowPartialSearchResults, performFinalReduce, indexPrefix);
+                allowPartialSearchResults, performFinalReduce, indexPrefix, serializeTopDocs);
     }
 
     @Override
@@ -589,6 +602,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
                 ", allowPartialSearchResults=" + allowPartialSearchResults +
                 ", performFinalReduce=" + performFinalReduce +
                 ", indexPrefix=" + indexPrefix +
+                ", serializeTopDocs=" + serializeTopDocs +
                 ", source=" + source + '}';
     }
 }

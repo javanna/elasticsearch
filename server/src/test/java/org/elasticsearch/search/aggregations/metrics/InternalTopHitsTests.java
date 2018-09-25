@@ -36,8 +36,6 @@ import org.elasticsearch.common.text.Text;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.ParsedAggregation;
-import org.elasticsearch.search.aggregations.metrics.InternalTopHits;
-import org.elasticsearch.search.aggregations.metrics.ParsedTopHits;
 import org.elasticsearch.search.aggregations.pipeline.PipelineAggregator;
 import org.elasticsearch.test.InternalAggregationTestCase;
 
@@ -103,7 +101,7 @@ public class InternalTopHitsTests extends InternalAggregationTestCase<InternalTo
             hits[i].score(score);
         }
         int totalHits = between(actualSize, 500000);
-        SearchHits searchHits = new SearchHits(hits, totalHits, maxScore);
+        SearchHits searchHits = new SearchHits(hits, totalHits, maxScore, null);
 
         TopDocs topDocs;
         Arrays.sort(scoreDocs, scoreDocComparator());
@@ -200,7 +198,8 @@ public class InternalTopHitsTests extends InternalAggregationTestCase<InternalTo
             expectedHitsHits[i] = allHits.get(i).v2();
         }
         // Lucene's TopDocs initializes the maxScore to Float.NaN, if there is no maxScore
-        SearchHits expectedHits = new SearchHits(expectedHitsHits, totalHits, maxScore == Float.NEGATIVE_INFINITY ? Float.NaN : maxScore);
+        SearchHits expectedHits = new SearchHits(expectedHitsHits, totalHits,
+            maxScore == Float.NEGATIVE_INFINITY ? Float.NaN : maxScore, null);
         assertEqualsWithErrorMessageFromXContent(expectedHits, actualHits);
     }
 
@@ -279,7 +278,7 @@ public class InternalTopHitsTests extends InternalAggregationTestCase<InternalTo
             break;
         case 4:
             searchHits = new SearchHits(searchHits.getHits(), searchHits.totalHits + between(1, 100),
-                    searchHits.getMaxScore() + randomFloat());
+                    searchHits.getMaxScore() + randomFloat(), null);
             break;
         case 5:
             if (metaData == null) {

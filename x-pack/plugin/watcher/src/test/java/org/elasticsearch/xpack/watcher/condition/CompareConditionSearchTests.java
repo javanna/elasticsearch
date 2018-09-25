@@ -78,7 +78,7 @@ public class CompareConditionSearchTests extends AbstractWatcherIntegrationTestC
         hit.shard(new SearchShardTarget("a", new Index("a", "indexUUID"), 0, null));
 
         InternalSearchResponse internalSearchResponse = new InternalSearchResponse(
-                new SearchHits(new SearchHit[]{hit}, 1L, 1f), null, null, null, false, false, 1);
+                new SearchHits(new SearchHit[]{hit}, 1L, 1f, null), null, null, null, false, false, 1);
         SearchResponse response = new SearchResponse(internalSearchResponse, "", 3, 3, 0, 500L, ShardSearchFailure.EMPTY_ARRAY,
                 SearchResponse.Clusters.EMPTY);
 

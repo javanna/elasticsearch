@@ -70,13 +70,13 @@ final class SearchScrollQueryThenFetchAsyncAction extends SearchScrollAsyncActio
             public void run() {
                 final SearchPhaseController.ReducedQueryPhase reducedQueryPhase =
                     searchPhaseController.reducedQueryPhaseScroll(queryResults.asList());
-                if (reducedQueryPhase.scoreDocs.length == 0) {
+                if (reducedQueryPhase.topDocs.scoreDocs.length == 0) {
                     sendResponse(reducedQueryPhase, fetchResults);
                     return;
                 }
 
                 final IntArrayList[] docIdsToLoad = searchPhaseController.fillDocIdsToLoad(queryResults.length(),
-                    reducedQueryPhase.scoreDocs);
+                    reducedQueryPhase.topDocs.scoreDocs);
                 final ScoreDoc[] lastEmittedDocPerShard = searchPhaseController.getLastEmittedDocPerShard(reducedQueryPhase,
                     queryResults.length());
                 final CountDown counter = new CountDown(docIdsToLoad.length);

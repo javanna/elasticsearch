@@ -93,7 +93,7 @@ public class RollupIndexerStateTests extends ESTestCase {
                     return null;
                 }
             }));
-            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0),
+            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0, null),
                 aggs, null, false, null, null, 1);
             final SearchResponse response = new SearchResponse(sections, null, 1, 1, 0, 0,
                 new ShardSearchFailure[0], null);
@@ -402,7 +402,7 @@ public class RollupIndexerStateTests extends ESTestCase {
                             return null;
                         }
                     }));
-                    final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0),
+                    final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0, null),
                         aggs, null, false, null, null, 1);
                     final SearchResponse response = new SearchResponse(sections, null, 1, 1, 0, 0,
                         ShardSearchFailure.EMPTY_ARRAY, null);
@@ -607,7 +607,7 @@ public class RollupIndexerStateTests extends ESTestCase {
                     return null;
                 }
             }));
-            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0),
+            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0, null),
                 aggs, null, false, null, null, 1);
             return new SearchResponse(sections, null, 1, 1, 0, 0,
                 ShardSearchFailure.EMPTY_ARRAY, null);
@@ -712,7 +712,7 @@ public class RollupIndexerStateTests extends ESTestCase {
                     return null;
                 }
             }));
-            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0),
+            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0, null),
                 aggs, null, false, null, null, 1);
             return new SearchResponse(sections, null, 1, 1, 0, 0,
                 ShardSearchFailure.EMPTY_ARRAY, null);
@@ -856,7 +856,7 @@ public class RollupIndexerStateTests extends ESTestCase {
                     return null;
                 }
             }));
-            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0),
+            final SearchResponseSections sections = new SearchResponseSections(new SearchHits(new SearchHit[0], 0, 0, null),
                 aggs, null, false, null, null, 1);
             return new SearchResponse(sections, null, 1, 1, 0, 0,
                 ShardSearchFailure.EMPTY_ARRAY, null);

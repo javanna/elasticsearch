@@ -216,7 +216,7 @@ public class BatchedDocumentsIteratorTests extends ESTestCase {
             for (String value : values) {
                 hits.add(new SearchHitBuilder(randomInt()).setSource(value).build());
             }
-            return new SearchHits(hits.toArray(new SearchHit[hits.size()]), totalHits, 1.0f);
+            return new SearchHits(hits.toArray(new SearchHit[hits.size()]), totalHits, 1.0f, null);
         }
     }
 

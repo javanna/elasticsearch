@@ -194,7 +194,7 @@ public class WatcherServiceTests extends ESTestCase {
             when(watch.status()).thenReturn(watchStatus);
             when(parser.parse(eq(id), eq(true), any(), eq(XContentType.JSON))).thenReturn(watch);
         }
-        SearchHits searchHits = new SearchHits(hits, count, 1.0f);
+        SearchHits searchHits = new SearchHits(hits, count, 1.0f, null);
         SearchResponseSections sections = new SearchResponseSections(searchHits, null, null, false, false, null, 1);
         SearchResponse searchResponse = new SearchResponse(sections, "scrollId", 1, 1, 0, 10, ShardSearchFailure.EMPTY_ARRAY,
                 SearchResponse.Clusters.EMPTY);

@@ -161,6 +161,7 @@ public class SearchRequestTests extends AbstractSearchTestCase {
         mutators.add(() -> mutation.setPerformFinalReduce(searchRequest.isPerformFinalReduce() == false));
         mutators.add(() -> mutation.setIndexPrefix(
             randomValueOtherThan(searchRequest.getIndexPrefix(), () -> randomAlphaOfLengthBetween(5, 10))));
+        mutators.add(() -> mutation.setSerializeTopDocs(searchRequest.isSerializeTopDocs() == false));
         randomFrom(mutators).run();
         return mutation;
     }
@@ -178,6 +179,7 @@ public class SearchRequestTests extends AbstractSearchTestCase {
         result.scroll(searchRequest.scroll());
         result.setPerformFinalReduce(searchRequest.isPerformFinalReduce());
         result.setIndexPrefix(searchRequest.getIndexPrefix());
+        result.setSerializeTopDocs(searchRequest.isSerializeTopDocs());
         if (searchRequest.source() != null) {
             result.source(searchRequest.source());
         }
