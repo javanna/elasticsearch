@@ -19,13 +19,11 @@
 
 package org.elasticsearch.search;
 
-import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.lucene.search.TopDocsAndMaxScore;
+import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -43,7 +41,7 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
 
     public static SearchHits empty() {
         // We shouldn't use static final instance, since that could directly be returned by native transport clients
-        return new SearchHits(EMPTY, 0, 0, null);
+        return new SearchHits(EMPTY, 0, 0);
     }
 
     public static final SearchHit[] EMPTY = new SearchHit[0];
@@ -54,17 +52,14 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
 
     private float maxScore;
 
-    private TopDocs topDocs;
-
     SearchHits() {
 
     }
 
-    public SearchHits(SearchHit[] hits, long totalHits, float maxScore, TopDocs topDocs) {
+    public SearchHits(SearchHit[] hits, long totalHits, float maxScore) {
         this.hits = hits;
         this.totalHits = totalHits;
         this.maxScore = maxScore;
-        this.topDocs = topDocs;
     }
 
     /**
@@ -73,6 +68,7 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
     public long getTotalHits() {
         return totalHits;
     }
+
 
     /**
      * The maximum score of this query.
@@ -86,10 +82,6 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
      */
     public SearchHit[] getHits() {
         return this.hits;
-    }
-
-    public TopDocs getTopDocs() {
-        return topDocs;
     }
 
     /**
@@ -164,7 +156,8 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
                 parser.skipChildren();
             }
         }
-        SearchHits searchHits = new SearchHits(hits.toArray(new SearchHit[hits.size()]), totalHits, maxScore, null);
+        SearchHits searchHits = new SearchHits(hits.toArray(new SearchHit[hits.size()]), totalHits,
+                maxScore);
         return searchHits;
     }
 
@@ -198,12 +191,6 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
                 hits[i] = SearchHit.readSearchHit(in);
             }
         }
-        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1) && in.readBoolean()) {
-            this.topDocs = Lucene.readTopDocs(in).topDocs;
-        } else {
-            this.topDocs = null;
-        }
-
     }
 
     @Override
@@ -224,14 +211,6 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
         if (hits.length > 0) {
             for (SearchHit hit : hits) {
                 hit.writeTo(out);
-            }
-        }
-        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
-            if (topDocs == null) {
-                out.writeBoolean(false);
-            } else {
-                out.writeBoolean(true);
-                Lucene.writeTopDocs(out, new TopDocsAndMaxScore(topDocs, Float.NaN));
             }
         }
     }

@@ -1107,17 +1107,4 @@ public class Lucene {
             }
         }
     }
-
-    public static TopDocs replaceScoreDocs(TopDocs topDocs, ScoreDoc[] scoreDocs) {
-        if (topDocs instanceof CollapseTopFieldDocs) {
-            CollapseTopFieldDocs collapseTopFieldDocs = (CollapseTopFieldDocs) topDocs;
-            return new CollapseTopFieldDocs(collapseTopFieldDocs.field, topDocs.totalHits, scoreDocs,
-                collapseTopFieldDocs.fields, collapseTopFieldDocs.collapseValues);
-        }
-        if (topDocs instanceof TopFieldDocs) {
-            TopFieldDocs topFieldDocs = (TopFieldDocs) topDocs;
-            return new TopFieldDocs(topFieldDocs.totalHits, scoreDocs, topFieldDocs.fields);
-        }
-        return new TopDocs(topDocs == null ? new TotalHits(0, TotalHits.Relation.EQUAL_TO) : topDocs.totalHits, scoreDocs);
-    }
 }

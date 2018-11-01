@@ -169,7 +169,7 @@ public class SearchTemplateResponseTests extends AbstractXContentTestCase<Search
         SearchHit[] hits = new SearchHit[] { hit };
 
         InternalSearchResponse internalSearchResponse = new InternalSearchResponse(
-            new SearchHits(hits, 100, 1.5f, null), null, null, null, false, null, 1);
+            new SearchHits(hits, 100, 1.5f), null, null, null, false, null, 1);
         SearchResponse searchResponse = new SearchResponse(internalSearchResponse, null,
             0, 0, 0, 0, ShardSearchFailure.EMPTY_ARRAY, SearchResponse.Clusters.EMPTY);
 

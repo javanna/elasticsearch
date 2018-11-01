@@ -154,7 +154,7 @@ public class TransportSamlInvalidateSessionActionTests extends SamlTestCase {
                     searchRequests.add(searchRequest);
                     final SearchHit[] hits = searchFunction.apply(searchRequest);
                     final SearchResponse response = new SearchResponse(
-                            new SearchResponseSections(new SearchHits(hits, hits.length, 0f, null),
+                            new SearchResponseSections(new SearchHits(hits, hits.length, 0f),
                                     null, null, false, false, null, 1), "_scrollId1", 1, 1, 0, 1, null, null);
                     listener.onResponse((Response) response);
                 } else if (ClearScrollAction.NAME.equals(action.name())) {

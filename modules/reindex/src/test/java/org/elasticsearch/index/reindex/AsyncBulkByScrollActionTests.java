@@ -463,7 +463,7 @@ public class AsyncBulkByScrollActionTests extends ESTestCase {
 
         // Now we can simulate a response and check the delay that we used for the task
         SearchHit hit = new SearchHit(0, "id", new Text("type"), emptyMap());
-        SearchHits hits = new SearchHits(new SearchHit[] { hit }, 0, 0, null);
+        SearchHits hits = new SearchHits(new SearchHit[] { hit }, 0, 0);
         InternalSearchResponse internalResponse = new InternalSearchResponse(hits, null, null, null, false, false, 1);
         SearchResponse searchResponse = new SearchResponse(internalResponse, scrollId(), 5, 4, 0, randomLong(), null,
                 SearchResponse.Clusters.EMPTY);

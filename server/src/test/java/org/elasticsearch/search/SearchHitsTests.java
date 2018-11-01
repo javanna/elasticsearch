@@ -48,7 +48,7 @@ public class SearchHitsTests extends ESTestCase {
         }
         long totalHits = frequently() ? TestUtil.nextLong(random(), 0, Long.MAX_VALUE) : -1;
         float maxScore = frequently() ? randomFloat() : Float.NaN;
-        return new SearchHits(hits, totalHits, maxScore, null);
+        return new SearchHits(hits, totalHits, maxScore);
     }
 
     public void testFromXContent() throws IOException {
@@ -106,7 +106,7 @@ public class SearchHitsTests extends ESTestCase {
 
         long totalHits = 1000;
         float maxScore = 1.5f;
-        SearchHits searchHits = new SearchHits(hits, totalHits, maxScore, null);
+        SearchHits searchHits = new SearchHits(hits, totalHits, maxScore);
         XContentBuilder builder = JsonXContent.contentBuilder();
         builder.startObject();
         searchHits.toXContent(builder, ToXContent.EMPTY_PARAMS);
