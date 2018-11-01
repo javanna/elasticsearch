@@ -20,10 +20,10 @@
 package org.elasticsearch.search;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -38,20 +38,37 @@ public class SearchSortValues implements ToXContentFragment, Writeable {
 
     static final SearchSortValues EMPTY = new SearchSortValues(new Object[0]);
     private final Object[] sortValues;
+    private final DocValueFormat[] sortValueFormats;
 
     SearchSortValues(Object[] sortValues) {
         this.sortValues = Objects.requireNonNull(sortValues, "sort values must not be empty");
+        this.sortValueFormats = null;
     }
 
     public SearchSortValues(Object[] sortValues, DocValueFormat[] sortValueFormats) {
         Objects.requireNonNull(sortValues);
-        Objects.requireNonNull(sortValueFormats);
+        this.sortValueFormats = Objects.requireNonNull(sortValueFormats);
         this.sortValues = Arrays.copyOf(sortValues, sortValues.length);
         for (int i = 0; i < sortValues.length; ++i) {
             if (this.sortValues[i] instanceof BytesRef) {
                 this.sortValues[i] = sortValueFormats[i].format((BytesRef) sortValues[i]);
             }
         }
+    }
+
+    public Object[] parseSortValues() {
+        if (this.sortValueFormats == null) {
+            throw new IllegalStateException("sortValueFormats need to be set in order to parse sort values back");
+        }
+        Object[] sortValues = Arrays.copyOf(this.sortValues, this.sortValues.length);
+        for (int i = 0; i < sortValueFormats.length; i++) {
+            DocValueFormat sortValueFormat = sortValueFormats[i];
+            Object sortValue = sortValues[i];
+            if (sortValue instanceof String) {
+                sortValues[i] = sortValueFormat.parseBytesRef((String) sortValue);
+            }
+        }
+        return sortValues;
     }
 
     public SearchSortValues(StreamInput in) throws IOException {
@@ -84,6 +101,11 @@ public class SearchSortValues implements ToXContentFragment, Writeable {
             }
         } else {
             sortValues = new Object[0];
+        }
+        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            this.sortValueFormats = in.readOptionalArray(input -> input.readNamedWriteable(DocValueFormat.class), DocValueFormat[]::new);
+        } else {
+            this.sortValueFormats = null;
         }
     }
 
@@ -123,6 +145,9 @@ public class SearchSortValues implements ToXContentFragment, Writeable {
                     throw new IOException("Can't handle sort field value of type [" + type + "]");
                 }
             }
+        }
+        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            out.writeOptionalArray(StreamOutput::writeNamedWriteable, sortValueFormats);
         }
     }
 

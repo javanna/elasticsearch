@@ -316,6 +316,10 @@ public final class SearchHit implements Streamable, ToXContentObject, Iterable<D
         return sortValues.sortValues();
     }
 
+    public SearchSortValues getSearchSortValues() {
+        return sortValues;
+    }
+
     /**
      * If enabled, the explanation of the search hit.
      */
