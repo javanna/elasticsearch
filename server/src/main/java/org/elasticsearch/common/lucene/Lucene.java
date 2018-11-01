@@ -322,10 +322,7 @@ public class Lucene {
             TotalHits totalHits = readTotalHits(in);
             float maxScore = in.readFloat();
 
-            SortField[] fields = new SortField[in.readVInt()];
-            for (int i = 0; i < fields.length; i++) {
-                fields[i] = readSortField(in);
-            }
+            SortField[] fields = readSortFields(in);
 
             FieldDoc[] fieldDocs = new FieldDoc[in.readVInt()];
             for (int i = 0; i < fieldDocs.length; i++) {
@@ -337,10 +334,7 @@ public class Lucene {
             float maxScore = in.readFloat();
 
             String field = in.readString();
-            SortField[] fields = new SortField[in.readVInt()];
-            for (int i = 0; i < fields.length; i++) {
-               fields[i] = readSortField(in);
-            }
+            SortField[] fields = readSortFields(in);
             int size = in.readVInt();
             Object[] collapseValues = new Object[size];
             FieldDoc[] fieldDocs = new FieldDoc[size];
@@ -385,7 +379,7 @@ public class Lucene {
         return new FieldDoc(in.readVInt(), in.readFloat(), cFields);
     }
 
-    private static Comparable readSortValue(StreamInput in) throws IOException {
+    public static Comparable readSortValue(StreamInput in) throws IOException {
         byte type = in.readByte();
         if (type == 0) {
             return null;
@@ -437,10 +431,7 @@ public class Lucene {
 
             out.writeString(collapseDocs.field);
 
-            out.writeVInt(collapseDocs.fields.length);
-            for (SortField sortField : collapseDocs.fields) {
-               writeSortField(out, sortField);
-            }
+            writeSortFields(out, collapseDocs.fields);
 
             out.writeVInt(topDocs.topDocs.scoreDocs.length);
             for (int i = 0; i < topDocs.topDocs.scoreDocs.length; i++) {
@@ -455,10 +446,7 @@ public class Lucene {
             writeTotalHits(out, topDocs.topDocs.totalHits);
             out.writeFloat(topDocs.maxScore);
 
-            out.writeVInt(topFieldDocs.fields.length);
-            for (SortField sortField : topFieldDocs.fields) {
-              writeSortField(out, sortField);
-            }
+            writeSortFields(out, topFieldDocs.fields);
 
             out.writeVInt(topDocs.topDocs.scoreDocs.length);
             for (ScoreDoc doc : topFieldDocs.scoreDocs) {
@@ -501,8 +489,7 @@ public class Lucene {
         }
     }
 
-
-    private static void writeSortValue(StreamOutput out, Object field) throws IOException {
+    public static void writeSortValue(StreamOutput out, Object field) throws IOException {
         if (field == null) {
             out.writeByte((byte) 0);
         } else {
@@ -562,6 +549,14 @@ public class Lucene {
         return SortField.Type.values()[in.readVInt()];
     }
 
+    public static SortField[] readSortFields(StreamInput in) throws IOException {
+        SortField[] fields = new SortField[in.readVInt()];
+        for (int i = 0; i < fields.length; i++) {
+            fields[i] = readSortField(in);
+        }
+        return fields;
+    }
+
     public static SortField readSortField(StreamInput in) throws IOException {
         String field = null;
         if (in.readBoolean()) {
@@ -579,6 +574,13 @@ public class Lucene {
 
     public static void writeSortType(StreamOutput out, SortField.Type sortType) throws IOException {
         out.writeVInt(sortType.ordinal());
+    }
+
+    public static void writeSortFields(StreamOutput out, SortField[] sortFields) throws IOException {
+        out.writeVInt(sortFields.length);
+        for (SortField sortField : sortFields) {
+            writeSortField(out, sortField);
+        }
     }
 
     public static void writeSortField(StreamOutput out, SortField sortField) throws IOException {
@@ -615,7 +617,7 @@ public class Lucene {
         }
         if (sortField.getComparatorSource() != null) {
             IndexFieldData.XFieldComparatorSource comparatorSource =
-                    (IndexFieldData.XFieldComparatorSource) sortField.getComparatorSource();
+                (IndexFieldData.XFieldComparatorSource) sortField.getComparatorSource();
             writeSortType(out, comparatorSource.reducedType());
             writeMissingValue(out, comparatorSource.missingValue(sortField.getReverse()));
         } else {

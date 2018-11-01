@@ -19,11 +19,13 @@
 
 package org.elasticsearch.search;
 
+import org.apache.lucene.search.SortField;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
+import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -52,14 +54,29 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
 
     private float maxScore;
 
+    @Nullable
+    private SortField[] sortFields;
+    @Nullable
+    private String collapseField;
+    @Nullable
+    private Object[] collapseValues;
+
     SearchHits() {
 
     }
 
     public SearchHits(SearchHit[] hits, long totalHits, float maxScore) {
+        this(hits, totalHits, maxScore, null, null, null);
+    }
+
+    public SearchHits(SearchHit[] hits, long totalHits, float maxScore, @Nullable SortField[] sortFields,
+                      @Nullable String collapseField, @Nullable Object[] collapseValues) {
         this.hits = hits;
         this.totalHits = totalHits;
         this.maxScore = maxScore;
+        this.sortFields = sortFields;
+        this.collapseField = collapseField;
+        this.collapseValues = collapseValues;
     }
 
     /**
@@ -68,7 +85,6 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
     public long getTotalHits() {
         return totalHits;
     }
-
 
     /**
      * The maximum score of this query.
@@ -89,6 +105,21 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
      */
     public SearchHit getAt(int position) {
         return hits[position];
+    }
+
+    @Nullable
+    public SortField[] getSortFields() {
+        return sortFields;
+    }
+
+    @Nullable
+    public String getCollapseField() {
+        return collapseField;
+    }
+
+    @Nullable
+    public Object[] getCollapseValues() {
+        return collapseValues;
     }
 
     @Override
@@ -191,6 +222,11 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
                 hits[i] = SearchHit.readSearchHit(in);
             }
         }
+        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            sortFields = in.readOptionalArray(Lucene::readSortField, SortField[]::new);
+            collapseField = in.readOptionalString();
+            collapseValues = in.readOptionalArray(Lucene::readSortValue, Object[]::new);
+        }
     }
 
     @Override
@@ -212,6 +248,11 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
             for (SearchHit hit : hits) {
                 hit.writeTo(out);
             }
+        }
+        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+            out.writeOptionalArray(Lucene::writeSortField, sortFields);
+            out.writeOptionalString(collapseField);
+            out.writeOptionalArray(Lucene::writeSortValue, collapseValues);
         }
     }
 

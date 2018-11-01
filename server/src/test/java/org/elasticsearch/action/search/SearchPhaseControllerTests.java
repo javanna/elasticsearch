@@ -150,7 +150,8 @@ public class SearchPhaseControllerTests extends ESTestCase {
         for (boolean trackTotalHits : new boolean[] {true, false}) {
             SearchPhaseController.ReducedQueryPhase reducedQueryPhase =
                 searchPhaseController.reducedQueryPhase(queryResults.asList(), false, trackTotalHits, true);
-            AtomicArray<SearchPhaseResult> searchPhaseResultAtomicArray = generateFetchResults(nShards, reducedQueryPhase.scoreDocs,
+            ScoreDoc[] scoreDocs = reducedQueryPhase.sortedTopDocs.scoreDocs;
+            AtomicArray<SearchPhaseResult> searchPhaseResultAtomicArray = generateFetchResults(nShards, scoreDocs,
                 reducedQueryPhase.suggest);
             InternalSearchResponse mergedResponse = searchPhaseController.merge(false,
                 reducedQueryPhase,
@@ -164,7 +165,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
                 suggestSize += stream.collect(Collectors.summingInt(e -> e.getOptions().size()));
             }
             assertThat(suggestSize, lessThanOrEqualTo(maxSuggestSize));
-            assertThat(mergedResponse.hits().getHits().length, equalTo(reducedQueryPhase.scoreDocs.length - suggestSize));
+            assertThat(mergedResponse.hits().getHits().length, equalTo(scoreDocs.length - suggestSize));
             Suggest suggestResult = mergedResponse.suggest();
             for (Suggest.Suggestion<?> suggestion : reducedQueryPhase.suggest) {
                 assertThat(suggestion, instanceOf(CompletionSuggestion.class));
@@ -372,10 +373,10 @@ public class SearchPhaseControllerTests extends ESTestCase {
         SearchPhaseController.ReducedQueryPhase reduce = consumer.reduce();
         InternalMax internalMax = (InternalMax) reduce.aggregations.asList().get(0);
         assertEquals(max.get(), internalMax.getValue(), 0.0D);
-        assertEquals(1, reduce.scoreDocs.length);
+        assertEquals(1, reduce.sortedTopDocs.scoreDocs.length);
         assertEquals(max.get(), reduce.maxScore, 0.0f);
         assertEquals(expectedNumResults, reduce.totalHits);
-        assertEquals(max.get(), reduce.scoreDocs[0].score, 0.0f);
+        assertEquals(max.get(), reduce.sortedTopDocs.scoreDocs[0].score, 0.0f);
     }
 
     public void testConsumerOnlyAggs() throws InterruptedException {
@@ -404,7 +405,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         SearchPhaseController.ReducedQueryPhase reduce = consumer.reduce();
         InternalMax internalMax = (InternalMax) reduce.aggregations.asList().get(0);
         assertEquals(max.get(), internalMax.getValue(), 0.0D);
-        assertEquals(0, reduce.scoreDocs.length);
+        assertEquals(0, reduce.sortedTopDocs.scoreDocs.length);
         assertEquals(max.get(), reduce.maxScore, 0.0f);
         assertEquals(expectedNumResults, reduce.totalHits);
     }
@@ -433,10 +434,10 @@ public class SearchPhaseControllerTests extends ESTestCase {
             consumer.consumeResult(result);
         }
         SearchPhaseController.ReducedQueryPhase reduce = consumer.reduce();
-        assertEquals(1, reduce.scoreDocs.length);
+        assertEquals(1, reduce.sortedTopDocs.scoreDocs.length);
         assertEquals(max.get(), reduce.maxScore, 0.0f);
         assertEquals(expectedNumResults, reduce.totalHits);
-        assertEquals(max.get(), reduce.scoreDocs[0].score, 0.0f);
+        assertEquals(max.get(), reduce.sortedTopDocs.scoreDocs[0].score, 0.0f);
     }
 
 
@@ -497,14 +498,15 @@ public class SearchPhaseControllerTests extends ESTestCase {
         // 4*3 results = 12 we get result 5 to 10 here with from=5 and size=5
 
         SearchPhaseController.ReducedQueryPhase reduce = consumer.reduce();
-        assertEquals(5, reduce.scoreDocs.length);
+        ScoreDoc[] scoreDocs = reduce.sortedTopDocs.scoreDocs;
+        assertEquals(5, scoreDocs.length);
         assertEquals(100.f, reduce.maxScore, 0.0f);
         assertEquals(12, reduce.totalHits);
-        assertEquals(95.0f, reduce.scoreDocs[0].score, 0.0f);
-        assertEquals(94.0f, reduce.scoreDocs[1].score, 0.0f);
-        assertEquals(93.0f, reduce.scoreDocs[2].score, 0.0f);
-        assertEquals(92.0f, reduce.scoreDocs[3].score, 0.0f);
-        assertEquals(91.0f, reduce.scoreDocs[4].score, 0.0f);
+        assertEquals(95.0f, scoreDocs[0].score, 0.0f);
+        assertEquals(94.0f, scoreDocs[1].score, 0.0f);
+        assertEquals(93.0f, scoreDocs[2].score, 0.0f);
+        assertEquals(92.0f, scoreDocs[3].score, 0.0f);
+        assertEquals(91.0f, scoreDocs[4].score, 0.0f);
     }
 
     //TODO add a test for the new performFinalReduce flag
