@@ -119,6 +119,18 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private static final Logger logger = LogManager.getLogger(TcpTransport.class);
 
     public static final String TRANSPORT_WORKER_THREAD_NAME_PREFIX = "transport_worker";
+    public static final Setting<TimeValue> TRANSPORT_TCP_RESPONSE_LATENCY =
+        Setting.timeSetting("transport.tcp.response_latency", TimeValue.MINUS_ONE, Setting.Property.NodeScope, Setting.Property.Dynamic);
+
+    static final TcpResponseLatency TCP_RESPONSE_LATENCY = new TcpResponseLatency();
+
+    static final class TcpResponseLatency {
+        volatile TimeValue tcpResponseLatency;
+
+        void setTcpResponseLatency(TimeValue tcpResponseLatency) {
+            this.tcpResponseLatency = tcpResponseLatency;
+        }
+    }
 
     public static final Setting<List<String>> HOST =
         listSetting("transport.host", emptyList(), Function.identity(), Setting.Property.NodeScope);
@@ -1353,7 +1365,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                     getInFlightRequestBreaker().addWithoutBreaking(messageLengthBytes);
                 }
                 transportChannel = new TcpTransportChannel(this, channel, transportName, action, requestId, version, features, profileName,
-                    messageLengthBytes, TransportStatus.isCompress(status));
+                    messageLengthBytes, TransportStatus.isCompress(status), TCP_RESPONSE_LATENCY.tcpResponseLatency);
                 final TransportRequest request = reg.newRequest(stream);
                 request.remoteAddress(new TransportAddress(remoteAddress));
                 // in case we throw an exception, i.e. when the limit is hit, we don't want to verify
@@ -1363,8 +1375,9 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         } catch (Exception e) {
             // the circuit breaker tripped
             if (transportChannel == null) {
-                transportChannel = new TcpTransportChannel(this, channel, transportName, action, requestId, version, features,
-                    profileName, 0, TransportStatus.isCompress(status));
+                transportChannel =
+                        new TcpTransportChannel(this, channel, transportName, action, requestId, version, features, profileName, 0,
+                            TransportStatus.isCompress(status), TimeValue.MINUS_ONE);
             }
             try {
                 transportChannel.sendResponse(e);
