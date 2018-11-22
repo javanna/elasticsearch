@@ -20,8 +20,6 @@
 package org.elasticsearch.transport;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsAction;
-import org.elasticsearch.common.unit.TimeValue;
 
 import java.io.IOException;
 import java.util.Set;
@@ -41,10 +39,8 @@ public final class TcpTransportChannel implements TransportChannel {
     private final TcpChannel channel;
     private final boolean compressResponse;
 
-    private final TimeValue responseDelay;
-
     TcpTransportChannel(TcpTransport transport, TcpChannel channel, String channelType, String action, long requestId, Version version,
-                        Set<String> features, String profileName, long reservedBytes, boolean compressResponse, TimeValue responseDelay) {
+                        Set<String> features, String profileName, long reservedBytes, boolean compressResponse) {
         this.version = version;
         this.features = features;
         this.channel = channel;
@@ -55,7 +51,6 @@ public final class TcpTransportChannel implements TransportChannel {
         this.reservedBytes = reservedBytes;
         this.channelType = channelType;
         this.compressResponse = compressResponse;
-        this.responseDelay = responseDelay;
     }
 
     @Override
@@ -71,18 +66,6 @@ public final class TcpTransportChannel implements TransportChannel {
                 options = TransportResponseOptions.builder().withCompress(true).build();
             } else {
                 options = TransportResponseOptions.EMPTY;
-            }
-            if (responseDelay != TimeValue.MINUS_ONE) {
-                if (action.startsWith("indices:data/read/search") || action.equals(ClusterSearchShardsAction.NAME)) {
-                    try {
-                        Thread.sleep(responseDelay.millis());
-                    } catch (InterruptedException e) {
-
-                    } finally {
-                        transport.sendResponse(version, features, channel, response, requestId, action, options);
-                    }
-                    return;
-                }
             }
             transport.sendResponse(version, features, channel, response, requestId, action, options);
         } finally {
