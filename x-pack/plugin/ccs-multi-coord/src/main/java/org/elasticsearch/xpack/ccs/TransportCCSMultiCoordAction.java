@@ -28,7 +28,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.Rewriteable;
@@ -75,10 +74,10 @@ public final class TransportCCSMultiCoordAction extends TransportAction<SearchRe
     private final SearchService searchService;
 
     @Inject
-    public TransportCCSMultiCoordAction(Settings settings, String actionName, ActionFilters actionFilters, ClusterService clusterService,
+    public TransportCCSMultiCoordAction(String actionName, ActionFilters actionFilters, ClusterService clusterService,
                                         TransportService transportService, IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool, TransportSearchAction transportSearchAction, SearchService searchService) {
-        super(settings, actionName, actionFilters, transportService.getTaskManager());
+        super(actionName, actionFilters, transportService.getTaskManager());
         this.clusterService = clusterService;
         this.remoteClusterService = transportService.getRemoteClusterService();
         this.indexNameExpressionResolver = indexNameExpressionResolver;

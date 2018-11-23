@@ -102,7 +102,7 @@ public class SearchSortValues implements ToXContentFragment, Writeable {
         } else {
             sortValues = new Object[0];
         }
-        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (in.getVersion().onOrAfter(Version.V_7_0_0)) {
             this.sortValueFormats = in.readOptionalArray(input -> input.readNamedWriteable(DocValueFormat.class), DocValueFormat[]::new);
         } else {
             this.sortValueFormats = null;
@@ -146,7 +146,7 @@ public class SearchSortValues implements ToXContentFragment, Writeable {
                 }
             }
         }
-        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (out.getVersion().onOrAfter(Version.V_7_0_0)) {
             out.writeOptionalArray(StreamOutput::writeNamedWriteable, sortValueFormats);
         }
     }

@@ -55,7 +55,7 @@ public final class SearchShardTarget implements Writeable, Comparable<SearchShar
         shardId = ShardId.readShardId(in);
         this.originalIndices = null;
         clusterAlias = in.readOptionalString();
-        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (in.getVersion().onOrAfter(Version.V_7_0_0)) {
             indexPrefix = in.readOptionalString();
         } else {
             indexPrefix = null;
@@ -135,7 +135,7 @@ public final class SearchShardTarget implements Writeable, Comparable<SearchShar
         }
         shardId.writeTo(out);
         out.writeOptionalString(clusterAlias);
-        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (out.getVersion().onOrAfter(Version.V_7_0_0)) {
             out.writeOptionalString(indexPrefix);
         }
     }

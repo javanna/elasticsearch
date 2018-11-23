@@ -222,7 +222,7 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
                 hits[i] = SearchHit.readSearchHit(in);
             }
         }
-        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (in.getVersion().onOrAfter(Version.V_7_0_0)) {
             sortFields = in.readOptionalArray(Lucene::readSortField, SortField[]::new);
             collapseField = in.readOptionalString();
             collapseValues = in.readOptionalArray(Lucene::readSortValue, Object[]::new);
@@ -249,7 +249,7 @@ public final class SearchHits implements Streamable, ToXContentFragment, Iterabl
                 hit.writeTo(out);
             }
         }
-        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (out.getVersion().onOrAfter(Version.V_7_0_0)) {
             out.writeOptionalArray(Lucene::writeSortField, sortFields);
             out.writeOptionalString(collapseField);
             out.writeOptionalArray(Lucene::writeSortValue, collapseValues);

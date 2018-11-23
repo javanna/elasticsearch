@@ -227,7 +227,7 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
             indexRoutings = Strings.EMPTY_ARRAY;
             preference = null;
         }
-        if (in.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (in.getVersion().onOrAfter(Version.V_7_0_0)) {
             indexPrefix = in.readOptionalString();
         }
     }
@@ -257,7 +257,7 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
                 out.writeOptionalString(preference);
             }
         }
-        if (out.getVersion().onOrAfter(Version.V_7_0_0_alpha1)) {
+        if (out.getVersion().onOrAfter(Version.V_7_0_0)) {
             out.writeOptionalString(indexPrefix);
         }
     }
