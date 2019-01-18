@@ -48,9 +48,15 @@ import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.sort.ScoreSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestionBuilder;
+import org.elasticsearch.search.suggest.phrase.DirectCandidateGeneratorBuilder;
+import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
+import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -110,12 +116,14 @@ public class CCSMultiCoordTests extends ESTestCase {
         duelSearch(searchRequest);
     }
 
+    @Ignore
     public void testQueryDifferentIndicesPerCluster() throws Exception {
         SearchRequest searchRequest = new SearchRequest("cluster1:so*", "cluster2:so", "cluster3:foo");
         searchRequest.source().size(0);
         duelSearch(searchRequest);
     }
-    
+
+    @Ignore
     public void testQueryOnlyOneCluster() throws Exception {
         SearchRequest searchRequest = new SearchRequest("cluster3:foo");
         searchRequest.source().size(0);
@@ -221,7 +229,8 @@ public class CCSMultiCoordTests extends ESTestCase {
         searchRequest.source(sourceBuilder);
         duelSearch(searchRequest);
     }
-    
+
+    @Ignore
     public void testShardFailures() throws Exception {
         SearchRequest searchRequest = new SearchRequest("*:so*");
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
@@ -463,6 +472,99 @@ public class CCSMultiCoordTests extends ESTestCase {
         TermsQueryBuilder termsQueryBuilder = new TermsQueryBuilder("body", new TermsLookup("index", "type", "id", "tags"));
         sourceBuilder.query(termsQueryBuilder);
         searchRequest.source(sourceBuilder);
+        duelSearch(searchRequest);
+    }
+
+    public void testTermsSuggester() throws Exception {
+        SearchRequest searchRequest = initSearchRequest();
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        searchRequest.source(sourceBuilder);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.setGlobalText("dstributed exampl androd lbrar");
+        suggestBuilder.addSuggestion("body", new TermSuggestionBuilder("body")
+            .suggestMode(TermSuggestionBuilder.SuggestMode.POPULAR).minDocFreq(100));
+        suggestBuilder.addSuggestion("tags", new TermSuggestionBuilder("tags"));
+        sourceBuilder.suggest(suggestBuilder);
+        duelSearch(searchRequest);
+    }
+
+    public void testPhraseSuggester() throws Exception {
+        SearchRequest searchRequest = initSearchRequest();
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        searchRequest.source(sourceBuilder);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.setGlobalText("loking for an exampl librar");
+        suggestBuilder.addSuggestion("body", new PhraseSuggestionBuilder("body").addCandidateGenerator(
+            new DirectCandidateGeneratorBuilder("body").suggestMode("always")).highlight("<em>", "</em>"));
+        sourceBuilder.suggest(suggestBuilder);
+        duelSearch(searchRequest);
+
+    }
+
+    public void testTermsSuggesterGeonames() throws Exception {
+        SearchRequest searchRequest = new SearchRequest("*:geonames");
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        searchRequest.source(sourceBuilder);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.addSuggestion("name_bologna", new TermSuggestionBuilder("name")
+            .suggestMode(TermSuggestionBuilder.SuggestMode.POPULAR).text("bologa").size(15));
+        suggestBuilder.addSuggestion("alternate_bologna", new TermSuggestionBuilder("alternatenames").text("bologa"));
+        suggestBuilder.addSuggestion("name_torino", new TermSuggestionBuilder("name")
+            .suggestMode(TermSuggestionBuilder.SuggestMode.POPULAR).text("turino").size(40));
+        suggestBuilder.addSuggestion("alternate_torino", new TermSuggestionBuilder("alternatenames").text("turino"));
+        sourceBuilder.suggest(suggestBuilder);
+        suggestBuilder.addSuggestion("name_piacenza", new TermSuggestionBuilder("name")
+            .suggestMode(TermSuggestionBuilder.SuggestMode.POPULAR).text("piacenta").size(10));
+        suggestBuilder.addSuggestion("alternate_piacenza", new TermSuggestionBuilder("alternatenames").text("piacenta").size(20));
+
+        duelSearch(searchRequest);
+    }
+
+    public void testPhraseSuggesterGeonames() throws Exception {
+        SearchRequest searchRequest = new SearchRequest("*:geonames");
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        searchRequest.source(sourceBuilder);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.setGlobalText("bolougne firenza, piacenta, turino");
+        suggestBuilder.addSuggestion("name", new PhraseSuggestionBuilder("name").addCandidateGenerator(
+            new DirectCandidateGeneratorBuilder("name").suggestMode("always")).highlight("<em>", "</em>").size(30));
+        sourceBuilder.suggest(suggestBuilder);
+        duelSearch(searchRequest);
+    }
+
+    public void testCompletionSuggester() throws Exception {
+        SearchRequest searchRequest = new SearchRequest("*:geonames");
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        searchRequest.source(sourceBuilder);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.addSuggestion("piacenza", new CompletionSuggestionBuilder("suggest").size(10).text("piace"));
+        suggestBuilder.addSuggestion("amsterdam", new CompletionSuggestionBuilder("suggest").size(20).text("amster"));
+        suggestBuilder.addSuggestion("bologna", new CompletionSuggestionBuilder("suggest").size(30).text("bolo"));
+        sourceBuilder.suggest(suggestBuilder);
+        duelSearch(searchRequest);
+    }
+
+    public void testCompletionSuggesterWithShardSize() throws Exception {
+        SearchRequest searchRequest = new SearchRequest("*:geonames");
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        searchRequest.source(sourceBuilder);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.addSuggestion("piacenza", new CompletionSuggestionBuilder("suggest").size(10).shardSize(50).text("piace"));
+        suggestBuilder.addSuggestion("amsterdam", new CompletionSuggestionBuilder("suggest").size(20).shardSize(50).text("amster"));
+        suggestBuilder.addSuggestion("bologna", new CompletionSuggestionBuilder("suggest").size(30).shardSize(50).text("bolo"));
+        sourceBuilder.suggest(suggestBuilder);
+        duelSearch(searchRequest);
+    }
+
+    public void testCompletionSuggesterWithSearch() throws Exception {
+        SearchRequest searchRequest = new SearchRequest("*:geonames");
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(new MatchQueryBuilder("name", "piacenza"));
+        sourceBuilder.size(30);
+        searchRequest.source(sourceBuilder);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.addSuggestion("amsterdam", new CompletionSuggestionBuilder("suggest").text("amster").size(10));
+        sourceBuilder.suggest(suggestBuilder);
         duelSearch(searchRequest);
     }
 

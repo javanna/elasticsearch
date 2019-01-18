@@ -42,6 +42,9 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 import org.elasticsearch.search.profile.ProfileShardResult;
 import org.elasticsearch.search.profile.SearchProfileShardResults;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.Suggest.Suggestion;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterAware;
@@ -190,6 +193,7 @@ public final class TransportCCSMultiCoordAction extends TransportAction<SearchRe
         return searchRequest;
     }
 
+    @SuppressWarnings("rawtypes")
     public static SearchResponse merge(int from, int size, List<SearchResponse> searchResponses,
                                        InternalAggregation.ReduceContext reduceContext) {
 
@@ -201,6 +205,8 @@ public final class TransportCCSMultiCoordAction extends TransportAction<SearchRe
         List<ShardSearchFailure> failures = new ArrayList<>();
         Map<String, ProfileShardResult> profileResults = new HashMap<>();
         List<InternalAggregations> aggs = new ArrayList<>();
+        Map<String, List<Suggestion>> groupedSuggestions = new HashMap<>();
+        Map<ShardId, List<CompletionSuggestion.Entry.Option>> completionSuggestionOptions = new TreeMap<>();
         List<TopDocs> topDocsList = new ArrayList<>(searchResponses.size());
         //save space by removing duplicates, yet sort based on natural ordering at the same time
         Map<ShardId, ShardIdWithShardIndex> shardIds = new TreeMap<>();
@@ -225,6 +231,23 @@ public final class TransportCCSMultiCoordAction extends TransportAction<SearchRe
 
             SearchHit[] hits = searchHits.getHits();
             ScoreDoc[] scoreDocs = new ScoreDoc[hits.length];
+
+            Suggest suggest = searchResponse.getSuggest();
+            if (suggest != null) {
+                List<CompletionSuggestion> completionSuggestions = suggest.filter(CompletionSuggestion.class);
+                for (CompletionSuggestion completionSuggestion : completionSuggestions) {
+                    for (CompletionSuggestion.Entry.Option option : completionSuggestion.getOptions()) {
+                        ShardId shardId = option.getHit().getShard().getShardId();
+                        List<CompletionSuggestion.Entry.Option> options =
+                            completionSuggestionOptions.computeIfAbsent(shardId, id -> new ArrayList<>());
+                        options.add(option);
+                    }
+                }
+                for (Suggestion<? extends Suggestion.Entry<? extends Suggestion.Entry.Option>> suggestion : suggest) {
+                    List<Suggestion> suggestionList = groupedSuggestions.computeIfAbsent(suggestion.getName(), s -> new ArrayList<>());
+                    suggestionList.add(suggestion);
+                }
+            }
 
             //TODO replace with the TotalHits instance obtained once available
             TotalHits totalHits = new TotalHits(searchHits.totalHits, TotalHits.Relation.EQUAL_TO);
@@ -288,10 +311,19 @@ public final class TransportCCSMultiCoordAction extends TransportAction<SearchRe
 
         InternalAggregations reducedAggs = InternalAggregations.reduce(aggs, reduceContext);
 
+        int shardCounter = 0;
+        for (List<CompletionSuggestion.Entry.Option> options : completionSuggestionOptions.values()) {
+            for (CompletionSuggestion.Entry.Option option : options) {
+                option.setShardIndex(shardCounter);
+            }
+            shardCounter++;
+        }
+        Suggest suggest = groupedSuggestions.isEmpty() ? null : new Suggest(Suggest.reduce(groupedSuggestions));
+
         //TODO numReducePhases should probably reflect the multiple coordination steps?
         //TODO terminatedEarly and timedOut: how do we merge those?
         InternalSearchResponse internalSearchResponse = new InternalSearchResponse(searchHits, reducedAggs,
-            null, profileResults.isEmpty() ? null : new SearchProfileShardResults(profileResults), false, null, 1);
+            suggest, profileResults.isEmpty() ? null : new SearchProfileShardResults(profileResults), false, null, 1);
         //TODO compute proper Clusters section and support skip_unavailable through listener
         SearchResponse.Clusters clusters = new SearchResponse.Clusters(searchResponses.size(), searchResponses.size(), 0);
         //resort the failures so they are ordered the same as ordinary ccs
