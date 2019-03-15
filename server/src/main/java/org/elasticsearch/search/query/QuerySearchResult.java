@@ -21,6 +21,7 @@ package org.elasticsearch.search.query;
 
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.TotalHits;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.search.TopDocsAndMaxScore;
@@ -29,14 +30,10 @@ import org.elasticsearch.search.SearchPhaseResult;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.aggregations.Aggregations;
 import org.elasticsearch.search.aggregations.InternalAggregations;
-import org.elasticsearch.search.aggregations.pipeline.PipelineAggregator;
-import org.elasticsearch.search.aggregations.pipeline.SiblingPipelineAggregator;
 import org.elasticsearch.search.profile.ProfileShardResult;
 import org.elasticsearch.search.suggest.Suggest;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static org.elasticsearch.common.lucene.Lucene.readTopDocs;
@@ -53,7 +50,6 @@ public final class QuerySearchResult extends SearchPhaseResult {
     private DocValueFormat[] sortValueFormats;
     private InternalAggregations aggregations;
     private boolean hasAggs;
-    private List<SiblingPipelineAggregator> pipelineAggregators;
     private Suggest suggest;
     private boolean searchTimedOut;
     private Boolean terminatedEarly = null;
@@ -78,7 +74,6 @@ public final class QuerySearchResult extends SearchPhaseResult {
     public QuerySearchResult queryResult() {
         return this;
     }
-
 
     public void searchTimedOut(boolean searchTimedOut) {
         this.searchTimedOut = searchTimedOut;
@@ -198,14 +193,6 @@ public final class QuerySearchResult extends SearchPhaseResult {
         hasProfileResults = shardResults != null;
     }
 
-    public List<SiblingPipelineAggregator> pipelineAggregators() {
-        return pipelineAggregators;
-    }
-
-    public void pipelineAggregators(List<SiblingPipelineAggregator> pipelineAggregators) {
-        this.pipelineAggregators = pipelineAggregators;
-    }
-
     public Suggest suggest() {
         return suggest;
     }
@@ -294,8 +281,9 @@ public final class QuerySearchResult extends SearchPhaseResult {
         if (hasAggs = in.readBoolean()) {
             aggregations = InternalAggregations.readAggregations(in);
         }
-        pipelineAggregators = in.readNamedWriteableList(PipelineAggregator.class).stream().map(a -> (SiblingPipelineAggregator) a)
-                .collect(Collectors.toList());
+        //TODO needs bw comp layer
+        //pipelineAggregators = in.readNamedWriteableList(PipelineAggregator.class).stream().map(a -> (SiblingPipelineAggregator) a)
+        //.collect(Collectors.toList());
         if (in.readBoolean()) {
             suggest = new Suggest(in);
         }
@@ -332,7 +320,11 @@ public final class QuerySearchResult extends SearchPhaseResult {
             out.writeBoolean(true);
             aggregations.writeTo(out);
         }
-        out.writeNamedWriteableList(pipelineAggregators == null ? emptyList() : pipelineAggregators);
+        //TODO needs bw comp layer
+        //if (out.getVersion().before(Version.V_8_0_0)) {
+            //out.writeNamedWriteableList(aggregations.getSiblingPipelineAggregators() == null ? emptyList() :
+            //    aggregations.getSiblingPipelineAggregators());
+        //}
         if (suggest == null) {
             out.writeBoolean(false);
         } else {

@@ -488,8 +488,8 @@ public final class SearchPhaseController {
             reducedCompletionSuggestions = reducedSuggest.filter(CompletionSuggestion.class);
         }
         ReduceContext reduceContext = reduceContextFunction.apply(performFinalReduce);
-        final InternalAggregations aggregations = aggregationsList.isEmpty() ? null : reduceAggs(aggregationsList,
-            firstResult.pipelineAggregators(), reduceContext);
+        final InternalAggregations aggregations = aggregationsList.isEmpty() ? null :
+            InternalAggregations.reduce(aggregationsList, reduceContext);
         final SearchProfileShardResults shardResults = profileResults.isEmpty() ? null : new SearchProfileShardResults(profileResults);
         final SortedTopDocs sortedTopDocs = sortDocs(isScrollRequest, queryResults, bufferedTopDocs, topDocsStats, from, size,
             reducedCompletionSuggestions);
@@ -500,29 +500,11 @@ public final class SearchPhaseController {
     }
 
     /**
-     * Performs an intermediate reduce phase on the aggregations. For instance with this reduce phase never prune information
-     * that relevant for the final reduce step. For final reduce see {@link #reduceAggs(List, List, ReduceContext)}
+     * Performs an intermediate reduce phase on the aggregations. Information that is relevant for the final reduce step is preserved.
      */
     private InternalAggregations reduceAggsIncrementally(List<InternalAggregations> aggregationsList) {
         ReduceContext reduceContext = reduceContextFunction.apply(false);
-        return aggregationsList.isEmpty() ? null : reduceAggs(aggregationsList,
-            null, reduceContext);
-    }
-
-    private static InternalAggregations reduceAggs(List<InternalAggregations> aggregationsList,
-                                               List<SiblingPipelineAggregator> pipelineAggregators, ReduceContext reduceContext) {
-        InternalAggregations aggregations = InternalAggregations.reduce(aggregationsList, reduceContext);
-        if (pipelineAggregators != null) {
-            List<InternalAggregation> newAggs = StreamSupport.stream(aggregations.spliterator(), false)
-                .map((p) -> (InternalAggregation) p)
-                .collect(Collectors.toList());
-            for (SiblingPipelineAggregator pipelineAggregator : pipelineAggregators) {
-                InternalAggregation newAgg = pipelineAggregator.doReduce(new InternalAggregations(newAggs), reduceContext);
-                newAggs.add(newAgg);
-            }
-            return new InternalAggregations(newAggs);
-        }
-        return aggregations;
+        return aggregationsList.isEmpty() ? null : InternalAggregations.reduce(aggregationsList, reduceContext);
     }
 
     public static final class ReducedQueryPhase {

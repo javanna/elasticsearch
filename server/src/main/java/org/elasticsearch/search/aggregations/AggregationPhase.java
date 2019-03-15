@@ -132,10 +132,10 @@ public class AggregationPhase implements SearchPhase {
                 throw new AggregationExecutionException("Failed to build aggregation [" + aggregator.name() + "]", e);
             }
         }
-        context.queryResult().aggregations(new InternalAggregations(aggregations));
+        List<SiblingPipelineAggregator> siblingPipelineAggregators;
         try {
             List<PipelineAggregator> pipelineAggregators = context.aggregations().factories().createPipelineAggregators();
-            List<SiblingPipelineAggregator> siblingPipelineAggregators = new ArrayList<>(pipelineAggregators.size());
+            siblingPipelineAggregators = new ArrayList<>(pipelineAggregators.size());
             for (PipelineAggregator pipelineAggregator : pipelineAggregators) {
                 if (pipelineAggregator instanceof SiblingPipelineAggregator) {
                     siblingPipelineAggregators.add((SiblingPipelineAggregator) pipelineAggregator);
@@ -145,14 +145,13 @@ public class AggregationPhase implements SearchPhase {
                             + "allowed at the top level");
                 }
             }
-            context.queryResult().pipelineAggregators(siblingPipelineAggregators);
         } catch (IOException e) {
             throw new AggregationExecutionException("Failed to build top level pipeline aggregators", e);
         }
+        context.queryResult().aggregations(new InternalAggregations(aggregations, siblingPipelineAggregators));
 
         // disable aggregations so that they don't run on next pages in case of scrolling
         context.aggregations(null);
         context.queryCollectors().remove(AggregationPhase.class);
     }
-
 }

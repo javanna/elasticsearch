@@ -22,13 +22,18 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.search.aggregations.InternalAggregation.ReduceContext;
+import org.elasticsearch.search.aggregations.pipeline.PipelineAggregator;
+import org.elasticsearch.search.aggregations.pipeline.SiblingPipelineAggregator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static java.util.Collections.emptyMap;
 
@@ -48,18 +53,29 @@ public final class InternalAggregations extends Aggregations implements Streamab
         }
     };
 
+    private List<SiblingPipelineAggregator> siblingPipelineAggregators = Collections.emptyList();
+
     private InternalAggregations() {
     }
 
     /**
-     * Constructs a new addAggregation.
+     * Constructs a new aggregation.
      */
     public InternalAggregations(List<InternalAggregation> aggregations) {
         super(aggregations);
     }
 
+    public InternalAggregations(List<InternalAggregation> aggregations, List<SiblingPipelineAggregator> siblingPipelineAggregators) {
+        super(aggregations);
+        this.siblingPipelineAggregators = siblingPipelineAggregators;
+    }
+
+    public List<SiblingPipelineAggregator> getSiblingPipelineAggregators() {
+        return siblingPipelineAggregators;
+    }
+
     /**
-     * Reduces the given lists of addAggregation.
+     * Reduces the given lists of aggregations
      *
      * @param aggregationsList  A list of aggregation to reduce
      * @return                  The reduced addAggregation
@@ -89,6 +105,19 @@ public final class InternalAggregations extends Aggregations implements Streamab
             InternalAggregation first = aggregations.get(0); // the list can't be empty as it's created on demand
             reducedAggregations.add(first.reduce(aggregations, context));
         }
+
+        List<SiblingPipelineAggregator> siblingPipelineAggregators = aggregationsList.get(0).siblingPipelineAggregators;
+        if (siblingPipelineAggregators != null) { //TODO can this be null?
+            if (context.isFinalReduce()) {
+                for (SiblingPipelineAggregator pipelineAggregator : siblingPipelineAggregators) {
+                    InternalAggregation newAgg = pipelineAggregator.doReduce(new InternalAggregations(reducedAggregations), context);
+                    reducedAggregations.add(newAgg);
+                }
+            } else {
+                return new InternalAggregations(reducedAggregations, siblingPipelineAggregators);
+            }
+        }
+
         return new InternalAggregations(reducedAggregations);
     }
 
@@ -104,11 +133,15 @@ public final class InternalAggregations extends Aggregations implements Streamab
         if (aggregations.isEmpty()) {
             aggregationsAsMap = emptyMap();
         }
+        //TODO needs bw comp layer
+        this.siblingPipelineAggregators = in.readList(stream -> (SiblingPipelineAggregator)in.readNamedWriteable(PipelineAggregator.class));
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public void writeTo(StreamOutput out) throws IOException {
         out.writeNamedWriteableList((List<InternalAggregation>)aggregations);
+        //TODO needs bw comp layer
+        out.writeNamedWriteableList(siblingPipelineAggregators);
     }
 }
