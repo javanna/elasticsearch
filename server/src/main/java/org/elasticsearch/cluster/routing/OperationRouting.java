@@ -35,6 +35,7 @@ import org.elasticsearch.node.ResponseCollectorService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -96,16 +97,37 @@ public class OperationRouting {
                                                            @Nullable String preference,
                                                            @Nullable ResponseCollectorService collectorService,
                                                            @Nullable Map<String, Long> nodeCounts) {
+        return new GroupShardsIterator<>(shardIterators(clusterState, concreteIndices, routing, preference,
+            collectorService, nodeCounts));
+    }
+
+    public GroupShardsIterator<ShardIterator> searchShards(ClusterState clusterState,
+                                                           String[] concreteIndices,
+                                                           @Nullable Map<String, Set<String>> routing,
+                                                           @Nullable String preference,
+                                                           @Nullable ResponseCollectorService collectorService,
+                                                           @Nullable Map<String, Long> nodeCounts,
+                                                           Comparator<ShardIterator>shardIteratorComparator) {
+        return new GroupShardsIterator<>(shardIterators(clusterState, concreteIndices, routing, preference,
+            collectorService, nodeCounts), shardIteratorComparator);
+    }
+
+    private List<ShardIterator> shardIterators(ClusterState clusterState,
+                                               String[] concreteIndices,
+                                               @Nullable Map<String, Set<String>> routing,
+                                               @Nullable String preference,
+                                               @Nullable ResponseCollectorService collectorService,
+                                               @Nullable Map<String, Long> nodeCounts) {
         final Set<IndexShardRoutingTable> shards = computeTargetedShards(clusterState, concreteIndices, routing);
         final Set<ShardIterator> set = new HashSet<>(shards.size());
         for (IndexShardRoutingTable shard : shards) {
             ShardIterator iterator = preferenceActiveShardIterator(shard,
-                    clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference, collectorService, nodeCounts);
+                clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference, collectorService, nodeCounts);
             if (iterator != null) {
                 set.add(iterator);
             }
         }
-        return new GroupShardsIterator<>(new ArrayList<>(set));
+        return new ArrayList<>(set);
     }
 
     private static final Map<String, Set<String>> EMPTY_ROUTING = Collections.emptyMap();

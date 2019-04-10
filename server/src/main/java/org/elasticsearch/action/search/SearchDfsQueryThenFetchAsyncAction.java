@@ -32,11 +32,11 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 
-final class SearchDfsQueryThenFetchAsyncAction extends AbstractSearchAsyncAction<DfsSearchResult> {
+public final class SearchDfsQueryThenFetchAsyncAction extends AbstractSearchAsyncAction<DfsSearchResult> {
 
     private final SearchPhaseController searchPhaseController;
 
-    SearchDfsQueryThenFetchAsyncAction(final Logger logger, final SearchTransportService searchTransportService,
+    public SearchDfsQueryThenFetchAsyncAction(final Logger logger, final SearchTransportService searchTransportService,
             final BiFunction<String, String, Transport.Connection> nodeIdToConnection, final Map<String, AliasFilter> aliasFilter,
             final Map<String, Float> concreteIndexBoosts, final Map<String, Set<String>> indexRoutings,
             final SearchPhaseController searchPhaseController, final Executor executor,

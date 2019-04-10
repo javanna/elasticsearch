@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> extends InitialSearchPhase<Result>
+public abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> extends InitialSearchPhase<Result>
     implements SearchPhaseContext {
     private static final float DEFAULT_INDEX_BOOST = 1.0f;
     private final Logger logger;

@@ -21,8 +21,10 @@ package org.elasticsearch.cluster.routing;
 
 import org.apache.lucene.util.CollectionUtil;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * This class implements a compilation of {@link ShardIterator}s. Each {@link ShardIterator}
@@ -35,10 +37,14 @@ public final class GroupShardsIterator<ShardIt extends ShardIterator> implements
     private final List<ShardIt> iterators;
 
     /**
-     * Constructs a enw GroupShardsIterator from the given list.
+     * Constructs a new GroupShardsIterator from the given list.
      */
     public GroupShardsIterator(List<ShardIt> iterators) {
-        CollectionUtil.timSort(iterators);
+        this(iterators, Comparator.comparing(Function.identity()));
+    }
+
+    public GroupShardsIterator(List<ShardIt> iterators, Comparator<ShardIt> comparator) {
+        CollectionUtil.timSort(iterators, comparator);
         this.iterators = iterators;
     }
 

@@ -41,12 +41,12 @@ import java.util.stream.Stream;
  * which allows to fan out to more shards at the same time without running into rejections even if we are hitting a
  * large portion of the clusters indices.
  */
-final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncAction<SearchService.CanMatchResponse> {
+public final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncAction<SearchService.CanMatchResponse> {
 
     private final Function<GroupShardsIterator<SearchShardIterator>, SearchPhase> phaseFactory;
     private final GroupShardsIterator<SearchShardIterator> shardsIts;
 
-    CanMatchPreFilterSearchPhase(Logger logger, SearchTransportService searchTransportService,
+    public CanMatchPreFilterSearchPhase(Logger logger, SearchTransportService searchTransportService,
                                         BiFunction<String, String, Transport.Connection> nodeIdToConnection,
                                         Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
                                         Map<String, Set<String>> indexRoutings,

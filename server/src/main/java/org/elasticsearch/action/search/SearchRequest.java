@@ -156,7 +156,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         return new SearchRequest(originalSearchRequest, indices, clusterAlias, absoluteStartMillis, finalReduce);
     }
 
-    private SearchRequest(SearchRequest searchRequest, String[] indices, String localClusterAlias, long absoluteStartMillis,
+    public SearchRequest(SearchRequest searchRequest, String[] indices, String localClusterAlias, long absoluteStartMillis,
                           boolean finalReduce) {
         this.allowPartialSearchResults = searchRequest.allowPartialSearchResults;
         this.batchedReduceSize = searchRequest.batchedReduceSize;
@@ -296,7 +296,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
      * request. When created through {@link #subSearchRequest(SearchRequest, String[], String, long, boolean)}, this method returns
      * the provided current time, otherwise it will return {@link System#currentTimeMillis()}.
      */
-    long getOrCreateAbsoluteStartMillis() {
+    public long getOrCreateAbsoluteStartMillis() {
         return absoluteStartMillis == DEFAULT_ABSOLUTE_START_MILLIS ? System.currentTimeMillis() : absoluteStartMillis;
     }
 
@@ -565,20 +565,24 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         return new SearchTask(id, type, action, null, parentTaskId, headers) {
             @Override
             public String getDescription() {
-                StringBuilder sb = new StringBuilder();
-                sb.append("indices[");
-                Strings.arrayToDelimitedString(indices, ",", sb);
-                sb.append("], ");
-                sb.append("search_type[").append(searchType).append("], ");
-                if (source != null) {
-
-                    sb.append("source[").append(source.toString(FORMAT_PARAMS)).append("]");
-                } else {
-                    sb.append("source[]");
-                }
-                return sb.toString();
+                return getTaskDescription();
             }
         };
+    }
+
+    public String getTaskDescription() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("indices[");
+        Strings.arrayToDelimitedString(indices, ",", sb);
+        sb.append("], ");
+        sb.append("search_type[").append(searchType).append("], ");
+        if (source != null) {
+
+            sb.append("source[").append(source.toString(FORMAT_PARAMS)).append("]");
+        } else {
+            sb.append("source[]");
+        }
+        return sb.toString();
     }
 
     @Override
