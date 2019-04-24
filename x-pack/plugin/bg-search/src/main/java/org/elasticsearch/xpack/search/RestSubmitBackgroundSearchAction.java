@@ -38,7 +38,11 @@ public final class RestSubmitBackgroundSearchAction extends BaseRestHandler {
         IntConsumer setSize = size -> searchRequest.source().size(size);
         request.withContentOrSourceParamParserOrNull(parser ->
             RestSearchAction.parseSearchRequest(searchRequest, request, parser, setSize));
-        return channel -> client.execute(SubmitBackgroundSearchAction.INSTANCE, new SubmitBackgroundSearchRequest(searchRequest),
+        SubmitBackgroundSearchRequest submitBackgroundSearchRequest = new SubmitBackgroundSearchRequest(searchRequest);
+        if (request.hasParam("batch_size")) {
+            submitBackgroundSearchRequest.setBatchSize(request.paramAsInt("batch_size", -1));
+        }
+        return channel -> client.execute(SubmitBackgroundSearchAction.INSTANCE, submitBackgroundSearchRequest,
             new RestToXContentListener<>(channel));
     }
 }

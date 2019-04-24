@@ -162,7 +162,6 @@ public class TransportSubmitBackgroundSearchAction
             BiFunction<String, String, Transport.Connection> connectionLookup = (clusterAlias, nodeId) ->
                 transportService.getConnection(clusterState.nodes().get(nodeId));
 
-            //TODO we don't look at the provided preFilterShardSize, shall we?
             //we can't do this for DFS it needs to fan out to all shards all the time.
             boolean preFilterSearchShards = searchRequest.searchType() == QUERY_THEN_FETCH && SearchService.canRewriteToMatchNone(source);
 
@@ -173,6 +172,8 @@ public class TransportSubmitBackgroundSearchAction
             ActionListener<SearchResponse> canMatchListener = ActionListener.map(listener, response -> {
                 throw new IllegalStateException("unexpected call to onResponse while running can_match phase");
             });
+
+            //TODO can match can be done for each batch instead of once
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
             if (preFilterSearchShards) {
                 new CanMatchPreFilterSearchPhase(logger, searchTransportService, connectionLookup, aliasFilter, concreteIndexBoosts,
@@ -219,9 +220,10 @@ public class TransportSubmitBackgroundSearchAction
     private Map<String, AliasFilter> buildPerIndexAliasFilter(SearchRequest request, ClusterState clusterState,
                                                               Index[] concreteIndices, Map<String, AliasFilter> remoteAliasMap) {
         final Map<String, AliasFilter> aliasFilterMap = new HashMap<>();
+        final Set<String> indicesAndAliases = indexNameExpressionResolver.resolveExpressions(clusterState, request.indices());
         for (Index index : concreteIndices) {
             clusterState.blocks().indexBlockedRaiseException(ClusterBlockLevel.READ, index.getName());
-            AliasFilter aliasFilter = searchService.buildAliasFilter(clusterState, index.getName(), request.indices());
+            AliasFilter aliasFilter = searchService.buildAliasFilter(clusterState, index.getName(), indicesAndAliases);
             assert aliasFilter != null;
             aliasFilterMap.put(index.getUUID(), aliasFilter);
         }

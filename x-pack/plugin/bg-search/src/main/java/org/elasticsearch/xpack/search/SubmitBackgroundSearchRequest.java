@@ -18,10 +18,11 @@ import org.elasticsearch.tasks.TaskId;
 import java.io.IOException;
 import java.util.Map;
 
-//TODO maybe this class is not even needed, SearchRequest can be used directly?
 public final class SubmitBackgroundSearchRequest extends ActionRequest implements IndicesRequest.Replaceable, TaskAwareRequest {
 
     private final SearchRequest searchRequest;
+    //TODO find a reasonably good default for this
+    private int batchSize = 128;
 
     public SubmitBackgroundSearchRequest(SearchRequest searchRequest) {
         this.searchRequest = searchRequest;
@@ -55,9 +56,15 @@ public final class SubmitBackgroundSearchRequest extends ActionRequest implement
         return searchRequest;
     }
 
+    public void setBatchSize(int batchSize) {
+        if (batchSize <=0) {
+            throw new IllegalArgumentException("batch_size must be greater than 0");
+        }
+        this.batchSize = batchSize;
+    }
+
     public int getBatchSize() {
-        //TODO find a reasonable value/heuristic for this value. Should we make it a setting? or should the submit request take its value?
-        return 2;
+        return batchSize;
     }
 
     @Override
