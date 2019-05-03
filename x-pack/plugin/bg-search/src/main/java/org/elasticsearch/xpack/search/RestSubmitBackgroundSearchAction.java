@@ -39,6 +39,7 @@ public final class RestSubmitBackgroundSearchAction extends BaseRestHandler {
         request.withContentOrSourceParamParserOrNull(parser ->
             RestSearchAction.parseSearchRequest(searchRequest, request, parser, setSize));
         SubmitBackgroundSearchRequest submitBackgroundSearchRequest = new SubmitBackgroundSearchRequest(searchRequest);
+        //TODO do we need to support more query_string params, like search?
         if (request.hasParam("batch_size")) {
             submitBackgroundSearchRequest.setBatchSize(request.paramAsInt("batch_size", -1));
         }

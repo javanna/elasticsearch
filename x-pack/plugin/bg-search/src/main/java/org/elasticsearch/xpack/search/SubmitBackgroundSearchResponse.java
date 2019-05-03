@@ -17,48 +17,29 @@ import java.io.IOException;
 public class SubmitBackgroundSearchResponse extends ActionResponse implements ToXContentObject {
 
     private final TaskId taskId;
-    private final int totalShards;
-    private final int skippedShards;
 
-    SubmitBackgroundSearchResponse(TaskId taskId, int totalShards, int skippedShards) {
+    SubmitBackgroundSearchResponse(TaskId taskId) {
         this.taskId = taskId;
-        this.totalShards = totalShards;
-        this.skippedShards = skippedShards;
     }
 
     SubmitBackgroundSearchResponse(StreamInput in) throws IOException {
-        this(TaskId.readFromStream(in), in.readVInt(), in.readVInt());
+        this(TaskId.readFromStream(in));
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         taskId.writeTo(out);
-        out.writeVInt(totalShards);
-        out.writeVInt(skippedShards);
     }
 
     public TaskId getTaskId() {
         return taskId;
     }
 
-    public int getTotalShards() {
-        return totalShards;
-    }
-
-    public int getSkippedShards() {
-        return skippedShards;
-    }
-
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        //maybe return also some info about the shards to be processed?
-        builder.field("task_id", taskId);
-        builder.startObject("_shards");
-        builder.field("total", totalShards);
-        builder.field("skipped", skippedShards);
-        builder.field("to_be_processed", totalShards - skippedShards);
-        builder.endObject();
+        //TODOwe should sign the id or something along those line to secure retrieving search response only through a specific endpoint
+        builder.field("task_id", taskId.toString());
         builder.endObject();
         return builder;
     }

@@ -20,6 +20,7 @@ import java.util.Map;
 
 public final class SubmitBackgroundSearchRequest extends ActionRequest implements IndicesRequest.Replaceable, TaskAwareRequest {
 
+    //TODO enforce that a scroll is not set, as it's not supported, etc.
     private final SearchRequest searchRequest;
     //TODO find a reasonably good default for this
     private int batchSize = 128;

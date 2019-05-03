@@ -28,9 +28,8 @@ public class BackgroundSearchTask extends SearchTask {
 
     @Override
     public Status getStatus() {
-        int processed = backgroundSearchState.getTotalShards() - backgroundSearchState.getRunningFromShard();
-        return new BackgroundSearchStatus(processed, backgroundSearchState.getBatchSize(),
-            backgroundSearchState.getTotalShards(), backgroundSearchState.retrieveIntermediateResults());
+        return new BackgroundSearchStatus(backgroundSearchState.getProcessedShards(), backgroundSearchState.getBatchSize(),
+            backgroundSearchState.getTotalShards());
     }
 
     static class BackgroundSearchStatus implements Task.Status {
@@ -40,21 +39,17 @@ public class BackgroundSearchTask extends SearchTask {
         private final int processed;
         private final int batchSize;
         private final int totalShards;
-        private final SearchResponse results;
 
-        private BackgroundSearchStatus(int processed, int batchSize, int totalShards, SearchResponse results) {
+        private BackgroundSearchStatus(int processed, int batchSize, int totalShards) {
             this.processed = processed;
             this.batchSize = batchSize;
             this.totalShards = totalShards;
-            this.results = results;
         }
 
         BackgroundSearchStatus(StreamInput in) throws IOException {
             this.processed = in.readVInt();
             this.batchSize = in.readVInt();
             this.totalShards = in.readVInt();
-            this.results = new SearchResponse();
-            this.results.readFrom(in);
         }
 
         @Override
@@ -62,7 +57,6 @@ public class BackgroundSearchTask extends SearchTask {
             out.writeVInt(processed);
             out.writeVInt(batchSize);
             out.writeVInt(totalShards);
-            this.results.writeTo(out);
         }
 
         @Override
@@ -81,7 +75,6 @@ public class BackgroundSearchTask extends SearchTask {
             builder.field("batch_size", batchSize);
             builder.field("total", totalShards);
             builder.endObject();
-            builder.field("results", results);
             builder.endObject();
             return builder;
         }

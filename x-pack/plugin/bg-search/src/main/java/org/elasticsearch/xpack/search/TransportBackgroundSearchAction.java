@@ -70,7 +70,7 @@ public class TransportBackgroundSearchAction extends TransportAction<BackgroundS
         BiFunction<String, String, Transport.Connection> connectionLookup = (clusterAlias, nodeId) ->
             transportService.getConnection(clusterState.nodes().get(nodeId));
 
-        ActionListener<SearchResponse> searchListener = new ActionListener<SearchResponse>() {
+        ActionListener<SearchResponse> searchListener = new ActionListener<>() {
             @Override
             public void onResponse(SearchResponse searchResponse) {
                 request.setIntermediateResults(searchResponse);
@@ -98,9 +98,8 @@ public class TransportBackgroundSearchAction extends TransportAction<BackgroundS
                      ActionListener<BackgroundSearchResponse> mainListener, ActionListener<SearchResponse> searchListener) {
         GroupShardsIterator<SearchShardIterator> searchShardIterators = request.advanceIterators();
         if (searchShardIterators.size() == 0) {
-            request.finalizeResults();
             //this will trigger storing the result (including the status) in the .task index
-            mainListener.onResponse(new BackgroundSearchResponse());
+            mainListener.onResponse(new BackgroundSearchResponse(request.finalizeResults()));
         } else {
             action(task, request.getSearchRequest(), searchShardIterators, timeProvider, connectionLookup,
                 clusterStateVersion, request.getAliasFilter(), request.getConcreteIndexBoosts(), request.getRoutingMap(),

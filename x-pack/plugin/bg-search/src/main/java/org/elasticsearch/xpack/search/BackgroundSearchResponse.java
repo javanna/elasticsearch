@@ -6,14 +6,23 @@
 package org.elasticsearch.xpack.search;
 
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import java.io.IOException;
+
 public final class BackgroundSearchResponse extends ActionResponse implements ToXContentObject {
 
+    private final SearchResponse results;
+
+    BackgroundSearchResponse(SearchResponse results) {
+        this.results = results;
+    }
+
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) {
-        //this is empty on purpose, the results are better retrieved from the status which is always returned.
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        results.toXContent(builder, params);
         return builder;
     }
 }

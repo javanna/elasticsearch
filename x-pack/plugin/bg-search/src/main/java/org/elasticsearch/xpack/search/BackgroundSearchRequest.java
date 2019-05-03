@@ -5,6 +5,7 @@
  */
 package org.elasticsearch.xpack.search;
 
+import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.search.SearchRequest;
@@ -87,8 +88,8 @@ public class BackgroundSearchRequest extends ActionRequest {
         return routingMap;
     }
 
-    void finalizeResults() {
-        this.state.finalizeResults();
+    SearchResponse finalizeResults() {
+        return this.state.finalizeResults();
     }
 
     GroupShardsIterator<SearchShardIterator> advanceIterators() {
@@ -174,8 +175,8 @@ public class BackgroundSearchRequest extends ActionRequest {
             return new GroupShardsIterator<>(iteratorList);
         }
 
-        int getRunningFromShard() {
-            return fromShard.get() - batchSize;
+        int getProcessedShards() {
+            return Math.max(0, fromShard.get() - batchSize);
         }
 
         int getBatchSize() {
@@ -195,18 +196,10 @@ public class BackgroundSearchRequest extends ActionRequest {
         }
 
         //TODO improve concurrency aspect here, synchronized is not good.
-        synchronized void finalizeResults() {
-            intermediateResults.getAndUpdate(this::performFinalReduce);
-            assert fromShard.get() + batchSize >= searchShardIterators.size();
-            fromShard.set(searchShardIterators.size());
-        }
-
-        SearchResponse retrieveIntermediateResults() {
-            //TODO here we do a final reduction at each call, maybe we should cache this given that clients are going to poll get task
-            //maybe even skip returning the response unless it's changed.
-            SearchResponse searchResponse = intermediateResults.get();
-            //here we would need to introduce an intermediate state so that e.g. date histogram does not create empty buckets at this stage
-            return searchResponse == null ? null : performFinalReduce(searchResponse);
+        synchronized SearchResponse finalizeResults() {
+            assert fromShard.get() >= searchShardIterators.size();
+            fromShard.set(searchShardIterators.size() + batchSize);
+            return intermediateResults.updateAndGet(this::performFinalReduce);
         }
 
         private SearchResponse performFinalReduce(SearchResponse searchResponse) {

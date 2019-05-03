@@ -213,8 +213,7 @@ public class TransportSubmitBackgroundSearchAction
         //that should be ok, we could also potentially get the first batch of results.
         Task task = transportBackgroundSearchAction.execute(request, LoggingTaskListener.instance());
         //TODO maybe it would be better to just register a task manually, but TransportAction handles storing results too.
-        listener.onResponse(new SubmitBackgroundSearchResponse(new TaskId(client.getLocalNodeId(), task.getId()),
-            totalShards, totalShards - searchShardIterators.size()));
+        listener.onResponse(new SubmitBackgroundSearchResponse(new TaskId(client.getLocalNodeId(), task.getId())));
     }
 
     private Map<String, AliasFilter> buildPerIndexAliasFilter(SearchRequest request, ClusterState clusterState,
