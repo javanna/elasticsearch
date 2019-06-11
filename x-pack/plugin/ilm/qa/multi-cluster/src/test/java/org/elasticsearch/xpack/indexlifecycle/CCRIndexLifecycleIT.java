@@ -467,7 +467,7 @@ public class CCRIndexLifecycleIT extends ESCCRRestTestCase {
                     // And both of these should now finish their policies
                     assertILMPolicy(leaderClient, shrunkenIndexName, policyName, "completed");
                     assertILMPolicy(client(), indexName, policyName, "completed");
-                });
+                }, 30, TimeUnit.SECONDS);
             }
         } else {
             fail("unexpected target cluster [" + targetCluster + "]");
