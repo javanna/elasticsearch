@@ -33,21 +33,8 @@ import org.elasticsearch.gradle.precommit.DependencyLicensesTask
 import org.elasticsearch.gradle.precommit.PrecommitTasks
 import org.elasticsearch.gradle.test.ErrorReportingTestListener
 import org.elasticsearch.gradle.testclusters.ElasticsearchCluster
-import org.gradle.api.Action
-import org.gradle.api.GradleException
-import org.gradle.api.InvalidUserDataException
-import org.gradle.api.JavaVersion
-import org.gradle.api.NamedDomainObjectContainer
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.api.Task
-import org.gradle.api.XmlProvider
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.ModuleDependency
-import org.gradle.api.artifacts.ModuleVersionIdentifier
-import org.gradle.api.artifacts.ProjectDependency
-import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.*
+import org.gradle.api.artifacts.*
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.artifacts.repositories.ArtifactRepository
 import org.gradle.api.artifacts.repositories.IvyArtifactRepository
@@ -57,11 +44,7 @@ import org.gradle.api.credentials.HttpHeaderCredentials
 import org.gradle.api.execution.TaskActionListener
 import org.gradle.api.execution.TaskExecutionGraph
 import org.gradle.api.file.CopySpec
-import org.gradle.api.plugins.BasePlugin
-import org.gradle.api.plugins.BasePluginConvention
-import org.gradle.api.plugins.ExtraPropertiesExtension
-import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.plugins.*
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
@@ -260,7 +243,7 @@ class BuildPlugin implements Plugin<Project> {
     }
 
     protected static void checkDockerVersionRecent(String dockerVersion) {
-        final Matcher matcher = dockerVersion =~ /Docker version (\d+\.\d+)\.\d+(?:-ce)?, build [0-9a-f]{7,40}/
+        final Matcher matcher = dockerVersion =~ /Docker version (\d+\.\d+)\.\d+(?:-[a-zA-Z0-9]+)?, build [0-9a-f]{7,40}/
         assert matcher.matches(): dockerVersion
         final dockerMajorMinorVersion = matcher.group(1)
         final String[] majorMinor = dockerMajorMinorVersion.split("\\.")
