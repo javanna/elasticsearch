@@ -21,8 +21,7 @@ import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 public final class RestSubmitBackgroundSearchAction extends BaseRestHandler {
 
-    public RestSubmitBackgroundSearchAction(Settings settings, RestController controller) {
-        super(settings);
+    public RestSubmitBackgroundSearchAction(RestController controller) {
         controller.registerHandler(POST, "/_bgsearch/submit", this);
         controller.registerHandler(POST, "/{index}/_bgsearch/submit", this);
     }

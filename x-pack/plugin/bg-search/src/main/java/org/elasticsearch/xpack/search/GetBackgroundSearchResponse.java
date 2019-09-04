@@ -25,7 +25,6 @@ public class GetBackgroundSearchResponse extends ActionResponse implements ToXCo
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
 
     }
 

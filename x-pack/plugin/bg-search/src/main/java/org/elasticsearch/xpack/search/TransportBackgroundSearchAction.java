@@ -6,6 +6,9 @@
 package org.elasticsearch.xpack.search;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsAction;
+import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
 import org.elasticsearch.action.search.AbstractSearchAsyncAction;
 import org.elasticsearch.action.search.SearchDfsQueryThenFetchAsyncAction;
 import org.elasticsearch.action.search.SearchPhaseController;
@@ -35,6 +38,9 @@ import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 
 public class TransportBackgroundSearchAction extends TransportAction<BackgroundSearchRequest, BackgroundSearchResponse> {
+
+    private static final String ACTION_NAME = SubmitBackgroundSearchAction.NAME + "[internal]";
+    static final ActionType<BackgroundSearchResponse> TYPE = new ActionType<>(ACTION_NAME, BackgroundSearchResponse::new);
 
     private final ThreadPool threadPool;
     private final TransportService transportService;

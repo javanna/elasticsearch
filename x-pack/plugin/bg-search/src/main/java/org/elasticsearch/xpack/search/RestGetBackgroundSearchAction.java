@@ -18,8 +18,7 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 
 public class RestGetBackgroundSearchAction extends BaseRestHandler  {
 
-    public RestGetBackgroundSearchAction(Settings settings, RestController controller) {
-        super(settings);
+    public RestGetBackgroundSearchAction(RestController controller) {
         controller.registerHandler(GET, "/_bgsearch/{task_id}", this);
     }
 

@@ -123,11 +123,6 @@ public class BackgroundSearchRequest extends ActionRequest {
     }
 
     @Override
-    public void readFrom(StreamInput in) {
-        throw new UnsupportedOperationException("readFrom is not supported");
-    }
-
-    @Override
     public void writeTo(StreamOutput out) {
         throw new UnsupportedOperationException("writeTo is not supported");
     }

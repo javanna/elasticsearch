@@ -7,6 +7,8 @@ package org.elasticsearch.xpack.search;
 
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -16,6 +18,10 @@ public final class BackgroundSearchResponse extends ActionResponse implements To
 
     private final SearchResponse results;
 
+    BackgroundSearchResponse(StreamInput in) throws IOException {
+        results = new SearchResponse(in);
+    }
+
     BackgroundSearchResponse(SearchResponse results) {
         this.results = results;
     }
@@ -24,5 +30,10 @@ public final class BackgroundSearchResponse extends ActionResponse implements To
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         results.toXContent(builder, params);
         return builder;
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        results.writeTo(out);
     }
 }

@@ -5,22 +5,17 @@
  */
 package org.elasticsearch.xpack.search;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public final class SubmitBackgroundSearchAction extends Action<SubmitBackgroundSearchResponse> {
+public final class SubmitBackgroundSearchAction extends ActionType<SubmitBackgroundSearchResponse> {
 
     public static final SubmitBackgroundSearchAction INSTANCE = new SubmitBackgroundSearchAction();
     //TODO is this the right action category?
     public static final String NAME = "indices:data/read/xpack/submit/search";
 
     private SubmitBackgroundSearchAction() {
-        super(NAME);
-    }
-
-    @Override
-    public SubmitBackgroundSearchResponse newResponse() {
-        throw new UnsupportedOperationException();
+        super(NAME, SubmitBackgroundSearchResponse::new);
     }
 
     @Override

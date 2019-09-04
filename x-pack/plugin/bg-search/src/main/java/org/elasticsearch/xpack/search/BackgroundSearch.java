@@ -7,6 +7,7 @@ package org.elasticsearch.xpack.search;
 
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.admin.indices.mapping.get.TransportGetFieldMappingsIndexAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -33,8 +34,8 @@ public final class BackgroundSearch extends Plugin implements ActionPlugin {
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return Arrays.asList(
-            new ActionHandler<>(SubmitBackgroundSearchAction.INSTANCE, TransportSubmitBackgroundSearchAction.class,
-                TransportBackgroundSearchAction.class),
+            new ActionHandler<>(SubmitBackgroundSearchAction.INSTANCE, TransportSubmitBackgroundSearchAction.class),
+            new ActionHandler<>(TransportBackgroundSearchAction.TYPE, TransportBackgroundSearchAction.class),
             new ActionHandler<>(GetBackgroundSearchAction.INSTANCE, TransportGetBackgroundSearchAction.class));
     }
 
@@ -44,8 +45,8 @@ public final class BackgroundSearch extends Plugin implements ActionPlugin {
                                              IndexNameExpressionResolver indexNameExpressionResolver,
                                              Supplier<DiscoveryNodes> nodesInCluster) {
         return Arrays.asList(
-            new RestSubmitBackgroundSearchAction(settings, restController),
-            new RestGetBackgroundSearchAction(settings, restController));
+            new RestSubmitBackgroundSearchAction(restController),
+            new RestGetBackgroundSearchAction(restController));
     }
 
     @Override

@@ -66,14 +66,13 @@ public class TransportSubmitBackgroundSearchAction
     private final SearchService searchService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final NodeClient client;
-    private final TransportBackgroundSearchAction transportBackgroundSearchAction;
 
     @Inject
     public TransportSubmitBackgroundSearchAction(ThreadPool threadPool, TransportService transportService, SearchService searchService,
                                                  SearchTransportService searchTransportService,
-                                                 ClusterService clusterService, ActionFilters actionFilters, Client client,
+                                                 ClusterService clusterService, ActionFilters actionFilters,
                                                  IndexNameExpressionResolver indexNameExpressionResolver,
-                                                 TransportBackgroundSearchAction transportBackgroundSearchAction) {
+                                                 NodeClient nodeClient) {
         super(SubmitBackgroundSearchAction.NAME, transportService, actionFilters, SubmitBackgroundSearchRequest::new);
         this.threadPool = threadPool;
         this.searchTransportService = searchTransportService;
@@ -81,8 +80,7 @@ public class TransportSubmitBackgroundSearchAction
         this.searchService = searchService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportService = transportService;
-        this.transportBackgroundSearchAction = transportBackgroundSearchAction;
-        this.client = (NodeClient)client;
+        this.client = nodeClient;
     }
 
     //TODO there is quite some copy pasted code from TransportSearchAction here, we need to make to effort to share as much as possible
@@ -211,7 +209,7 @@ public class TransportSubmitBackgroundSearchAction
             routingMap, searchShardIterators, timeProvider, reduceContextFunction);
         //TODO here we execute on the same thread, we fork only once we call the search async action,
         //that should be ok, we could also potentially get the first batch of results.
-        Task task = transportBackgroundSearchAction.execute(request, LoggingTaskListener.instance());
+        Task task = client.executeLocally(TransportBackgroundSearchAction.TYPE, request, LoggingTaskListener.instance());
         //TODO maybe it would be better to just register a task manually, but TransportAction handles storing results too.
         listener.onResponse(new SubmitBackgroundSearchResponse(new TaskId(client.getLocalNodeId(), task.getId())));
     }
