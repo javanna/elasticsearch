@@ -23,8 +23,4 @@ dependencies {
     }
 }
 
-run {
-    plugin xpackModule('core')
-}
-
 integTest.enabled = false
