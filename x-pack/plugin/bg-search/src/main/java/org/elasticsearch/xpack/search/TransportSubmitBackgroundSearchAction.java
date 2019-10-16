@@ -8,6 +8,7 @@ package org.elasticsearch.xpack.search;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.action.search.CanMatchPreFilterSearchPhase;
+import org.elasticsearch.action.search.SearchIndicesResolver;
 import org.elasticsearch.action.search.SearchPhase;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -17,7 +18,6 @@ import org.elasticsearch.action.search.SearchTransportService;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
@@ -39,13 +39,15 @@ import org.elasticsearch.tasks.LoggingTaskListener;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusterAware;
+import org.elasticsearch.transport.RemoteClusterService;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,8 +66,9 @@ public class TransportSubmitBackgroundSearchAction
     private final TransportService transportService;
     private final SearchTransportService searchTransportService;
     private final SearchService searchService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
+    private final SearchIndicesResolver searchIndicesResolver;
     private final NodeClient client;
+    private final RemoteClusterService remoteClusterService;
 
     @Inject
     public TransportSubmitBackgroundSearchAction(ThreadPool threadPool, TransportService transportService, SearchService searchService,
@@ -76,9 +79,10 @@ public class TransportSubmitBackgroundSearchAction
         super(SubmitBackgroundSearchAction.NAME, transportService, actionFilters, SubmitBackgroundSearchRequest::new);
         this.threadPool = threadPool;
         this.searchTransportService = searchTransportService;
+        this.remoteClusterService = searchTransportService.getRemoteClusterService();
         this.clusterService = clusterService;
         this.searchService = searchService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
+        this.searchIndicesResolver = new SearchIndicesResolver(searchService, indexNameExpressionResolver);
         this.transportService = transportService;
         this.client = nodeClient;
     }
@@ -89,11 +93,8 @@ public class TransportSubmitBackgroundSearchAction
     protected void doExecute(Task task, SubmitBackgroundSearchRequest submitBackgroundSearchRequest,
                              ActionListener<SubmitBackgroundSearchResponse> listener) {
 
-        SearchRequest originalSearchRequest = submitBackgroundSearchRequest.getSearchRequest();
-        SearchRequest searchRequest = new SearchRequest(originalSearchRequest, originalSearchRequest.indices(), null,
-            originalSearchRequest.getOrCreateAbsoluteStartMillis(), false);
+        SearchRequest searchRequest = submitBackgroundSearchRequest.getSearchRequest();
 
-        //TODO does took matter in each search response at all?
         final long relativeStartNanos = System.nanoTime();
         final TransportSearchAction.SearchTimeProvider timeProvider = new TransportSearchAction.SearchTimeProvider(
             searchRequest.getOrCreateAbsoluteStartMillis(), relativeStartNanos, System::nanoTime);
@@ -104,91 +105,43 @@ public class TransportSubmitBackgroundSearchAction
                 // situations when source is rewritten to null due to a bug
                 searchRequest.source(source);
             }
-
-            //TODO we are only supporting local search at the moment, would CCS fit into this? Probably only when not minimizing roundtrips?
             final ClusterState clusterState = clusterService.state();
-            Index[] indices = indexNameExpressionResolver.concreteIndices(clusterState, searchRequest.indicesOptions(),
-                timeProvider.getAbsoluteStartMillis(), searchRequest.indices());
-            Map<String, AliasFilter> aliasFilter = buildPerIndexAliasFilter(searchRequest, clusterState, indices, Collections.emptyMap());
-            String[] concreteIndices = new String[indices.length];
-            for (int i = 0; i < indices.length; i++) {
-                concreteIndices[i] = indices[i].getName();
-            }
-            Map<String, Set<String>> routingMap = indexNameExpressionResolver.resolveSearchRouting(clusterState, searchRequest.routing(),
+            final Map<String, OriginalIndices> remoteClusterIndices = remoteClusterService.groupIndices(searchRequest.indicesOptions(),
                 searchRequest.indices());
-            routingMap = routingMap == null ? Collections.emptyMap() : Collections.unmodifiableMap(routingMap);
+            OriginalIndices localIndices = remoteClusterIndices.remove(RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY);
+            //TODO do we want to support CCS?
+            if (remoteClusterIndices.isEmpty() == false) {
+                throw new IllegalArgumentException("remote indices are not supported by background search");
+            }
 
             clusterState.blocks().globalBlockedRaiseException(ClusterBlockLevel.READ);
 
-            Map<String, Float> concreteIndexBoosts = resolveIndexBoosts(searchRequest, clusterState);
+            SearchRequest.ResolvedIndex[] resolvedIndices = searchIndicesResolver.resolveIndices(localIndices, searchRequest,
+                timeProvider, Collections.emptyMap(), clusterState);
 
-            Map<String, Long> nodeSearchCounts = searchTransportService.getPendingSearchRequests();
-            GroupShardsIterator<ShardIterator> localShardsIterator = clusterService.operationRouting().searchShards(clusterState,
-                concreteIndices, routingMap, searchRequest.preference(), searchService.getResponseCollectorService(), nodeSearchCounts,
-                new ShardComparator(clusterState, searchService));
-            List<SearchShardIterator> shards = new ArrayList<>();
-            OriginalIndices localIndices = new OriginalIndices(searchRequest);
-            for (ShardIterator shardIterator : localShardsIterator) {
-                shards.add(new SearchShardIterator(null, shardIterator.shardId(), shardIterator.getShardRoutings(), localIndices));
-            }
-            GroupShardsIterator<SearchShardIterator> shardIterators = new GroupShardsIterator<>(shards);
-
-            //TODO is this needed?
-            //failIfOverShardCountLimit(clusterService, shardIterators.size());
-
-            if (searchRequest.allowPartialSearchResults() == null) {
-                // No user preference defined in search request - apply cluster service default
-                searchRequest.allowPartialSearchResults(searchService.defaultAllowPartialSearchResults());
-            }
-
-            //TODO not sure if these two optimizations are needed here. sounds like edge cases that people would not use this API for.
-            // optimize search type for cases where there is only one shard group to search on
-            if (shardIterators.size() == 1) {
-                // if we only have one group, then we always want Q_T_F, no need for DFS, and no need to do THEN since we hit one shard
-                searchRequest.searchType(QUERY_THEN_FETCH);
-            }
-            if (searchRequest.isSuggestOnly()) {
-                // disable request cache if we have only suggest
-                searchRequest.requestCache(false);
-                if (searchRequest.searchType() == DFS_QUERY_THEN_FETCH) {
-                    // convert to Q_T_F if we have only suggest
-                    searchRequest.searchType(QUERY_THEN_FETCH);
+            Arrays.sort(resolvedIndices, (index1, index2) -> {
+                IndexMetaData indexMetaData1 = clusterState.metaData().index(index1.getIndexName());
+                IndexSettings indexSettings1 = searchService.getIndicesService().indexServiceSafe(index1.getIndex()).getIndexSettings();
+                IndexMetaData indexMetaData2 = clusterState.metaData().index(index2.getIndexName());
+                IndexSettings indexSettings2 = searchService.getIndicesService().indexServiceSafe(index2.getIndex()).getIndexSettings();
+                if (indexSettings1.isSearchThrottled() == indexSettings2.isSearchThrottled()) {
+                    //TODO how should isSearchThrottled influence the grouping?
                 }
-            }
-
-            //doing only local nodes for now, no CCS
-            BiFunction<String, String, Transport.Connection> connectionLookup = (clusterAlias, nodeId) ->
-                transportService.getConnection(clusterState.nodes().get(nodeId));
-
-            //we can't do this for DFS it needs to fan out to all shards all the time.
-            boolean preFilterSearchShards = searchRequest.searchType() == QUERY_THEN_FETCH && SearchService.canRewriteToMatchNone(source);
-
-            SearchTask searchTask = (SearchTask) task;
-
-            Map<String, Set<String>> routings = routingMap;
-            long clusterStateVersion = clusterState.version();
-            ActionListener<SearchResponse> canMatchListener = ActionListener.map(listener, response -> {
-                throw new IllegalStateException("unexpected call to onResponse while running can_match phase");
+                //TODO once we support CCS remote indices should also be groupd separately?
+                return Long.compare(indexMetaData2.getCreationDate(), indexMetaData1.getCreationDate());
             });
 
-            //TODO can match can be done for each batch instead of once
-            Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
-            if (preFilterSearchShards) {
-                new CanMatchPreFilterSearchPhase(logger, searchTransportService, connectionLookup, aliasFilter, concreteIndexBoosts,
-                    routings, executor, searchRequest, canMatchListener, shardIterators, timeProvider, clusterStateVersion, searchTask,
-                    iterators -> new SearchPhase("submit_background_search") {
-                        @Override
-                        public void run() {
-                            //TODO here shall we count the potential shard failures when calling can_match and return them?
-                            runTask(searchRequest, submitBackgroundSearchRequest.getBatchSize(), timeProvider, aliasFilter,
-                                concreteIndexBoosts, routings, iterators,
-                                shardIterators.size(), searchService::createReduceContext, listener);
-                        }
-                    }, SearchResponse.Clusters.EMPTY);
-            } else {
-                runTask(searchRequest, submitBackgroundSearchRequest.getBatchSize(), timeProvider, aliasFilter, concreteIndexBoosts,
-                    routings, shardIterators, shardIterators.size(), searchService::createReduceContext, listener);
-            }
+
+
+            //TODO how do we set pre_filter_search_shards?
+
+            //TODO run one task per group
+            //TODO here we execute on the same thread, we fork only once we call the search async action,
+            //that should be ok, we could also potentially get the first batch of results.
+            //Task task = client.executeLocally(TransportBackgroundSearchAction.TYPE, request, LoggingTaskListener.instance());
+            //TODO maybe it would be better to just register a task manually, but TransportAction handles storing results too.
+            //listener.onResponse(new SubmitBackgroundSearchResponse(new TaskId(client.getLocalNodeId(), task.getId())));
+
         }, listener::onFailure);
 
         if (searchRequest.source() == null) {
@@ -198,84 +151,4 @@ public class TransportSubmitBackgroundSearchAction
                 rewriteListener);
         }
     }
-
-    private void runTask(SearchRequest searchRequest, int batchSize, TransportSearchAction.SearchTimeProvider timeProvider,
-                         Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts, Map<String, Set<String>> routingMap,
-                         GroupShardsIterator<SearchShardIterator> searchShardIterators, int totalShards,
-                         Function<Boolean, InternalAggregation.ReduceContext> reduceContextFunction,
-                         ActionListener<SubmitBackgroundSearchResponse> listener) {
-
-        BackgroundSearchRequest request = new BackgroundSearchRequest(searchRequest, batchSize, aliasFilter, concreteIndexBoosts,
-            routingMap, searchShardIterators, timeProvider, reduceContextFunction);
-        //TODO here we execute on the same thread, we fork only once we call the search async action,
-        //that should be ok, we could also potentially get the first batch of results.
-        Task task = client.executeLocally(TransportBackgroundSearchAction.TYPE, request, LoggingTaskListener.instance());
-        //TODO maybe it would be better to just register a task manually, but TransportAction handles storing results too.
-        listener.onResponse(new SubmitBackgroundSearchResponse(new TaskId(client.getLocalNodeId(), task.getId())));
-    }
-
-    private Map<String, AliasFilter> buildPerIndexAliasFilter(SearchRequest request, ClusterState clusterState,
-                                                              Index[] concreteIndices, Map<String, AliasFilter> remoteAliasMap) {
-        final Map<String, AliasFilter> aliasFilterMap = new HashMap<>();
-        final Set<String> indicesAndAliases = indexNameExpressionResolver.resolveExpressions(clusterState, request.indices());
-        for (Index index : concreteIndices) {
-            clusterState.blocks().indexBlockedRaiseException(ClusterBlockLevel.READ, index.getName());
-            AliasFilter aliasFilter = searchService.buildAliasFilter(clusterState, index.getName(), indicesAndAliases);
-            assert aliasFilter != null;
-            aliasFilterMap.put(index.getUUID(), aliasFilter);
-        }
-        aliasFilterMap.putAll(remoteAliasMap);
-        return aliasFilterMap;
-    }
-
-    private Map<String, Float> resolveIndexBoosts(SearchRequest searchRequest, ClusterState clusterState) {
-        if (searchRequest.source() == null) {
-            return Collections.emptyMap();
-        }
-
-        SearchSourceBuilder source = searchRequest.source();
-        if (source.indexBoosts() == null) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, Float> concreteIndexBoosts = new HashMap<>();
-        for (SearchSourceBuilder.IndexBoost ib : source.indexBoosts()) {
-            Index[] concreteIndices =
-                indexNameExpressionResolver.concreteIndices(clusterState, searchRequest.indicesOptions(), ib.getIndex());
-
-            for (Index concreteIndex : concreteIndices) {
-                concreteIndexBoosts.putIfAbsent(concreteIndex.getUUID(), ib.getBoost());
-            }
-        }
-        return Collections.unmodifiableMap(concreteIndexBoosts);
-    }
-
-    private static final class ShardComparator implements Comparator<ShardIterator> {
-        private final ClusterState clusterState;
-        private final SearchService searchService;
-
-        ShardComparator(ClusterState clusterState, SearchService searchService) {
-            this.clusterState = clusterState;
-            this.searchService = searchService;
-        }
-
-        @Override
-        public int compare(ShardIterator o1, ShardIterator o2) {
-            ShardId shardId1 = o1.shardId();
-            IndexSettings indexSettings1 = searchService.getIndicesService().indexServiceSafe(shardId1.getIndex()).getIndexSettings();
-            ShardId shardId2 = o2.shardId();
-            IndexSettings indexSettings2 = searchService.getIndicesService().indexServiceSafe(shardId2.getIndex()).getIndexSettings();
-            if (indexSettings1.isSearchThrottled() == indexSettings2.isSearchThrottled()) {
-                IndexMetaData indexMetaData1 = clusterState.metaData().index(shardId1.getIndex());
-                IndexMetaData indexMetaData2 = clusterState.metaData().index(shardId2.getIndex());
-                //TODO the split and shrink API override the creation date, which messes up ordering based on it.
-                return Long.compare(indexMetaData1.getCreationDate(), indexMetaData2.getCreationDate());
-            }
-            if (indexSettings1.isSearchThrottled()) {
-                return -1;
-            } else {
-                return 1;
-            }
-        }
-    };
 }

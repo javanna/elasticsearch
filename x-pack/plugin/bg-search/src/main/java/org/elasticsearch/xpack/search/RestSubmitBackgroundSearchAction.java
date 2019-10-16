@@ -7,7 +7,6 @@ package org.elasticsearch.xpack.search;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
@@ -39,9 +38,6 @@ public final class RestSubmitBackgroundSearchAction extends BaseRestHandler {
             RestSearchAction.parseSearchRequest(searchRequest, request, parser, setSize));
         SubmitBackgroundSearchRequest submitBackgroundSearchRequest = new SubmitBackgroundSearchRequest(searchRequest);
         //TODO do we need to support more query_string params, like search?
-        if (request.hasParam("batch_size")) {
-            submitBackgroundSearchRequest.setBatchSize(request.paramAsInt("batch_size", -1));
-        }
         return channel -> client.execute(SubmitBackgroundSearchAction.INSTANCE, submitBackgroundSearchRequest,
             new RestToXContentListener<>(channel));
     }

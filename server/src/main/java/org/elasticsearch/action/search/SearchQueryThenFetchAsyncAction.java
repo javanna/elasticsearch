@@ -37,13 +37,13 @@ public final class SearchQueryThenFetchAsyncAction extends AbstractSearchAsyncAc
     private final SearchPhaseController searchPhaseController;
 
     public SearchQueryThenFetchAsyncAction(final Logger logger, final SearchTransportService searchTransportService,
-            final BiFunction<String, String, Transport.Connection> nodeIdToConnection, final Map<String, AliasFilter> aliasFilter,
-            final Map<String, Float> concreteIndexBoosts, final Map<String, Set<String>> indexRoutings,
-            final SearchPhaseController searchPhaseController, final Executor executor,
-            final SearchRequest request, final ActionListener<SearchResponse> listener,
-            final GroupShardsIterator<SearchShardIterator> shardsIts, final TransportSearchAction.SearchTimeProvider timeProvider,
-            long clusterStateVersion, SearchTask task, SearchResponse.Clusters clusters) {
-        super("query", logger, searchTransportService, nodeIdToConnection, aliasFilter, concreteIndexBoosts, indexRoutings,
+                                           final BiFunction<String, String, Transport.Connection> nodeIdToConnection,
+                                           final SearchRequest.ResolvedIndex[] resolvedIndices,
+                                            final SearchPhaseController searchPhaseController, final Executor executor,
+                                           final SearchRequest request, final ActionListener<SearchResponse> listener,
+                                           final GroupShardsIterator<SearchShardIterator> shardsIts, final TransportSearchAction.SearchTimeProvider timeProvider,
+                                           long clusterStateVersion, SearchTask task, SearchResponse.Clusters clusters) {
+        super("query", logger, searchTransportService, nodeIdToConnection, resolvedIndices,
                 executor, request, listener, shardsIts, timeProvider, clusterStateVersion, task,
                 searchPhaseController.newSearchPhaseResults(request, shardsIts.size()), request.getMaxConcurrentShardRequests(), clusters);
         this.searchPhaseController = searchPhaseController;

@@ -7,9 +7,6 @@ package org.elasticsearch.xpack.search;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
-import org.elasticsearch.action.search.AbstractSearchAsyncAction;
 import org.elasticsearch.action.search.SearchDfsQueryThenFetchAsyncAction;
 import org.elasticsearch.action.search.SearchPhaseController;
 import org.elasticsearch.action.search.SearchQueryThenFetchAsyncAction;
@@ -83,7 +80,7 @@ public class TransportBackgroundSearchAction extends TransportAction<BackgroundS
                 //TODO we are risking stack overflow here, maybe each step should be a separate sub-task
                 //following batches
                 logger.warn("starting another batch");
-                run(request, searchTask, timeProvider, connectionLookup, clusterState.version(), listener, this);
+                //run(request, searchTask, timeProvider, connectionLookup, clusterState.version(), listener, this);
             }
 
             @Override
@@ -96,9 +93,10 @@ public class TransportBackgroundSearchAction extends TransportAction<BackgroundS
         logger.warn("starting first batch");
 
         //first batch
-        run(request, searchTask, timeProvider, connectionLookup, clusterState.version(), listener, searchListener);
+        //run(request, searchTask, timeProvider, connectionLookup, clusterState.version(), listener, searchListener);
     }
 
+    /*
     private void run(BackgroundSearchRequest request, SearchTask task, TransportSearchAction.SearchTimeProvider timeProvider,
                      BiFunction<String, String, Transport.Connection> connectionLookup, long clusterStateVersion,
                      ActionListener<BackgroundSearchResponse> mainListener, ActionListener<SearchResponse> searchListener) {
@@ -141,4 +139,5 @@ public class TransportBackgroundSearchAction extends TransportAction<BackgroundS
         }
         return searchAsyncAction;
     }
+    */
 }

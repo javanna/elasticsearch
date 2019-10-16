@@ -28,10 +28,13 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.internal.AliasFilter;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
@@ -39,8 +42,10 @@ import org.elasticsearch.tasks.TaskId;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
@@ -65,9 +70,12 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
 
     private static final long DEFAULT_ABSOLUTE_START_MILLIS = -1;
 
+    private static final ResolvedIndex[] EMPTY_RESOLVED_INDICES = new ResolvedIndex[0];
+
     private final String localClusterAlias;
     private final long absoluteStartMillis;
     private final boolean finalReduce;
+    private final ResolvedIndex[] resolvedIndices;
 
     private SearchType searchType = SearchType.DEFAULT;
 
@@ -102,6 +110,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         this.localClusterAlias = null;
         this.absoluteStartMillis = DEFAULT_ABSOLUTE_START_MILLIS;
         this.finalReduce = true;
+        this.resolvedIndices = EMPTY_RESOLVED_INDICES;
     }
 
     /**
@@ -109,7 +118,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
      */
     public SearchRequest(SearchRequest searchRequest) {
         this(searchRequest, searchRequest.indices, searchRequest.localClusterAlias,
-            searchRequest.absoluteStartMillis, searchRequest.finalReduce);
+            searchRequest.absoluteStartMillis, searchRequest.finalReduce, searchRequest.resolvedIndices);
     }
 
     /**
@@ -153,11 +162,11 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         if (absoluteStartMillis < 0) {
             throw new IllegalArgumentException("absoluteStartMillis must not be negative but was [" + absoluteStartMillis + "]");
         }
-        return new SearchRequest(originalSearchRequest, indices, clusterAlias, absoluteStartMillis, finalReduce);
+        return new SearchRequest(originalSearchRequest, indices, clusterAlias, absoluteStartMillis, finalReduce, EMPTY_RESOLVED_INDICES);
     }
 
     public SearchRequest(SearchRequest searchRequest, String[] indices, String localClusterAlias, long absoluteStartMillis,
-                          boolean finalReduce) {
+                          boolean finalReduce, ResolvedIndex[] resolvedIndices) {
         this.allowPartialSearchResults = searchRequest.allowPartialSearchResults;
         this.batchedReduceSize = searchRequest.batchedReduceSize;
         this.ccsMinimizeRoundtrips = searchRequest.ccsMinimizeRoundtrips;
@@ -174,6 +183,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         this.localClusterAlias = localClusterAlias;
         this.absoluteStartMillis = absoluteStartMillis;
         this.finalReduce = finalReduce;
+        this.resolvedIndices = resolvedIndices;
     }
 
     /**
@@ -208,11 +218,19 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         if (localClusterAlias != null) {
             absoluteStartMillis = in.readVLong();
             finalReduce = in.readBoolean();
+            //TODO adjust version if this gets backported
+            if (in.getVersion().onOrAfter(Version.V_8_0_0)) {
+                resolvedIndices = in.readArray(ResolvedIndex::new, ResolvedIndex[]::new);
+            } else {
+                resolvedIndices = EMPTY_RESOLVED_INDICES;
+            }
         } else {
             absoluteStartMillis = DEFAULT_ABSOLUTE_START_MILLIS;
             finalReduce = true;
+            resolvedIndices = EMPTY_RESOLVED_INDICES;
         }
         ccsMinimizeRoundtrips = in.readBoolean();
+
     }
 
     @Override
@@ -238,9 +256,12 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         if (localClusterAlias != null) {
             out.writeVLong(absoluteStartMillis);
             out.writeBoolean(finalReduce);
+            //TODO adjust version if this gets backported
+            if (out.getVersion().before(Version.V_8_0_0)) {
+                out.writeArray(resolvedIndices);
+            }
         }
         out.writeBoolean(ccsMinimizeRoundtrips);
-
     }
 
     @Override
@@ -271,6 +292,14 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
             }
         }
         return validationException;
+    }
+
+    ResolvedIndex[] getResolvedIndices() {
+        return resolvedIndices;
+    }
+
+    boolean holdsResolvedIndices() {
+        return resolvedIndices != EMPTY_RESOLVED_INDICES;
     }
 
     /**
@@ -636,5 +665,85 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
                 ", getOrCreateAbsoluteStartMillis=" + absoluteStartMillis +
                 ", ccsMinimizeRoundtrips=" + ccsMinimizeRoundtrips +
                 ", source=" + source + '}';
+    }
+
+    public static class ResolvedIndex implements Writeable {
+
+        private static final float DEFAULT_INDEX_BOOST = 1.0f;
+
+        private final Index index;
+        private final AliasFilter aliasFilter;
+        private final float boost;
+        private final Set<String> routingValues;
+
+        public ResolvedIndex(Index index, AliasFilter aliasFilter, Float boost, Set<String> routingValues) {
+            this.index = index;
+            this.aliasFilter = aliasFilter;
+            this.boost = boost == null ? DEFAULT_INDEX_BOOST : boost;
+            this.routingValues = routingValues == null ? Collections.emptySet() : routingValues;
+        }
+
+        ResolvedIndex(StreamInput in) throws IOException {
+            index = new Index(in);
+            aliasFilter = new AliasFilter(in);
+            boost = in.readFloat();
+            routingValues = in.readSet(StreamInput::readString);
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            index.writeTo(out);
+            aliasFilter.writeTo(out);
+            out.writeFloat(boost);
+            out.writeCollection(routingValues, StreamOutput::writeString);
+        }
+
+        public String getIndexName() {
+            return index.getName();
+        }
+
+        public Index getIndex() {
+            return index;
+        }
+
+        public AliasFilter getAliasFilter() {
+            return aliasFilter;
+        }
+
+        public float getBoost() {
+            return boost;
+        }
+
+        public Set<String> getRoutingValues() {
+            return routingValues;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ResolvedIndex that = (ResolvedIndex) o;
+            return Float.compare(that.boost, boost) == 0 &&
+                index.equals(that.index) &&
+                aliasFilter.equals(that.aliasFilter) &&
+                routingValues.equals(that.routingValues);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(index, aliasFilter, boost, routingValues);
+        }
+    }
+
+    public static class ResolvedIndexString extends ResolvedIndex {
+
+        public ResolvedIndexString(String index, AliasFilter aliasFilter, Float boost, Set<String> routingValues) {
+            super(new Index(index, "_na"), aliasFilter, boost, routingValues);
+        }
+
+        @Override
+        public Index getIndex() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

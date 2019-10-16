@@ -45,6 +45,7 @@ import org.elasticsearch.transport.Transport;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,7 +64,6 @@ import java.util.stream.Collectors;
  * distributed frequencies
  */
 abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> extends SearchPhase implements SearchPhaseContext {
-    private static final float DEFAULT_INDEX_BOOST = 1.0f;
     private final Logger logger;
     private final SearchTransportService searchTransportService;
     private final Executor executor;
@@ -76,9 +76,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
     private final SearchTask task;
     private final SearchPhaseResults<Result> results;
     private final long clusterStateVersion;
-    private final Map<String, AliasFilter> aliasFilter;
-    private final Map<String, Float> concreteIndexBoosts;
-    private final Map<String, Set<String>> indexRoutings;
+    private final Map<String, SearchRequest.ResolvedIndex> resolvedIndices;
     private final SetOnce<AtomicArray<ShardSearchFailure>> shardFailures = new SetOnce<>();
     private final Object shardFailuresMutex = new Object();
     private final AtomicInteger successfulOps = new AtomicInteger();
@@ -96,8 +94,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
 
     AbstractSearchAsyncAction(String name, Logger logger, SearchTransportService searchTransportService,
                                         BiFunction<String, String, Transport.Connection> nodeIdToConnection,
-                                        Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
-                                        Map<String, Set<String>> indexRoutings,
+                                        SearchRequest.ResolvedIndex[] resolvedIndices,
                                         Executor executor, SearchRequest request,
                                         ActionListener<SearchResponse> listener, GroupShardsIterator<SearchShardIterator> shardsIts,
                                         SearchTimeProvider timeProvider, long clusterStateVersion,
@@ -132,9 +129,10 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
         this.listener = listener;
         this.nodeIdToConnection = nodeIdToConnection;
         this.clusterStateVersion = clusterStateVersion;
-        this.concreteIndexBoosts = concreteIndexBoosts;
-        this.aliasFilter = aliasFilter;
-        this.indexRoutings = indexRoutings;
+        this.resolvedIndices = new HashMap<>();
+        for (SearchRequest.ResolvedIndex resolvedIndex : resolvedIndices) {
+            this.resolvedIndices.put(resolvedIndex.getIndexName(), resolvedIndex);
+        }
         this.results = resultConsumer;
         this.clusters = clusters;
     }
@@ -585,14 +583,10 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
 
     @Override
     public final ShardSearchRequest buildShardSearchRequest(SearchShardIterator shardIt) {
-        AliasFilter filter = aliasFilter.get(shardIt.shardId().getIndex().getUUID());
-        assert filter != null;
-        float indexBoost = concreteIndexBoosts.getOrDefault(shardIt.shardId().getIndex().getUUID(), DEFAULT_INDEX_BOOST);
-        String indexName = shardIt.shardId().getIndex().getName();
-        final String[] routings = indexRoutings.getOrDefault(indexName, Collections.emptySet())
-            .toArray(new String[0]);
+        SearchRequest.ResolvedIndex resolvedIndex = resolvedIndices.get(shardIt.shardId().getIndexName());
         return new ShardSearchRequest(shardIt.getOriginalIndices(), request, shardIt.shardId(), getNumShards(),
-            filter, indexBoost, timeProvider.getAbsoluteStartMillis(), shardIt.getClusterAlias(), routings);
+            resolvedIndex.getAliasFilter(), resolvedIndex.getBoost(), timeProvider.getAbsoluteStartMillis(), shardIt.getClusterAlias(),
+            resolvedIndex.getRoutingValues().toArray(new String[0]));
     }
 
     /**

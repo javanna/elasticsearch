@@ -876,37 +876,37 @@ public class TransportSearchActionTests extends ESTestCase {
 
     public void testSplitIndices() {
         int numIndices = randomIntBetween(1, 10);
-        Index[] indices = new Index[numIndices];
+        SearchRequest.ResolvedIndex[] indices = new SearchRequest.ResolvedIndex[numIndices];
         for (int i = 0; i < numIndices; i++) {
             String indexName = randomAlphaOfLengthBetween(5, 10);
-            indices[i] = new Index(indexName, indexName + "-uuid");
+            indices[i] = new SearchRequest.ResolvedIndex(new Index(indexName, indexName + "-uuid"), AliasFilter.EMPTY, null, null);
         }
         {
             ClusterState clusterState = ClusterState.builder(ClusterName.DEFAULT).build();
-            List<String> writeIndices = new ArrayList<>();
-            List<String> readOnlyIndices = new ArrayList<>();
+            List<SearchRequest.ResolvedIndex> writeIndices = new ArrayList<>();
+            List<SearchRequest.ResolvedIndex> readOnlyIndices = new ArrayList<>();
             TransportSearchAction.splitIndices(indices, clusterState, writeIndices, readOnlyIndices);
             assertEquals(0, readOnlyIndices.size());
             assertEquals(numIndices, writeIndices.size());
         }
         {
-            List<String> expectedWrite = new ArrayList<>();
-            List<String> expectedReadOnly = new ArrayList<>();
+            List<SearchRequest.ResolvedIndex> expectedWrite = new ArrayList<>();
+            List<SearchRequest.ResolvedIndex> expectedReadOnly = new ArrayList<>();
             ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder();
-            for (Index index : indices) {
+            for (SearchRequest.ResolvedIndex index : indices) {
                 if (randomBoolean()) {
-                    blocksBuilder.addIndexBlock(index.getName(), IndexMetaData.INDEX_WRITE_BLOCK);
-                    expectedReadOnly.add(index.getName());
+                    blocksBuilder.addIndexBlock(index.getIndexName(), IndexMetaData.INDEX_WRITE_BLOCK);
+                    expectedReadOnly.add(index);
                 } else if(randomBoolean() ){
-                    blocksBuilder.addIndexBlock(index.getName(), IndexMetaData.INDEX_READ_ONLY_BLOCK);
-                    expectedReadOnly.add(index.getName());
+                    blocksBuilder.addIndexBlock(index.getIndexName(), IndexMetaData.INDEX_READ_ONLY_BLOCK);
+                    expectedReadOnly.add(index);
                 } else {
-                    expectedWrite.add(index.getName());
+                    expectedWrite.add(index);
                 }
             }
             ClusterState clusterState = ClusterState.builder(ClusterName.DEFAULT).blocks(blocksBuilder).build();
-            List<String> writeIndices = new ArrayList<>();
-            List<String> readOnlyIndices = new ArrayList<>();
+            List<SearchRequest.ResolvedIndex> writeIndices = new ArrayList<>();
+            List<SearchRequest.ResolvedIndex> readOnlyIndices = new ArrayList<>();
             TransportSearchAction.splitIndices(indices, clusterState, writeIndices, readOnlyIndices);
             assertEquals(writeIndices, expectedWrite);
             assertEquals(readOnlyIndices, expectedReadOnly);

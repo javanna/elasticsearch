@@ -88,7 +88,6 @@ public class SearchAsyncActionTests extends ESTestCase {
         Map<ShardId, Boolean> seenShard = new ConcurrentHashMap<>();
         lookup.put(primaryNode.getId(), new MockConnection(primaryNode));
         lookup.put(replicaNode.getId(), new MockConnection(replicaNode));
-        Map<String, AliasFilter> aliasFilters = Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY));
         AtomicInteger numRequests = new AtomicInteger(0);
         AbstractSearchAsyncAction<TestSearchPhaseResult> asyncAction =
             new AbstractSearchAsyncAction<TestSearchPhaseResult>(
@@ -98,9 +97,7 @@ public class SearchAsyncActionTests extends ESTestCase {
                 (cluster, node) -> {
                     assert cluster == null : "cluster was not null: " + cluster;
                     return lookup.get(node); },
-                aliasFilters,
-                Collections.emptyMap(),
-                Collections.emptyMap(),
+                new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
                 null,
                 request,
                 responseListener,
@@ -192,7 +189,6 @@ public class SearchAsyncActionTests extends ESTestCase {
         Map<ShardId, Boolean> seenShard = new ConcurrentHashMap<>();
         lookup.put(primaryNode.getId(), new MockConnection(primaryNode));
         lookup.put(replicaNode.getId(), new MockConnection(replicaNode));
-        Map<String, AliasFilter> aliasFilters = Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY));
         CountDownLatch awaitInitialRequests = new CountDownLatch(1);
         AtomicInteger numRequests = new AtomicInteger(0);
         AbstractSearchAsyncAction<TestSearchPhaseResult> asyncAction =
@@ -203,9 +199,7 @@ public class SearchAsyncActionTests extends ESTestCase {
                 (cluster, node) -> {
                     assert cluster == null : "cluster was not null: " + cluster;
                     return lookup.get(node); },
-                aliasFilters,
-                Collections.emptyMap(),
-                Collections.emptyMap(),
+                new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
                 null,
                 request,
                 responseListener,
@@ -295,7 +289,6 @@ public class SearchAsyncActionTests extends ESTestCase {
         Map<String, Transport.Connection> lookup = new HashMap<>();
         lookup.put(primaryNode.getId(), new MockConnection(primaryNode));
         lookup.put(replicaNode.getId(), new MockConnection(replicaNode));
-        Map<String, AliasFilter> aliasFilters = Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY));
         ExecutorService executor = Executors.newFixedThreadPool(randomIntBetween(1, Runtime.getRuntime().availableProcessors()));
         final CountDownLatch latch = new CountDownLatch(numShards);
         AbstractSearchAsyncAction<TestSearchPhaseResult> asyncAction =
@@ -305,10 +298,9 @@ public class SearchAsyncActionTests extends ESTestCase {
                         transportService,
                         (cluster, node) -> {
                             assert cluster == null : "cluster was not null: " + cluster;
-                            return lookup.get(node); },
-                        aliasFilters,
-                        Collections.emptyMap(),
-                        Collections.emptyMap(),
+                            return lookup.get(node);
+                        },
+                        new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
                         executor,
                         request,
                         responseListener,
@@ -400,7 +392,6 @@ public class SearchAsyncActionTests extends ESTestCase {
         Map<ShardId, Boolean> seenShard = new ConcurrentHashMap<>();
         lookup.put(primaryNode.getId(), new MockConnection(primaryNode));
         lookup.put(replicaNode.getId(), new MockConnection(replicaNode));
-        Map<String, AliasFilter> aliasFilters = Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY));
         AtomicInteger numRequests = new AtomicInteger(0);
         AtomicInteger numFailReplicas = new AtomicInteger(0);
         AbstractSearchAsyncAction<TestSearchPhaseResult> asyncAction =
@@ -410,10 +401,9 @@ public class SearchAsyncActionTests extends ESTestCase {
                 transportService,
                 (cluster, node) -> {
                     assert cluster == null : "cluster was not null: " + cluster;
-                    return lookup.get(node); },
-                aliasFilters,
-                Collections.emptyMap(),
-                Collections.emptyMap(),
+                    return lookup.get(node);
+                },
+                new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
                 null,
                 request,
                 responseListener,

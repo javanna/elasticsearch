@@ -83,9 +83,13 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
             return null;
         };
 
+        SearchRequest.ResolvedIndex foo = new SearchRequest.ResolvedIndexString("foo",
+            new AliasFilter(new MatchAllQueryBuilder()), 2.0f, Collections.emptySet());
+        SearchRequest.ResolvedIndex name = new SearchRequest.ResolvedIndexString("name",
+            AliasFilter.EMPTY, 1.0f, Sets.newHashSet("bar", "baz"));
+
         return new AbstractSearchAsyncAction<SearchPhaseResult>("test", logger, null, nodeIdToConnection,
-                Collections.singletonMap("foo", new AliasFilter(new MatchAllQueryBuilder())), Collections.singletonMap("foo", 2.0f),
-                Collections.singletonMap("name", Sets.newHashSet("bar", "baz")), null, request, listener,
+                new SearchRequest.ResolvedIndex[]{foo, name}, null, request, listener,
                 new GroupShardsIterator<>(
                     Collections.singletonList(
                         new SearchShardIterator(null, null, Collections.emptyList(), null)

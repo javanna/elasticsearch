@@ -77,8 +77,8 @@ public class CanMatchPreFilterSearchPhaseTests extends ESTestCase {
         CanMatchPreFilterSearchPhase canMatchPhase = new CanMatchPreFilterSearchPhase(logger,
             searchTransportService,
             (clusterAlias, node) -> lookup.get(node),
-            Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY)),
-            Collections.emptyMap(), Collections.emptyMap(), EsExecutors.newDirectExecutorService(),
+            new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
+            EsExecutors.newDirectExecutorService(),
             searchRequest, null, shardsIter, timeProvider, 0, null,
             (iter) -> new SearchPhase("test") {
                     @Override
@@ -145,8 +145,8 @@ public class CanMatchPreFilterSearchPhaseTests extends ESTestCase {
         CanMatchPreFilterSearchPhase canMatchPhase = new CanMatchPreFilterSearchPhase(logger,
             searchTransportService,
             (clusterAlias, node) -> lookup.get(node),
-            Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY)),
-            Collections.emptyMap(), Collections.emptyMap(), EsExecutors.newDirectExecutorService(),
+            new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
+            EsExecutors.newDirectExecutorService(),
             searchRequest, null, shardsIter, timeProvider, 0, null,
             (iter) -> new SearchPhase("test") {
                 @Override
@@ -206,9 +206,7 @@ public class CanMatchPreFilterSearchPhaseTests extends ESTestCase {
             logger,
             searchTransportService,
             (clusterAlias, node) -> lookup.get(node),
-            Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY)),
-            Collections.emptyMap(),
-            Collections.emptyMap(),
+            new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
             EsExecutors.newDirectExecutorService(),
             searchRequest,
             null,
@@ -224,9 +222,7 @@ public class CanMatchPreFilterSearchPhaseTests extends ESTestCase {
                         assert cluster == null : "cluster was not null: " + cluster;
                         return lookup.get(node);
                     },
-                aliasFilters,
-                Collections.emptyMap(),
-                Collections.emptyMap(),
+                new SearchRequest.ResolvedIndex[]{new SearchRequest.ResolvedIndexString("idx", AliasFilter.EMPTY, null, null)},
                 executor,
                 searchRequest,
                 responseListener,

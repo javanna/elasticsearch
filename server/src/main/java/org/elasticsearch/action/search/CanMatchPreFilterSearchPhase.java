@@ -48,15 +48,14 @@ public final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncActio
 
     public CanMatchPreFilterSearchPhase(Logger logger, SearchTransportService searchTransportService,
                                         BiFunction<String, String, Transport.Connection> nodeIdToConnection,
-                                        Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
-                                        Map<String, Set<String>> indexRoutings,
+                                        SearchRequest.ResolvedIndex[] resolvedIndices,
                                         Executor executor, SearchRequest request,
                                         ActionListener<SearchResponse> listener, GroupShardsIterator<SearchShardIterator> shardsIts,
                                         TransportSearchAction.SearchTimeProvider timeProvider, long clusterStateVersion,
                                         SearchTask task, Function<GroupShardsIterator<SearchShardIterator>, SearchPhase> phaseFactory,
                                         SearchResponse.Clusters clusters) {
         //We set max concurrent shard requests to the number of shards so no throttling happens for can_match requests
-        super("can_match", logger, searchTransportService, nodeIdToConnection, aliasFilter, concreteIndexBoosts, indexRoutings,
+        super("can_match", logger, searchTransportService, nodeIdToConnection, resolvedIndices,
                 executor, request, listener, shardsIts, timeProvider, clusterStateVersion, task,
                 new BitSetSearchPhaseResults(shardsIts.size()), shardsIts.size(), clusters);
         this.phaseFactory = phaseFactory;

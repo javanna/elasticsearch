@@ -40,11 +40,7 @@ public final class GroupShardsIterator<ShardIt extends ShardIterator> implements
      * Constructs a new GroupShardsIterator from the given list.
      */
     public GroupShardsIterator(List<ShardIt> iterators) {
-        this(iterators, Comparator.comparing(Function.identity()));
-    }
-
-    public GroupShardsIterator(List<ShardIt> iterators, Comparator<ShardIt> comparator) {
-        CollectionUtil.timSort(iterators, comparator);
+        CollectionUtil.timSort(iterators);
         this.iterators = iterators;
     }
 

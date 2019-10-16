@@ -22,8 +22,6 @@ public final class SubmitBackgroundSearchRequest extends ActionRequest implement
 
     //TODO enforce that a scroll is not set, as it's not supported, etc.
     private final SearchRequest searchRequest;
-    //TODO find a reasonably good default for this
-    private int batchSize = 128;
 
     public SubmitBackgroundSearchRequest(SearchRequest searchRequest) {
         this.searchRequest = searchRequest;
@@ -55,17 +53,6 @@ public final class SubmitBackgroundSearchRequest extends ActionRequest implement
 
     public SearchRequest getSearchRequest() {
         return searchRequest;
-    }
-
-    public void setBatchSize(int batchSize) {
-        if (batchSize <=0) {
-            throw new IllegalArgumentException("batch_size must be greater than 0");
-        }
-        this.batchSize = batchSize;
-    }
-
-    public int getBatchSize() {
-        return batchSize;
     }
 
     @Override
