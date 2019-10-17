@@ -1033,7 +1033,8 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
 
     public void canMatch(ShardSearchRequest request, ActionListener<CanMatchResponse> listener) {
         try {
-            listener.onResponse(new CanMatchResponse(canMatch(request)));
+            CanMatchResponse canMatchResponse = new CanMatchResponse(canMatch(request));
+            listener.onResponse(canMatchResponse);
         } catch (IOException e) {
             listener.onFailure(e);
         }
@@ -1099,6 +1100,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
+            super.writeTo(out);
             out.writeBoolean(canMatch);
         }
 

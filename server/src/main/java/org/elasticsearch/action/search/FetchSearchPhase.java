@@ -106,6 +106,7 @@ final class FetchSearchPhase extends SearchPhase {
         if (queryAndFetchOptimization) {
             assert phaseResults.isEmpty() || phaseResults.get(0).fetchResult() != null : "phaseResults empty [" + phaseResults.isEmpty()
                 + "], single result: " +  phaseResults.get(0).fetchResult();
+            this.context.getTask().getStatus().phaseStarted(getName(), 0);
             // query AND fetch optimization
             finishPhase.run();
         } else {
@@ -115,8 +116,16 @@ final class FetchSearchPhase extends SearchPhase {
                 phaseResults.stream()
                     .map(SearchPhaseResult::queryResult)
                     .forEach(this::releaseIrrelevantSearchContext); // we have to release contexts here to free up resources
+                this.context.getTask().getStatus().phaseStarted(getName(), 0);
                 finishPhase.run();
             } else {
+                int numFetchShards = 0;
+                for (IntArrayList ids : docIdsToLoad) {
+                    if (ids != null) {
+                        numFetchShards++;
+                    }
+                }
+                this.context.getTask().getStatus().phaseStarted(getName(), numFetchShards);
                 final ScoreDoc[] lastEmittedDocPerShard = isScrollSearch ?
                     searchPhaseController.getLastEmittedDocPerShard(reducedQueryPhase, numShards)
                     : null;
@@ -164,6 +173,7 @@ final class FetchSearchPhase extends SearchPhase {
                 @Override
                 public void innerOnResponse(FetchSearchResult result) {
                     try {
+                        context.getTask().getStatus().shardProcessed(getName(), result);
                         counter.onResult(result);
                     } catch (Exception e) {
                         context.onPhaseFailure(FetchSearchPhase.this, "", e);
@@ -173,6 +183,7 @@ final class FetchSearchPhase extends SearchPhase {
                 @Override
                 public void onFailure(Exception e) {
                     try {
+                        context.getTask().getStatus().shardFailed(getName(), shardTarget, e);
                         logger.debug(() -> new ParameterizedMessage("[{}] Failed to execute fetch phase", fetchSearchRequest.id()), e);
                         counter.onFailure(shardIndex, shardTarget, e);
                     } finally {

@@ -15,12 +15,13 @@ import org.elasticsearch.tasks.TaskId;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class BackgroundSearchTask extends SearchTask {
 
     private final BackgroundSearchRequest.State backgroundSearchState;
 
-    BackgroundSearchTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers,
+    BackgroundSearchTask(long id, String type, String action, Supplier<String> description, TaskId parentTaskId, Map<String, String> headers,
                          BackgroundSearchRequest.State backgroundSearchState) {
         super(id, type, action, description, parentTaskId, headers);
         this.backgroundSearchState = backgroundSearchState;

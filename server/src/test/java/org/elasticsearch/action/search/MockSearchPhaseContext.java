@@ -50,6 +50,7 @@ public final class MockSearchPhaseContext implements SearchPhaseContext {
     SearchRequest searchRequest = new SearchRequest();
     AtomicInteger phasesExecuted = new AtomicInteger();
     AtomicReference<SearchResponse> searchResponse = new AtomicReference<>();
+    private final MainSearchTask task = new MainSearchTask(0, "n/a", "n/a", ()-> "test", null, Collections.emptyMap());
 
     public MockSearchPhaseContext(int numShards) {
         this.numShards = numShards;
@@ -73,8 +74,8 @@ public final class MockSearchPhaseContext implements SearchPhaseContext {
     }
 
     @Override
-    public SearchTask getTask() {
-        return new SearchTask(0, "n/a", "n/a", "test", null, Collections.emptyMap());
+    public MainSearchTask getTask() {
+        return task;
     }
 
     @Override
@@ -90,6 +91,7 @@ public final class MockSearchPhaseContext implements SearchPhaseContext {
 
     @Override
     public void onPhaseFailure(SearchPhase phase, String msg, Throwable cause) {
+        task.getStatus().phaseFailed(phase.getName(), cause);
         phaseFailure.set(cause);
     }
 
@@ -119,6 +121,7 @@ public final class MockSearchPhaseContext implements SearchPhaseContext {
     @Override
     public void executeNextPhase(SearchPhase currentPhase, SearchPhase nextPhase) {
         phasesExecuted.incrementAndGet();
+        task.getStatus().phaseCompleted(currentPhase.getName());
         try {
             nextPhase.run();
         } catch (Exception e) {

@@ -292,7 +292,7 @@ public class ShardSearchRequest extends TransportRequest implements IndicesReque
 
     @Override
     public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-        return new SearchTask(id, type, action, getDescription(), parentTaskId, headers);
+        return new SearchTask(id, type, action, this::getDescription, parentTaskId, headers);
     }
 
     @Override

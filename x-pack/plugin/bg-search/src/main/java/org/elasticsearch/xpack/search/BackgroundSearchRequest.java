@@ -109,12 +109,7 @@ public class BackgroundSearchRequest extends ActionRequest {
     @Override
     public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
         // generating description in a lazy way since source can be quite big
-        return new BackgroundSearchTask(id, type, action, null, parentTaskId, headers, this.state) {
-            @Override
-            public String getDescription() {
-                return searchRequest.getTaskDescription();
-            }
-        };
+        return new BackgroundSearchTask(id, type, action, searchRequest::getTaskDescription, parentTaskId, headers, this.state);
     }
 
     @Override

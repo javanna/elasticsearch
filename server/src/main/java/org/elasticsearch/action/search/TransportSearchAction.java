@@ -199,7 +199,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
                                 int localClusters = localIndices == null ? 0 : 1;
                                 int totalClusters = remoteClusterIndices.size() + localClusters;
                                 int successfulClusters = searchShardsResponses.size() + localClusters;
-                                executeSearch((SearchTask) task, timeProvider, searchRequest, localIndices,
+                                executeSearch((MainSearchTask) task, timeProvider, searchRequest, localIndices,
                                     remoteShardIterators, clusterNodeLookup, clusterState, remoteAliasFilters, listener,
                                     new SearchResponse.Clusters(totalClusters, successfulClusters, skippedClusters.get()));
                             },
@@ -368,7 +368,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
 
     private void executeLocalSearch(Task task, SearchTimeProvider timeProvider, SearchRequest searchRequest, OriginalIndices localIndices,
                                     ClusterState clusterState, ActionListener<SearchResponse> listener) {
-        executeSearch((SearchTask)task, timeProvider, searchRequest, localIndices, Collections.emptyList(),
+        executeSearch((MainSearchTask)task, timeProvider, searchRequest, localIndices, Collections.emptyList(),
             (clusterName, nodeId) -> null, clusterState, Collections.emptyMap(), listener, SearchResponse.Clusters.EMPTY);
     }
 
@@ -418,7 +418,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
         };
     }
 
-    private void executeSearch(SearchTask task, SearchTimeProvider timeProvider, SearchRequest searchRequest,
+    private void executeSearch(MainSearchTask task, SearchTimeProvider timeProvider, SearchRequest searchRequest,
                                OriginalIndices localIndices, List<SearchShardIterator> remoteShardIterators,
                                BiFunction<String, String, DiscoveryNode> remoteConnections, ClusterState clusterState,
                                Map<String, AliasFilter> remoteAliasMap, ActionListener<SearchResponse> listener,
@@ -515,7 +515,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
         }
     }
 
-    private void executeSearch(SearchTask task, SearchTimeProvider timeProvider, SearchRequest searchRequest,
+    private void executeSearch(MainSearchTask task, SearchTimeProvider timeProvider, SearchRequest searchRequest,
                                OriginalIndices localIndices, SearchRequest.ResolvedIndex[] resolvedIndices,
                                List<SearchShardIterator> remoteShardIterators, BiFunction<String, String, DiscoveryNode> remoteConnections,
                                ClusterState clusterState, ActionListener<SearchResponse> listener, SearchResponse.Clusters clusters) {
@@ -596,7 +596,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
         return new GroupShardsIterator<>(shards);
     }
 
-    private AbstractSearchAsyncAction searchAsyncAction(SearchTask task, SearchRequest searchRequest,
+    private AbstractSearchAsyncAction searchAsyncAction(MainSearchTask task, SearchRequest searchRequest,
                                                         GroupShardsIterator<SearchShardIterator> shardIterators,
                                                         SearchTimeProvider timeProvider,
                                                         BiFunction<String, String, Transport.Connection> connectionLookup,
