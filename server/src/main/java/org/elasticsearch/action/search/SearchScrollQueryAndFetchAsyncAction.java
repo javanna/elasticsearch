@@ -46,7 +46,7 @@ final class SearchScrollQueryAndFetchAsyncAction extends SearchScrollAsyncAction
 
     @Override
     protected void executeInitialPhase(Transport.Connection connection, InternalScrollSearchRequest internalRequest,
-                                       SearchActionListener<ScrollQueryFetchSearchResult> searchActionListener) {
+                                       ShardActionListener<ScrollQueryFetchSearchResult> searchActionListener) {
         searchTransportService.sendExecuteScrollFetch(connection, internalRequest, task, searchActionListener);
     }
 

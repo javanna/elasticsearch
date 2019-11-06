@@ -252,7 +252,7 @@ public class CanMatchPreFilterSearchPhaseTests extends ESTestCase {
                 protected void executePhaseOnShard(
                     final SearchShardIterator shardIt,
                     final ShardRouting shard,
-                    final SearchActionListener<SearchPhaseResult> listener) {
+                    final ShardActionListener<SearchPhaseResult> listener) {
                     if (randomBoolean()) {
                         listener.onResponse(new SearchPhaseResult() {});
                     } else {

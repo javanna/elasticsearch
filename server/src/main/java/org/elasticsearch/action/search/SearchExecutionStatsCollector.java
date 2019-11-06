@@ -49,7 +49,7 @@ public final class SearchExecutionStatsCollector implements ActionListener<Searc
         this.nodeId = nodeId;
     }
 
-    public static BiFunction<Transport.Connection, SearchActionListener, ActionListener> makeWrapper(ResponseCollectorService service) {
+    public static BiFunction<Transport.Connection, ShardActionListener, ActionListener> makeWrapper(ResponseCollectorService service) {
         return (connection, originalListener) -> new SearchExecutionStatsCollector(originalListener, service, connection.getNode().getId());
     }
 

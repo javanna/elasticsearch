@@ -100,7 +100,7 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
 
             @Override
             protected void executePhaseOnShard(final SearchShardIterator shardIt, final ShardRouting shard,
-                                               final SearchActionListener<SearchPhaseResult> listener) {
+                                               final ShardActionListener<SearchPhaseResult> listener) {
             }
 
             @Override

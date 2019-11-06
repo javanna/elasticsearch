@@ -23,10 +23,15 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.SearchPhaseResult;
+import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.internal.AliasFilter;
+import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.transport.Transport;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -40,19 +45,39 @@ final class SearchQueryThenFetchAsyncAction extends AbstractSearchAsyncAction<Se
             final BiFunction<String, String, Transport.Connection> nodeIdToConnection, final Map<String, AliasFilter> aliasFilter,
             final Map<String, Float> concreteIndexBoosts, final Map<String, Set<String>> indexRoutings,
             final SearchPhaseController searchPhaseController, final Executor executor,
-            final SearchRequest request, final ActionListener<SearchResponse> listener,
+            final SearchRequest request, final SearchActionListener listener,
             final GroupShardsIterator<SearchShardIterator> shardsIts, final TransportSearchAction.SearchTimeProvider timeProvider,
             long clusterStateVersion, SearchTask task, SearchResponse.Clusters clusters) {
         super("query", logger, searchTransportService, nodeIdToConnection, aliasFilter, concreteIndexBoosts, indexRoutings,
                 executor, request, listener, shardsIts, timeProvider, clusterStateVersion, task,
-                searchPhaseController.newSearchPhaseResults(request, shardsIts.size()), request.getMaxConcurrentShardRequests(), clusters);
+                searchPhaseController.newSearchPhaseResults(request, listener, shardsIts.size()), request.getMaxConcurrentShardRequests(), clusters);
         this.searchPhaseController = searchPhaseController;
+        List<ShardId> shardIds = new ArrayList<>();
+        for (SearchShardIterator shard : shardsIts) {
+            shardIds.add(shard.shardId());
+        }
+        getSearchListener().onStart(shardIds);
     }
 
     protected void executePhaseOnShard(final SearchShardIterator shardIt, final ShardRouting shard,
-                                       final SearchActionListener<SearchPhaseResult> listener) {
+                                       final ShardActionListener<SearchPhaseResult> listener) {
+        SearchActionListener searchListener = getSearchListener();
+        final ShardActionListener<SearchPhaseResult> newListener = new ShardActionListener<>(listener.searchShardTarget, listener.requestIndex) {
+            @Override
+            protected void innerOnResponse(SearchPhaseResult response) {
+                QuerySearchResult queryResult = response.queryResult();
+                searchListener.onQueryResult(queryResult);
+                listener.innerOnResponse(response);
+            }
+
+            @Override
+            public void onFailure(Exception exc) {
+                searchListener.onQueryFailure(listener.requestIndex, exc);
+                listener.onFailure(exc);
+            }
+        };
         getSearchTransport().sendExecuteQuery(getConnection(shardIt.getClusterAlias(), shard.currentNodeId()),
-            buildShardSearchRequest(shardIt), getTask(), listener);
+            buildShardSearchRequest(shardIt), getTask(), newListener);
     }
 
     @Override

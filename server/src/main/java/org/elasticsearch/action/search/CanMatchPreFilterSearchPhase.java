@@ -51,7 +51,7 @@ final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncAction<Searc
                                         Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
                                         Map<String, Set<String>> indexRoutings,
                                         Executor executor, SearchRequest request,
-                                        ActionListener<SearchResponse> listener, GroupShardsIterator<SearchShardIterator> shardsIts,
+                                        SearchActionListener listener, GroupShardsIterator<SearchShardIterator> shardsIts,
                                         TransportSearchAction.SearchTimeProvider timeProvider, long clusterStateVersion,
                                         SearchTask task, Function<GroupShardsIterator<SearchShardIterator>, SearchPhase> phaseFactory,
                                         SearchResponse.Clusters clusters) {
@@ -65,7 +65,7 @@ final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncAction<Searc
 
     @Override
     protected void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard,
-                                       SearchActionListener<SearchService.CanMatchResponse> listener) {
+                                       ShardActionListener<SearchService.CanMatchResponse> listener) {
         getSearchTransport().sendCanMatch(getConnection(shardIt.getClusterAlias(), shard.currentNodeId()),
             buildShardSearchRequest(shardIt), getTask(), listener);
     }

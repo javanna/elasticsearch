@@ -67,7 +67,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
     private final Logger logger;
     private final SearchTransportService searchTransportService;
     private final Executor executor;
-    private final ActionListener<SearchResponse> listener;
+    private final SearchActionListener listener;
     private final SearchRequest request;
     /**
      * Used by subclasses to resolve node ids to DiscoveryNodes.
@@ -99,7 +99,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
                                         Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
                                         Map<String, Set<String>> indexRoutings,
                                         Executor executor, SearchRequest request,
-                                        ActionListener<SearchResponse> listener, GroupShardsIterator<SearchShardIterator> shardsIts,
+                                        SearchActionListener listener, GroupShardsIterator<SearchShardIterator> shardsIts,
                                         SearchTimeProvider timeProvider, long clusterStateVersion,
                                         SearchTask task, SearchPhaseResults<Result> resultConsumer, int maxConcurrentRequestsPerNode,
                                         SearchResponse.Clusters clusters) {
@@ -144,6 +144,11 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
      */
     long buildTookInMillis() {
         return timeProvider.buildTookInMillis();
+    }
+
+    @Override
+    public SearchActionListener getSearchListener() {
+        return listener;
     }
 
     /**
@@ -225,7 +230,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
                 final Thread thread = Thread.currentThread();
                 try {
                     executePhaseOnShard(shardIt, shard,
-                        new SearchActionListener<Result>(shardIt.newSearchShardTarget(shard.currentNodeId()), shardIndex) {
+                        new ShardActionListener<Result>(shardIt.newSearchShardTarget(shard.currentNodeId()), shardIndex) {
                             @Override
                             public void innerOnResponse(Result result) {
                                 try {
@@ -270,7 +275,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
      * @param shard the shard routing to send the request for
      * @param listener the listener to notify on response
      */
-    protected abstract void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard, SearchActionListener<Result> listener);
+    protected abstract void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard, ShardActionListener<Result> listener);
 
     private void fork(final Runnable runnable) {
         executor.execute(new AbstractRunnable() {

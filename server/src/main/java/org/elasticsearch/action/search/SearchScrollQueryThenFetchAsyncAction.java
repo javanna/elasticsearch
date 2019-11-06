@@ -59,7 +59,7 @@ final class SearchScrollQueryThenFetchAsyncAction extends SearchScrollAsyncActio
 
     @Override
     protected void executeInitialPhase(Transport.Connection connection, InternalScrollSearchRequest internalRequest,
-                                       SearchActionListener<ScrollQuerySearchResult> searchActionListener) {
+                                       ShardActionListener<ScrollQuerySearchResult> searchActionListener) {
         searchTransportService.sendExecuteScrollQuery(connection, internalRequest, task, searchActionListener);
     }
 
@@ -93,7 +93,7 @@ final class SearchScrollQueryThenFetchAsyncAction extends SearchScrollAsyncActio
                         assert node != null : "target node is null in secondary phase";
                         Transport.Connection connection = getConnection(searchShardTarget.getClusterAlias(), node);
                         searchTransportService.sendExecuteFetchScroll(connection, shardFetchRequest, task,
-                            new SearchActionListener<FetchSearchResult>(querySearchResult.getSearchShardTarget(), index) {
+                            new ShardActionListener<FetchSearchResult>(querySearchResult.getSearchShardTarget(), index) {
                                 @Override
                                 protected void innerOnResponse(FetchSearchResult response) {
                                     fetchResults.setOnce(response.getShardIndex(), response);

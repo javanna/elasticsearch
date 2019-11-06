@@ -134,6 +134,7 @@ final class FetchSearchPhase extends SearchPhase {
                         }
                         // in any case we count down this result since we don't talk to this shard anymore
                         counter.countDown();
+                        context.getSearchListener().onFetchResult(null);
                     } else {
                         SearchShardTarget searchShardTarget = queryResult.getSearchShardTarget();
                         Transport.Connection connection = context.getConnection(searchShardTarget.getClusterAlias(),
@@ -159,10 +160,11 @@ final class FetchSearchPhase extends SearchPhase {
                               final ShardFetchSearchRequest fetchSearchRequest, final QuerySearchResult querySearchResult,
                               final Transport.Connection connection) {
         context.getSearchTransport().sendExecuteFetch(connection, fetchSearchRequest, context.getTask(),
-            new SearchActionListener<FetchSearchResult>(shardTarget, shardIndex) {
+            new ShardActionListener<FetchSearchResult>(shardTarget, shardIndex) {
                 @Override
                 public void innerOnResponse(FetchSearchResult result) {
                     try {
+                        context.getSearchListener().onFetchResult(result);
                         counter.onResult(result);
                     } catch (Exception e) {
                         context.onPhaseFailure(FetchSearchPhase.this, "", e);
@@ -174,6 +176,7 @@ final class FetchSearchPhase extends SearchPhase {
                     try {
                         logger.debug(() -> new ParameterizedMessage("[{}] Failed to execute fetch phase", fetchSearchRequest.id()), e);
                         counter.onFailure(shardIndex, shardTarget, e);
+                        context.getSearchListener().onFetchFailure(shardIndex, e);
                     } finally {
                         // the search context might not be cleared on the node where the fetch was executed for example
                         // because the action was rejected by the thread pool. in this case we need to send a dedicated

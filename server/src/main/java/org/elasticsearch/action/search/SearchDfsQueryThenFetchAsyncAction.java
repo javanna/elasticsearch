@@ -23,10 +23,13 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.internal.AliasFilter;
 import org.elasticsearch.transport.Transport;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -40,7 +43,7 @@ final class SearchDfsQueryThenFetchAsyncAction extends AbstractSearchAsyncAction
             final BiFunction<String, String, Transport.Connection> nodeIdToConnection, final Map<String, AliasFilter> aliasFilter,
             final Map<String, Float> concreteIndexBoosts, final Map<String, Set<String>> indexRoutings,
             final SearchPhaseController searchPhaseController, final Executor executor,
-            final SearchRequest request, final ActionListener<SearchResponse> listener,
+            final SearchRequest request, final SearchActionListener listener,
             final GroupShardsIterator<SearchShardIterator> shardsIts, final TransportSearchAction.SearchTimeProvider timeProvider,
             final long clusterStateVersion, final SearchTask task, SearchResponse.Clusters clusters) {
         super("dfs", logger, searchTransportService, nodeIdToConnection, aliasFilter, concreteIndexBoosts, indexRoutings,
@@ -48,11 +51,16 @@ final class SearchDfsQueryThenFetchAsyncAction extends AbstractSearchAsyncAction
                 shardsIts, timeProvider, clusterStateVersion, task, new ArraySearchPhaseResults<>(shardsIts.size()),
                 request.getMaxConcurrentShardRequests(), clusters);
         this.searchPhaseController = searchPhaseController;
+        List<ShardId> shardIds = new ArrayList<>();
+        for (SearchShardIterator shard : shardsIts) {
+            shardIds.add(shard.shardId());
+        }
+        getSearchListener().onStart(shardIds);
     }
 
     @Override
     protected void executePhaseOnShard(final SearchShardIterator shardIt, final ShardRouting shard,
-                                       final SearchActionListener<DfsSearchResult> listener) {
+                                       final ShardActionListener<DfsSearchResult> listener) {
         getSearchTransport().sendExecuteDfs(getConnection(shardIt.getClusterAlias(), shard.currentNodeId()),
             buildShardSearchRequest(shardIt) , getTask(), listener);
     }

@@ -69,7 +69,7 @@ public class SearchScrollAsyncActionTests extends ESTestCase {
             {
                 @Override
                 protected void executeInitialPhase(Transport.Connection connection, InternalScrollSearchRequest internalRequest,
-                                                   SearchActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
+                                                   ShardActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
                 {
                     new Thread(() -> {
                         SearchAsyncActionTests.TestSearchPhaseResult testSearchPhaseResult =
@@ -160,7 +160,7 @@ public class SearchScrollAsyncActionTests extends ESTestCase {
                 request, null) {
                 @Override
                 protected void executeInitialPhase(Transport.Connection connection, InternalScrollSearchRequest internalRequest,
-                                                   SearchActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
+                                                   ShardActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
                 {
                     new Thread(() -> {
                         SearchAsyncActionTests.TestSearchPhaseResult testSearchPhaseResult =
@@ -228,7 +228,7 @@ public class SearchScrollAsyncActionTests extends ESTestCase {
             {
                 @Override
                 protected void executeInitialPhase(Transport.Connection connection, InternalScrollSearchRequest internalRequest,
-                                                   SearchActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
+                                                   ShardActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
                 {
                     try {
                         assertNotEquals("node2 is not available", "node2", connection.getNode().getId());
@@ -308,7 +308,7 @@ public class SearchScrollAsyncActionTests extends ESTestCase {
             {
                 @Override
                 protected void executeInitialPhase(Transport.Connection connection, InternalScrollSearchRequest internalRequest,
-                                                   SearchActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
+                                                   ShardActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
                 {
                     new Thread(() -> {
                         if (internalRequest.id() == 17) {
@@ -407,7 +407,7 @@ public class SearchScrollAsyncActionTests extends ESTestCase {
                 request, null) {
                 @Override
                 protected void executeInitialPhase(Transport.Connection connection, InternalScrollSearchRequest internalRequest,
-                                                   SearchActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
+                                                   ShardActionListener<SearchAsyncActionTests.TestSearchPhaseResult> searchActionListener)
                 {
                     new Thread(() -> searchActionListener.onFailure(new IllegalArgumentException("BOOM on shard"))).start();
                 }

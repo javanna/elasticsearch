@@ -1,53 +1,51 @@
-/*
- * Licensed to Elasticsearch under one or more contributor
- * license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 package org.elasticsearch.action.search;
 
+import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.search.SearchPhaseResult;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.SearchShardTarget;
+import org.elasticsearch.search.aggregations.InternalAggregations;
+import org.elasticsearch.search.fetch.FetchSearchResult;
+import org.elasticsearch.search.query.QuerySearchResult;
 
-/**
- * An base action listener that ensures shard target and shard index is set on all responses
- * received by this listener.
- */
-abstract class SearchActionListener<T extends SearchPhaseResult> implements ActionListener<T> {
+import java.util.List;
 
-    private final int requestIndex;
-    private final SearchShardTarget searchShardTarget;
+public interface SearchActionListener extends ActionListener<SearchResponse> {
+    /**
+     *
+     *
+     * @param shards
+     */
+    void onStart(List<ShardId> shards);
 
-    protected SearchActionListener(SearchShardTarget searchShardTarget,
-                                   int shardIndex) {
-        assert shardIndex >= 0 : "shard index must be positive";
-        this.searchShardTarget = searchShardTarget;
-        this.requestIndex = shardIndex;
-    }
+    /**
+     *
+     * @param result
+     */
+    void onQueryResult(QuerySearchResult result);
 
-    @Override
-    public final void onResponse(T response) {
-        response.setShardIndex(requestIndex);
-        setSearchShardTarget(response);
-        innerOnResponse(response);
-    }
+    /**
+     *
+     * @param shardId
+     * @param exc
+     */
+    void onQueryFailure(int shardId, Exception exc);
 
-    protected void setSearchShardTarget(T response) { // some impls need to override this
-        response.setSearchShardTarget(searchShardTarget);
-    }
+    /**
+     *
+     * @param result
+     */
+    void onFetchResult(FetchSearchResult result);
 
-    protected abstract void innerOnResponse(T response);
+    /**
+     *
+     * @param shardId
+     * @param exc
+     */
+    void onFetchFailure(int shardId, Exception exc);
+
+    /**
+     *
+     */
+    void onPartialReduce(List<SearchShardTarget> shards, TopDocs topDocs, InternalAggregations aggs, int reducePhase);
 }

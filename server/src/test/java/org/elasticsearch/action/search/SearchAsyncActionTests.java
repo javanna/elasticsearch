@@ -114,7 +114,7 @@ public class SearchAsyncActionTests extends ESTestCase {
 
                 @Override
                 protected void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard,
-                                                   SearchActionListener<TestSearchPhaseResult> listener) {
+                                                   ShardActionListener<TestSearchPhaseResult> listener) {
                     seenShard.computeIfAbsent(shard.shardId(), (i) -> {
                         numRequests.incrementAndGet(); // only count this once per replica
                         return Boolean.TRUE;
@@ -219,7 +219,7 @@ public class SearchAsyncActionTests extends ESTestCase {
 
                 @Override
                 protected void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard,
-                                                   SearchActionListener<TestSearchPhaseResult> listener) {
+                                                   ShardActionListener<TestSearchPhaseResult> listener) {
                     seenShard.computeIfAbsent(shard.shardId(), (i) -> {
                         numRequests.incrementAndGet(); // only count this once per shard copy
                         return Boolean.TRUE;
@@ -322,7 +322,7 @@ public class SearchAsyncActionTests extends ESTestCase {
             TestSearchResponse response = new TestSearchResponse();
 
             @Override
-            protected void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard, SearchActionListener<TestSearchPhaseResult>
+            protected void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard, ShardActionListener<TestSearchPhaseResult>
                 listener) {
                 assertTrue("shard: " + shard.shardId() + " has been queried twice", response.queried.add(shard.shardId()));
                 Transport.Connection connection = getConnection(null, shard.currentNodeId());
@@ -427,7 +427,7 @@ public class SearchAsyncActionTests extends ESTestCase {
 
                 @Override
                 protected void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard,
-                                                   SearchActionListener<TestSearchPhaseResult> listener) {
+                                                   ShardActionListener<TestSearchPhaseResult> listener) {
                     seenShard.computeIfAbsent(shard.shardId(), (i) -> {
                         numRequests.incrementAndGet(); // only count this once per shard copy
                         return Boolean.TRUE;

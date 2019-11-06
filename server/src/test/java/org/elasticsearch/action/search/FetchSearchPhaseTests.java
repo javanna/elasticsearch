@@ -109,7 +109,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         mockSearchPhaseContext.searchTransport = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteFetch(Transport.Connection connection, ShardFetchSearchRequest request, SearchTask task,
-                                         SearchActionListener<FetchSearchResult> listener) {
+                                         ShardActionListener<FetchSearchResult> listener) {
                 FetchSearchResult fetchResult = new FetchSearchResult();
                 if (request.id() == 321) {
                     fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)},
@@ -167,7 +167,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         mockSearchPhaseContext.searchTransport = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteFetch(Transport.Connection connection, ShardFetchSearchRequest request, SearchTask task,
-                                         SearchActionListener<FetchSearchResult> listener) {
+                                         ShardActionListener<FetchSearchResult> listener) {
                 if (request.id() == 321) {
                     FetchSearchResult fetchResult = new FetchSearchResult();
                     fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)},
@@ -221,7 +221,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         mockSearchPhaseContext.searchTransport = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteFetch(Transport.Connection connection, ShardFetchSearchRequest request, SearchTask task,
-                                         SearchActionListener<FetchSearchResult> listener) {
+                                         ShardActionListener<FetchSearchResult> listener) {
                 new Thread(() -> {
                     FetchSearchResult fetchResult = new FetchSearchResult();
                     fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit((int) (request.id()+1))},
@@ -285,7 +285,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         mockSearchPhaseContext.searchTransport = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteFetch(Transport.Connection connection, ShardFetchSearchRequest request, SearchTask task,
-                                         SearchActionListener<FetchSearchResult> listener) {
+                                         ShardActionListener<FetchSearchResult> listener) {
                 FetchSearchResult fetchResult = new FetchSearchResult();
                 if (numFetches.incrementAndGet() == 1) {
                     throw new RuntimeException("BOOM");
@@ -341,7 +341,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         mockSearchPhaseContext.searchTransport = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteFetch(Transport.Connection connection, ShardFetchSearchRequest request, SearchTask task,
-                                         SearchActionListener<FetchSearchResult> listener) {
+                                         ShardActionListener<FetchSearchResult> listener) {
                 FetchSearchResult fetchResult = new FetchSearchResult();
                 if (request.id() == 321) {
                     fetchResult.hits(new SearchHits(new SearchHit[] {new SearchHit(84)},

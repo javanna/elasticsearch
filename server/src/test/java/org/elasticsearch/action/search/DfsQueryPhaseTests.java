@@ -64,7 +64,7 @@ public class DfsQueryPhaseTests extends ESTestCase {
         SearchTransportService searchTransportService = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteQuery(Transport.Connection connection, QuerySearchRequest request, SearchTask task,
-                                         SearchActionListener<QuerySearchResult> listener) {
+                                         ShardActionListener<QuerySearchResult> listener) {
                 if (request.id() == 1) {
                     QuerySearchResult queryResult = new QuerySearchResult(123, new SearchShardTarget("node1", new ShardId("test", "na", 0),
                         null, OriginalIndices.NONE));
@@ -124,7 +124,7 @@ public class DfsQueryPhaseTests extends ESTestCase {
         SearchTransportService searchTransportService = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteQuery(Transport.Connection connection, QuerySearchRequest request, SearchTask task,
-                                         SearchActionListener<QuerySearchResult> listener) {
+                                         ShardActionListener<QuerySearchResult> listener) {
                 if (request.id() == 1) {
                     QuerySearchResult queryResult = new QuerySearchResult(123, new SearchShardTarget("node1", new ShardId("test", "na", 0),
                         null, OriginalIndices.NONE));
@@ -181,7 +181,7 @@ public class DfsQueryPhaseTests extends ESTestCase {
         SearchTransportService searchTransportService = new SearchTransportService(null, null) {
             @Override
             public void sendExecuteQuery(Transport.Connection connection, QuerySearchRequest request, SearchTask task,
-                                         SearchActionListener<QuerySearchResult> listener) {
+                                         ShardActionListener<QuerySearchResult> listener) {
                 if (request.id() == 1) {
                     QuerySearchResult queryResult = new QuerySearchResult(123, new SearchShardTarget("node1", new ShardId("test", "na", 0),
                         null, OriginalIndices.NONE));

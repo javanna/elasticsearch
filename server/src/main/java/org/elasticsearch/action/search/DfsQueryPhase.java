@@ -52,7 +52,7 @@ final class DfsQueryPhase extends SearchPhase {
                   Function<ArraySearchPhaseResults<SearchPhaseResult>, SearchPhase> nextPhaseFactory,
                   SearchPhaseContext context) {
         super("dfs_query");
-        this.queryResult = searchPhaseController.newSearchPhaseResults(context.getRequest(), context.getNumShards());
+        this.queryResult = searchPhaseController.newSearchPhaseResults(context.getRequest(), context.getSearchListener(), context.getNumShards());
         this.searchPhaseController = searchPhaseController;
         this.dfsSearchResults = dfsSearchResults;
         this.nextPhaseFactory = nextPhaseFactory;
@@ -76,11 +76,12 @@ final class DfsQueryPhase extends SearchPhase {
                     dfsResult.getRequestId(), dfs);
             final int shardIndex = dfsResult.getShardIndex();
             searchTransportService.sendExecuteQuery(connection, querySearchRequest, context.getTask(),
-                new SearchActionListener<QuerySearchResult>(searchShardTarget, shardIndex) {
+                new ShardActionListener<QuerySearchResult>(searchShardTarget, shardIndex) {
 
                     @Override
                     protected void innerOnResponse(QuerySearchResult response) {
                         try {
+                            context.getSearchListener().onQueryResult(response);
                             counter.onResult(response);
                         } catch (Exception e) {
                             context.onPhaseFailure(DfsQueryPhase.this, "", e);
@@ -93,6 +94,7 @@ final class DfsQueryPhase extends SearchPhase {
                             context.getLogger().debug(() -> new ParameterizedMessage("[{}] Failed to execute query phase",
                                 querySearchRequest.id()), exception);
                             counter.onFailure(shardIndex, searchShardTarget, exception);
+                            context.getSearchListener().onQueryFailure(dfsResult.getShardIndex(), exception);
                         } finally {
                             // the query might not have been executed at all (for example because thread pool rejected
                             // execution) and the search context that was created in dfs phase might not be released.

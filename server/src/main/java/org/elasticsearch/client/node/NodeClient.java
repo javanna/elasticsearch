@@ -23,6 +23,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.search.SearchAction;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
@@ -99,6 +103,19 @@ public class NodeClient extends AbstractClient {
         return taskManager.registerAndExecute("transport", transportAction(action), request,
             listener::onResponse, listener::onFailure);
     }
+
+    /**
+     * Execute an {@link ActionType} locally, returning that {@link Task} used to track it, and linking an {@link TaskListener}.
+     * Prefer this method if you need access to the task when listening for the response.
+     */
+    public Task executeSearchLocally(SearchRequest request, TaskListener<SearchResponse> listener) {
+        TransportSearchAction searchAction = (TransportSearchAction) actions.get(SearchAction.INSTANCE);
+        searchAction.execute(null, null, listener);
+        return taskManager.registerAndExecute("transport", searchAction, request,
+            listener::onResponse, listener::onFailure);
+    }
+
+
 
     /**
      * The id of the local {@link DiscoveryNode}. Useful for generating task ids from tasks returned by

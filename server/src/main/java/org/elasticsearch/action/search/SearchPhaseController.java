@@ -39,6 +39,7 @@ import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.SearchPhaseResult;
+import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.aggregations.InternalAggregation;
 import org.elasticsearch.search.aggregations.InternalAggregation.ReduceContext;
 import org.elasticsearch.search.aggregations.InternalAggregations;
@@ -564,6 +565,7 @@ public final class SearchPhaseController {
      * iff the buffer is exhausted.
      */
     static final class QueryPhaseResultConsumer extends ArraySearchPhaseResults<SearchPhaseResult> {
+        private final List<SearchShardTarget> buffers = new ArrayList<>();
         private final InternalAggregations[] aggsBuffer;
         private final TopDocs[] topDocsBuffer;
         private final boolean hasAggs;
@@ -571,6 +573,7 @@ public final class SearchPhaseController {
         private final int bufferSize;
         private int index;
         private final SearchPhaseController controller;
+        private final SearchActionListener listener;
         private int numReducePhases = 0;
         private final TopDocsStats topDocsStats;
         private final boolean performFinalReduce;
@@ -582,7 +585,7 @@ public final class SearchPhaseController {
          * @param bufferSize the size of the reduce buffer. if the buffer size is smaller than the number of expected results
          *                   the buffer is used to incrementally reduce aggregation results before all shards responded.
          */
-        private QueryPhaseResultConsumer(SearchPhaseController controller, int expectedResultSize, int bufferSize,
+        private QueryPhaseResultConsumer(SearchPhaseController controller, SearchActionListener listener, int expectedResultSize, int bufferSize,
                                          boolean hasTopDocs, boolean hasAggs, int trackTotalHitsUpTo, boolean performFinalReduce) {
             super(expectedResultSize);
             if (expectedResultSize != 1 && bufferSize < 2) {
@@ -595,6 +598,7 @@ public final class SearchPhaseController {
                 throw new IllegalArgumentException("either aggs or top docs must be present");
             }
             this.controller = controller;
+            this.listener = listener;
             // no need to buffer anything if we have less expected results. in this case we don't consume any results ahead of time.
             this.aggsBuffer = new InternalAggregations[hasAggs ? bufferSize : 0];
             this.topDocsBuffer = new TopDocs[hasTopDocs ? bufferSize : 0];
@@ -629,6 +633,8 @@ public final class SearchPhaseController {
                 }
                 numReducePhases++;
                 index = 1;
+                listener.onPartialReduce(buffers, topDocsBuffer[0], aggsBuffer[0], numReducePhases);
+
             }
             final int i = index++;
             if (hasAggs) {
@@ -640,6 +646,7 @@ public final class SearchPhaseController {
                 setShardIndex(topDocs.topDocs, querySearchResult.getShardIndex());
                 topDocsBuffer[i] = topDocs.topDocs;
             }
+            buffers.add(querySearchResult.getSearchShardTarget());
         }
 
         private synchronized List<InternalAggregations> getRemainingAggs() {
@@ -678,7 +685,7 @@ public final class SearchPhaseController {
     /**
      * Returns a new ArraySearchPhaseResults instance. This might return an instance that reduces search responses incrementally.
      */
-    ArraySearchPhaseResults<SearchPhaseResult> newSearchPhaseResults(SearchRequest request, int numShards) {
+    ArraySearchPhaseResults<SearchPhaseResult> newSearchPhaseResults(SearchRequest request, SearchActionListener listener, int numShards) {
         SearchSourceBuilder source = request.source();
         boolean isScrollRequest = request.scroll() != null;
         final boolean hasAggs = source != null && source.aggregations() != null;
@@ -688,7 +695,7 @@ public final class SearchPhaseController {
             // no incremental reduce if scroll is used - we only hit a single shard or sometimes more...
             if (request.getBatchedReduceSize() < numShards) {
                 // only use this if there are aggs and if there are more shards than we should reduce at once
-                return new QueryPhaseResultConsumer(this, numShards, request.getBatchedReduceSize(), hasTopDocs, hasAggs,
+                return new QueryPhaseResultConsumer(this, listener, numShards, request.getBatchedReduceSize(), hasTopDocs, hasAggs,
                     trackTotalHitsUpTo, request.isFinalReduce());
             }
         }

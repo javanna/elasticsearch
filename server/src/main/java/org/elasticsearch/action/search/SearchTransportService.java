@@ -79,11 +79,11 @@ public class SearchTransportService {
     public static final String QUERY_CAN_MATCH_NAME = "indices:data/read/search[can_match]";
 
     private final TransportService transportService;
-    private final BiFunction<Transport.Connection, SearchActionListener, ActionListener> responseWrapper;
+    private final BiFunction<Transport.Connection, ShardActionListener, ActionListener> responseWrapper;
     private final Map<String, Long> clientConnections = ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     public SearchTransportService(TransportService transportService,
-                                  BiFunction<Transport.Connection, SearchActionListener, ActionListener> responseWrapper) {
+                                  BiFunction<Transport.Connection, ShardActionListener, ActionListener> responseWrapper) {
         this.transportService = transportService;
         this.responseWrapper = responseWrapper;
     }
@@ -120,13 +120,13 @@ public class SearchTransportService {
     }
 
     public void sendExecuteDfs(Transport.Connection connection, final ShardSearchRequest request, SearchTask task,
-                               final SearchActionListener<DfsSearchResult> listener) {
+                               final ShardActionListener<DfsSearchResult> listener) {
         transportService.sendChildRequest(connection, DFS_ACTION_NAME, request, task,
                 new ConnectionCountingHandler<>(listener, DfsSearchResult::new, clientConnections, connection.getNode().getId()));
     }
 
     public void sendExecuteQuery(Transport.Connection connection, final ShardSearchRequest request, SearchTask task,
-                                 final SearchActionListener<SearchPhaseResult> listener) {
+                                 final ShardActionListener<SearchPhaseResult> listener) {
         // we optimize this and expect a QueryFetchSearchResult if we only have a single shard in the search request
         // this used to be the QUERY_AND_FETCH which doesn't exist anymore.
         final boolean fetchDocuments = request.numberOfShards() == 1;
@@ -138,36 +138,36 @@ public class SearchTransportService {
     }
 
     public void sendExecuteQuery(Transport.Connection connection, final QuerySearchRequest request, SearchTask task,
-                                 final SearchActionListener<QuerySearchResult> listener) {
+                                 final ShardActionListener<QuerySearchResult> listener) {
         transportService.sendChildRequest(connection, QUERY_ID_ACTION_NAME, request, task,
                 new ConnectionCountingHandler<>(listener, QuerySearchResult::new, clientConnections, connection.getNode().getId()));
     }
 
     public void sendExecuteScrollQuery(Transport.Connection connection, final InternalScrollSearchRequest request, SearchTask task,
-                                       final SearchActionListener<ScrollQuerySearchResult> listener) {
+                                       final ShardActionListener<ScrollQuerySearchResult> listener) {
         transportService.sendChildRequest(connection, QUERY_SCROLL_ACTION_NAME, request, task,
                 new ConnectionCountingHandler<>(listener, ScrollQuerySearchResult::new, clientConnections, connection.getNode().getId()));
     }
 
     public void sendExecuteScrollFetch(Transport.Connection connection, final InternalScrollSearchRequest request, SearchTask task,
-                                       final SearchActionListener<ScrollQueryFetchSearchResult> listener) {
+                                       final ShardActionListener<ScrollQueryFetchSearchResult> listener) {
         transportService.sendChildRequest(connection, QUERY_FETCH_SCROLL_ACTION_NAME, request, task,
                 new ConnectionCountingHandler<>(listener, ScrollQueryFetchSearchResult::new, clientConnections,
                     connection.getNode().getId()));
     }
 
     public void sendExecuteFetch(Transport.Connection connection, final ShardFetchSearchRequest request, SearchTask task,
-                                 final SearchActionListener<FetchSearchResult> listener) {
+                                 final ShardActionListener<FetchSearchResult> listener) {
         sendExecuteFetch(connection, FETCH_ID_ACTION_NAME, request, task, listener);
     }
 
     public void sendExecuteFetchScroll(Transport.Connection connection, final ShardFetchRequest request, SearchTask task,
-                                       final SearchActionListener<FetchSearchResult> listener) {
+                                       final ShardActionListener<FetchSearchResult> listener) {
         sendExecuteFetch(connection, FETCH_ID_SCROLL_ACTION_NAME, request, task, listener);
     }
 
     private void sendExecuteFetch(Transport.Connection connection, String action, final ShardFetchRequest request, SearchTask task,
-                                  final SearchActionListener<FetchSearchResult> listener) {
+                                  final ShardActionListener<FetchSearchResult> listener) {
         transportService.sendChildRequest(connection, action, request, task,
                 new ConnectionCountingHandler<>(listener, FetchSearchResult::new, clientConnections, connection.getNode().getId()));
     }
