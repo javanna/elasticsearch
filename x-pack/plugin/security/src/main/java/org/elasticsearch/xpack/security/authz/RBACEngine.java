@@ -261,6 +261,9 @@ public class RBACEngine implements AuthorizationEngine {
                     // information such as the index and the incoming address of the request
                     listener.onResponse(new IndexAuthorizationResult(true, IndicesAccessControl.ALLOW_NO_INDICES));
                 }
+            } else if (action.equals("indices:data/read/xpack/get/search")) {
+                //TODO remove this special case and define the right category for get background search action
+                listener.onResponse(new IndexAuthorizationResult(true, IndicesAccessControl.ALLOW_ALL));
             } else {
                 assert false :
                     "only scroll related requests are known indices api that don't support retrieving the indices they relate to";

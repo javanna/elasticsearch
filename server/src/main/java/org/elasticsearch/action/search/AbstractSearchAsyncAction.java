@@ -24,7 +24,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.search.TransportSearchAction.SearchTimeProvider;
@@ -67,7 +66,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
     private final Logger logger;
     private final SearchTransportService searchTransportService;
     private final Executor executor;
-    private final SearchActionListener listener;
+    private final SearchProgressActionListener listener;
     private final SearchRequest request;
     /**
      * Used by subclasses to resolve node ids to DiscoveryNodes.
@@ -95,14 +94,14 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
     private final boolean throttleConcurrentRequests;
 
     AbstractSearchAsyncAction(String name, Logger logger, SearchTransportService searchTransportService,
-                                        BiFunction<String, String, Transport.Connection> nodeIdToConnection,
-                                        Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
-                                        Map<String, Set<String>> indexRoutings,
-                                        Executor executor, SearchRequest request,
-                                        SearchActionListener listener, GroupShardsIterator<SearchShardIterator> shardsIts,
-                                        SearchTimeProvider timeProvider, long clusterStateVersion,
-                                        SearchTask task, SearchPhaseResults<Result> resultConsumer, int maxConcurrentRequestsPerNode,
-                                        SearchResponse.Clusters clusters) {
+                              BiFunction<String, String, Transport.Connection> nodeIdToConnection,
+                              Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
+                              Map<String, Set<String>> indexRoutings,
+                              Executor executor, SearchRequest request,
+                              SearchProgressActionListener listener, GroupShardsIterator<SearchShardIterator> shardsIts,
+                              SearchTimeProvider timeProvider, long clusterStateVersion,
+                              SearchTask task, SearchPhaseResults<Result> resultConsumer, int maxConcurrentRequestsPerNode,
+                              SearchResponse.Clusters clusters) {
         super(name);
         final List<SearchShardIterator> toSkipIterators = new ArrayList<>();
         final List<SearchShardIterator> iterators = new ArrayList<>();
@@ -147,7 +146,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
     }
 
     @Override
-    public SearchActionListener getSearchListener() {
+    public SearchProgressListener getSearchListener() {
         return listener;
     }
 

@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.search;
 
-import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsGroup;
@@ -48,17 +47,14 @@ import org.elasticsearch.index.query.Rewriteable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.SearchPhaseResult;
 import org.elasticsearch.search.SearchService;
-import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.aggregations.InternalAggregation;
 import org.elasticsearch.search.aggregations.InternalAggregations;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.internal.AliasFilter;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.profile.ProfileShardResult;
 import org.elasticsearch.search.profile.SearchProfileShardResults;
-import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterAware;
@@ -198,50 +194,9 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
 
     @Override
     protected void doExecute(Task task, SearchRequest searchRequest, ActionListener<SearchResponse> listener) {
-        final SearchActionListener searchListener;
-        if (listener instanceof SearchActionListener) {
-            searchListener = (SearchActionListener) listener;
-        } else {
-            searchListener = new SearchActionListener() {
-                @Override
-                public void onStart(List<SearchShardTarget> shards) {
+        SearchProgressListener searchProgressListener = searchRequest.getSearchProgressListener();
+        SearchProgressActionListener searchProgressActionListener = new SearchProgressActionListener(listener, searchProgressListener);
 
-                }
-
-                @Override
-                public void onQueryResult(QuerySearchResult result) {
-
-                }
-
-                @Override
-                public void onQueryFailure(int shardId, Exception exc) {
-
-                }
-
-                @Override
-                public void onFetchResult(FetchSearchResult result) {
-
-                }
-
-                @Override
-                public void onFetchFailure(int shardId, Exception exc) {
-
-                }
-
-                @Override
-                public void onPartialReduce(List<SearchShardTarget> shards, TopDocs topDocs, InternalAggregations aggs, int reducePhase) {}
-
-                @Override
-                public void onResponse(SearchResponse searchResponse) {
-                    listener.onResponse(searchResponse);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e);
-                }
-            };
-        }
         final long relativeStartNanos = System.nanoTime();
         final SearchTimeProvider timeProvider =
             new SearchTimeProvider(searchRequest.getOrCreateAbsoluteStartMillis(), relativeStartNanos, System::nanoTime);
@@ -256,12 +211,13 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
                 searchRequest.indices());
             OriginalIndices localIndices = remoteClusterIndices.remove(RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY);
             if (remoteClusterIndices.isEmpty()) {
-                executeLocalSearch(task, timeProvider, searchRequest, localIndices, clusterState, searchListener);
+                executeLocalSearch(task, timeProvider, searchRequest, localIndices, clusterState, searchProgressActionListener);
             } else {
                 if (shouldMinimizeRoundtrips(searchRequest)) {
-                    ccsRemoteReduce(searchRequest, localIndices, remoteClusterIndices, timeProvider, searchService::createReduceContext,
+                    //TODO fix this, it does not compile, not sure if these changes are related.
+                    /*ccsRemoteReduce(searchRequest, localIndices, remoteClusterIndices, timeProvider, searchService::createReduceContext,
                         remoteClusterService, threadPool, listener,
-                        (r, l) -> executeLocalSearch(task, timeProvider, r, localIndices, clusterState, l));
+                        (r, l) -> executeLocalSearch(task, timeProvider, r, localIndices, clusterState, l));*/
                 } else {
                     AtomicInteger skippedClusters = new AtomicInteger(0);
                     collectSearchShards(searchRequest.indicesOptions(), searchRequest.preference(), searchRequest.routing(),
@@ -276,13 +232,13 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
                                 int totalClusters = remoteClusterIndices.size() + localClusters;
                                 int successfulClusters = searchShardsResponses.size() + localClusters;
                                 executeSearch((SearchTask) task, timeProvider, searchRequest, localIndices,
-                                    remoteShardIterators, clusterNodeLookup, clusterState, remoteAliasFilters, searchListener,
+                                    remoteShardIterators, clusterNodeLookup, clusterState, remoteAliasFilters, searchProgressActionListener,
                                     new SearchResponse.Clusters(totalClusters, successfulClusters, skippedClusters.get()));
                             },
-                            listener::onFailure));
+                            searchProgressActionListener::onFailure));
                 }
             }
-        }, listener::onFailure);
+        }, searchProgressActionListener::onFailure);
         if (searchRequest.source() == null) {
             rewriteListener.onResponse(searchRequest.source());
         } else {
@@ -308,7 +264,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
 
     static void ccsRemoteReduce(SearchRequest searchRequest, OriginalIndices localIndices, Map<String, OriginalIndices> remoteIndices,
                                 SearchTimeProvider timeProvider, Function<Boolean, InternalAggregation.ReduceContext> reduceContext,
-                                RemoteClusterService remoteClusterService, ThreadPool threadPool, SearchActionListener listener,
+                                RemoteClusterService remoteClusterService, ThreadPool threadPool, SearchProgressActionListener listener,
                                 BiConsumer<SearchRequest, ActionListener<SearchResponse>> localSearchConsumer) {
 
         if (localIndices == null && remoteIndices.size() == 1) {
@@ -443,7 +399,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
     }
 
     private void executeLocalSearch(Task task, SearchTimeProvider timeProvider, SearchRequest searchRequest, OriginalIndices localIndices,
-                                    ClusterState clusterState, SearchActionListener listener) {
+                                    ClusterState clusterState, SearchProgressActionListener listener) {
         executeSearch((SearchTask)task, timeProvider, searchRequest, localIndices, Collections.emptyList(),
             (clusterName, nodeId) -> null, clusterState, Collections.emptyMap(), listener, SearchResponse.Clusters.EMPTY);
     }
@@ -508,7 +464,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
     private void executeSearch(SearchTask task, SearchTimeProvider timeProvider, SearchRequest searchRequest,
                                OriginalIndices localIndices, List<SearchShardIterator> remoteShardIterators,
                                BiFunction<String, String, DiscoveryNode> remoteConnections, ClusterState clusterState,
-                               Map<String, AliasFilter> remoteAliasMap, SearchActionListener listener,
+                               Map<String, AliasFilter> remoteAliasMap, SearchProgressActionListener listener,
                                SearchResponse.Clusters clusters) {
 
         clusterState.blocks().globalBlockedRaiseException(ClusterBlockLevel.READ);
@@ -611,7 +567,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
                                                         Map<String, AliasFilter> aliasFilter,
                                                         Map<String, Float> concreteIndexBoosts,
                                                         Map<String, Set<String>> indexRoutings,
-                                                        SearchActionListener listener,
+                                                        SearchProgressActionListener listener,
                                                         boolean preFilter,
                                                         SearchResponse.Clusters clusters) {
         Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);

@@ -118,5 +118,5 @@ interface SearchPhaseContext extends Executor {
      */
     void executeNextPhase(SearchPhase currentPhase, SearchPhase nextPhase);
 
-    SearchActionListener getSearchListener();
+    SearchProgressListener getSearchListener();
 }

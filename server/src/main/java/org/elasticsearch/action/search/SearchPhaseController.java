@@ -573,7 +573,7 @@ public final class SearchPhaseController {
         private final int bufferSize;
         private int index;
         private final SearchPhaseController controller;
-        private final SearchActionListener listener;
+        private final SearchProgressListener listener;
         private int numReducePhases = 0;
         private final TopDocsStats topDocsStats;
         private final boolean performFinalReduce;
@@ -585,7 +585,7 @@ public final class SearchPhaseController {
          * @param bufferSize the size of the reduce buffer. if the buffer size is smaller than the number of expected results
          *                   the buffer is used to incrementally reduce aggregation results before all shards responded.
          */
-        private QueryPhaseResultConsumer(SearchPhaseController controller, SearchActionListener listener, int expectedResultSize, int bufferSize,
+        private QueryPhaseResultConsumer(SearchPhaseController controller, SearchProgressListener listener, int expectedResultSize, int bufferSize,
                                          boolean hasTopDocs, boolean hasAggs, int trackTotalHitsUpTo, boolean performFinalReduce) {
             super(expectedResultSize);
             if (expectedResultSize != 1 && bufferSize < 2) {
@@ -685,7 +685,7 @@ public final class SearchPhaseController {
     /**
      * Returns a new ArraySearchPhaseResults instance. This might return an instance that reduces search responses incrementally.
      */
-    ArraySearchPhaseResults<SearchPhaseResult> newSearchPhaseResults(SearchRequest request, SearchActionListener listener, int numShards) {
+    ArraySearchPhaseResults<SearchPhaseResult> newSearchPhaseResults(SearchRequest request, SearchProgressListener listener, int numShards) {
         SearchSourceBuilder source = request.source();
         boolean isScrollRequest = request.scroll() != null;
         final boolean hasAggs = source != null && source.aggregations() != null;

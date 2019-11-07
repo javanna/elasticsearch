@@ -27,6 +27,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -176,6 +177,10 @@ public class Task {
      */
     public String getHeader(String header) {
         return headers.get(header);
+    }
+
+    public Map<String, String> getHeaders() {
+        return Collections.unmodifiableMap(headers);
     }
 
     public TaskResult result(DiscoveryNode node, Exception error) throws IOException {
