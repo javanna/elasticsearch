@@ -339,7 +339,8 @@ public class SearchPhaseControllerTests extends ESTestCase {
         SearchRequest request = randomSearchRequest();
         request.source(new SearchSourceBuilder().aggregation(AggregationBuilders.avg("foo")));
         request.setBatchedReduceSize(bufferSize);
-        ArraySearchPhaseResults<SearchPhaseResult> consumer = searchPhaseController.newSearchPhaseResults(request, 3);
+        ArraySearchPhaseResults<SearchPhaseResult> consumer = searchPhaseController.newSearchPhaseResults(request, 3,
+            SearchProgressListener.NOOP);
         assertEquals(0, reductions.size());
         QuerySearchResult result = new QuerySearchResult(0, new SearchShardTarget("node", new ShardId("a", "b", 0),
             null, OriginalIndices.NONE));
@@ -402,7 +403,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         request.source(new SearchSourceBuilder().aggregation(AggregationBuilders.avg("foo")));
         request.setBatchedReduceSize(bufferSize);
         ArraySearchPhaseResults<SearchPhaseResult> consumer =
-            searchPhaseController.newSearchPhaseResults(request, expectedNumResults);
+            searchPhaseController.newSearchPhaseResults(request, expectedNumResults, SearchProgressListener.NOOP);
         AtomicInteger max = new AtomicInteger();
         Thread[] threads = new Thread[expectedNumResults];
         for (int i = 0; i < expectedNumResults; i++) {
@@ -449,7 +450,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         request.source(new SearchSourceBuilder().aggregation(AggregationBuilders.avg("foo")).size(0));
         request.setBatchedReduceSize(bufferSize);
         ArraySearchPhaseResults<SearchPhaseResult> consumer =
-            searchPhaseController.newSearchPhaseResults(request, expectedNumResults);
+            searchPhaseController.newSearchPhaseResults(request, expectedNumResults, SearchProgressListener.NOOP);
         AtomicInteger max = new AtomicInteger();
         for (int i = 0; i < expectedNumResults; i++) {
             int number = randomIntBetween(1, 1000);
@@ -487,7 +488,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         }
         request.setBatchedReduceSize(bufferSize);
         ArraySearchPhaseResults<SearchPhaseResult> consumer =
-            searchPhaseController.newSearchPhaseResults(request, expectedNumResults);
+            searchPhaseController.newSearchPhaseResults(request, expectedNumResults, SearchProgressListener.NOOP);
         AtomicInteger max = new AtomicInteger();
         for (int i = 0; i < expectedNumResults; i++) {
             int number = randomIntBetween(1, 1000);
@@ -540,7 +541,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
             }
             request.setBatchedReduceSize(bufferSize);
             ArraySearchPhaseResults<SearchPhaseResult> consumer
-                = searchPhaseController.newSearchPhaseResults(request, expectedNumResults);
+                = searchPhaseController.newSearchPhaseResults(request, expectedNumResults, SearchProgressListener.NOOP);
             if ((hasAggs || hasTopDocs) && expectedNumResults > bufferSize) {
                 assertThat("expectedNumResults: " + expectedNumResults + " bufferSize: " + bufferSize,
                     consumer, instanceOf(SearchPhaseController.QueryPhaseResultConsumer.class));
@@ -556,7 +557,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         request.source(new SearchSourceBuilder().size(5).from(5));
         request.setBatchedReduceSize(randomIntBetween(2, 4));
         ArraySearchPhaseResults<SearchPhaseResult> consumer =
-            searchPhaseController.newSearchPhaseResults(request, 4);
+            searchPhaseController.newSearchPhaseResults(request, 4, SearchProgressListener.NOOP);
         int score = 100;
         for (int i = 0; i < 4; i++) {
             QuerySearchResult result = new QuerySearchResult(i, new SearchShardTarget("node", new ShardId("a", "b", i),
@@ -592,7 +593,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         int size = randomIntBetween(1, 10);
         request.setBatchedReduceSize(bufferSize);
         ArraySearchPhaseResults<SearchPhaseResult> consumer =
-            searchPhaseController.newSearchPhaseResults(request, expectedNumResults);
+            searchPhaseController.newSearchPhaseResults(request, expectedNumResults, SearchProgressListener.NOOP);
         AtomicInteger max = new AtomicInteger();
         SortField[] sortFields = {new SortField("field", SortField.Type.INT, true)};
         DocValueFormat[] docValueFormats = {DocValueFormat.RAW};
@@ -628,7 +629,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         int size = randomIntBetween(5, 10);
         request.setBatchedReduceSize(bufferSize);
         ArraySearchPhaseResults<SearchPhaseResult> consumer =
-            searchPhaseController.newSearchPhaseResults(request, expectedNumResults);
+            searchPhaseController.newSearchPhaseResults(request, expectedNumResults, SearchProgressListener.NOOP);
         SortField[] sortFields = {new SortField("field", SortField.Type.STRING)};
         BytesRef a = new BytesRef("a");
         BytesRef b = new BytesRef("b");
@@ -667,7 +668,7 @@ public class SearchPhaseControllerTests extends ESTestCase {
         SearchRequest request = randomSearchRequest();
         request.setBatchedReduceSize(bufferSize);
         ArraySearchPhaseResults<SearchPhaseResult> consumer =
-            searchPhaseController.newSearchPhaseResults(request, expectedNumResults);
+            searchPhaseController.newSearchPhaseResults(request, expectedNumResults, SearchProgressListener.NOOP);
         int maxScoreTerm = -1;
         int maxScorePhrase = -1;
         int maxScoreCompletion = -1;

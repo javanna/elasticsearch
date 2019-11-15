@@ -49,17 +49,20 @@ final class FetchSearchPhase extends SearchPhase {
     private final SearchPhaseContext context;
     private final Logger logger;
     private final SearchPhaseResults<SearchPhaseResult> resultConsumer;
+    private final SearchProgressListener searchProgressListener;
 
     FetchSearchPhase(SearchPhaseResults<SearchPhaseResult> resultConsumer,
                      SearchPhaseController searchPhaseController,
-                     SearchPhaseContext context) {
+                     SearchPhaseContext context,
+                     SearchProgressListener searchProgressListener) {
         this(resultConsumer, searchPhaseController, context,
-            (response, scrollId) -> new ExpandSearchPhase(context, response, scrollId));
+            (response, scrollId) -> new ExpandSearchPhase(context, response, scrollId), searchProgressListener);
     }
 
     FetchSearchPhase(SearchPhaseResults<SearchPhaseResult> resultConsumer,
                      SearchPhaseController searchPhaseController,
-                     SearchPhaseContext context, BiFunction<InternalSearchResponse, String, SearchPhase> nextPhaseFactory) {
+                     SearchPhaseContext context, BiFunction<InternalSearchResponse, String, SearchPhase> nextPhaseFactory,
+                     SearchProgressListener searchProgressListener) {
         super("fetch");
         if (context.getNumShards() != resultConsumer.getNumShards()) {
             throw new IllegalStateException("number of shards must match the length of the query results but doesn't:"
@@ -72,6 +75,7 @@ final class FetchSearchPhase extends SearchPhase {
         this.context = context;
         this.logger = context.getLogger();
         this.resultConsumer = resultConsumer;
+        this.searchProgressListener = searchProgressListener;
     }
 
     @Override
@@ -136,6 +140,7 @@ final class FetchSearchPhase extends SearchPhase {
                         }
                         // in any case we count down this result since we don't talk to this shard anymore
                         counter.countDown();
+                        searchProgressListener.onFetchResult(null);
                     } else {
                         SearchShardTarget searchShardTarget = queryResult.getSearchShardTarget();
                         Transport.Connection connection = context.getConnection(searchShardTarget.getClusterAlias(),
@@ -166,6 +171,7 @@ final class FetchSearchPhase extends SearchPhase {
                 public void innerOnResponse(FetchSearchResult result) {
                     try {
                         counter.onResult(result);
+                        searchProgressListener.onFetchResult(result);
                     } catch (Exception e) {
                         context.onPhaseFailure(FetchSearchPhase.this, "", e);
                     }
@@ -176,6 +182,7 @@ final class FetchSearchPhase extends SearchPhase {
                     try {
                         logger.debug(() -> new ParameterizedMessage("[{}] Failed to execute fetch phase", fetchSearchRequest.id()), e);
                         counter.onFailure(shardIndex, shardTarget, e);
+                        searchProgressListener.onFetchFailure(shardIndex, e);
                     } finally {
                         // the search context might not be cleared on the node where the fetch was executed for example
                         // because the action was rejected by the thread pool. in this case we need to send a dedicated

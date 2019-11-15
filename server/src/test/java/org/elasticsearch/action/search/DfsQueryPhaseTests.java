@@ -94,7 +94,7 @@ public class DfsQueryPhaseTests extends ESTestCase {
             public void run() throws IOException {
                 responseRef.set(response.results);
             }
-        }, mockSearchPhaseContext);
+        }, mockSearchPhaseContext, SearchProgressListener.NOOP);
         assertEquals("dfs_query", phase.getName());
         phase.run();
         mockSearchPhaseContext.assertNoFailure();
@@ -148,7 +148,7 @@ public class DfsQueryPhaseTests extends ESTestCase {
                 public void run() throws IOException {
                     responseRef.set(response.results);
                 }
-            }, mockSearchPhaseContext);
+            }, mockSearchPhaseContext, SearchProgressListener.NOOP);
         assertEquals("dfs_query", phase.getName());
         phase.run();
         mockSearchPhaseContext.assertNoFailure();
@@ -205,7 +205,7 @@ public class DfsQueryPhaseTests extends ESTestCase {
                 public void run() throws IOException {
                     responseRef.set(response.results);
                 }
-            }, mockSearchPhaseContext);
+            }, mockSearchPhaseContext, SearchProgressListener.NOOP);
         assertEquals("dfs_query", phase.getName());
         expectThrows(UncheckedIOException.class, phase::run);
         assertTrue(mockSearchPhaseContext.releasedSearchContexts.isEmpty()); // phase execution will clean up on the contexts

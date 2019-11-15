@@ -28,7 +28,6 @@ import org.elasticsearch.search.query.QuerySearchRequest;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.transport.Transport;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Function;
 
@@ -50,9 +49,11 @@ final class DfsQueryPhase extends SearchPhase {
     DfsQueryPhase(AtomicArray<DfsSearchResult> dfsSearchResults,
                   SearchPhaseController searchPhaseController,
                   Function<ArraySearchPhaseResults<SearchPhaseResult>, SearchPhase> nextPhaseFactory,
-                  SearchPhaseContext context) {
+                  SearchPhaseContext context,
+                  SearchProgressListener searchProgressListener) {
         super("dfs_query");
-        this.queryResult = searchPhaseController.newSearchPhaseResults(context.getRequest(), context.getNumShards());
+        this.queryResult = searchPhaseController.newSearchPhaseResults(context.getRequest(), context.getNumShards(),
+            searchProgressListener);
         this.searchPhaseController = searchPhaseController;
         this.dfsSearchResults = dfsSearchResults;
         this.nextPhaseFactory = nextPhaseFactory;
@@ -61,7 +62,7 @@ final class DfsQueryPhase extends SearchPhase {
     }
 
     @Override
-    public void run() throws IOException {
+    public void run() {
         // TODO we can potentially also consume the actual per shard results from the initial phase here in the aggregateDfs
         // to free up memory early
         final List<DfsSearchResult> resultList = dfsSearchResults.asList();

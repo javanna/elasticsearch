@@ -39,6 +39,7 @@ import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.SearchPhaseResult;
+import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.aggregations.InternalAggregation;
 import org.elasticsearch.search.aggregations.InternalAggregation.ReduceContext;
 import org.elasticsearch.search.aggregations.InternalAggregations;
@@ -564,6 +565,7 @@ public final class SearchPhaseController {
      * iff the buffer is exhausted.
      */
     static final class QueryPhaseResultConsumer extends ArraySearchPhaseResults<SearchPhaseResult> {
+        private final List<SearchShardTarget> buffers = new ArrayList<>();
         private final InternalAggregations[] aggsBuffer;
         private final TopDocs[] topDocsBuffer;
         private final boolean hasAggs;
@@ -574,6 +576,7 @@ public final class SearchPhaseController {
         private int numReducePhases = 0;
         private final TopDocsStats topDocsStats;
         private final boolean performFinalReduce;
+        private final SearchProgressListener searchProgressListener;
 
         /**
          * Creates a new {@link QueryPhaseResultConsumer}
@@ -582,9 +585,11 @@ public final class SearchPhaseController {
          * @param bufferSize the size of the reduce buffer. if the buffer size is smaller than the number of expected results
          *                   the buffer is used to incrementally reduce aggregation results before all shards responded.
          */
-        private QueryPhaseResultConsumer(SearchPhaseController controller, int expectedResultSize, int bufferSize,
-                                         boolean hasTopDocs, boolean hasAggs, int trackTotalHitsUpTo, boolean performFinalReduce) {
+        private QueryPhaseResultConsumer(SearchPhaseController controller, SearchProgressListener searchProgressListener,
+                                         int expectedResultSize, int bufferSize, boolean hasTopDocs, boolean hasAggs,
+                                         int trackTotalHitsUpTo, boolean performFinalReduce) {
             super(expectedResultSize);
+            this.searchProgressListener = searchProgressListener;
             if (expectedResultSize != 1 && bufferSize < 2) {
                 throw new IllegalArgumentException("buffer size must be >= 2 if there is more than one expected result");
             }
@@ -610,6 +615,7 @@ public final class SearchPhaseController {
             super.consumeResult(result);
             QuerySearchResult queryResult = result.queryResult();
             consumeInternal(queryResult);
+            searchProgressListener.onQueryResult(queryResult);
         }
 
         private synchronized void consumeInternal(QuerySearchResult querySearchResult) {
@@ -629,6 +635,7 @@ public final class SearchPhaseController {
                 }
                 numReducePhases++;
                 index = 1;
+                searchProgressListener.onPartialReduce(buffers, topDocsBuffer[0], aggsBuffer[0], numReducePhases);
             }
             final int i = index++;
             if (hasAggs) {
@@ -640,6 +647,7 @@ public final class SearchPhaseController {
                 setShardIndex(topDocs.topDocs, querySearchResult.getShardIndex());
                 topDocsBuffer[i] = topDocs.topDocs;
             }
+            buffers.add(querySearchResult.getSearchShardTarget());
         }
 
         private synchronized List<InternalAggregations> getRemainingAggs() {
@@ -678,7 +686,8 @@ public final class SearchPhaseController {
     /**
      * Returns a new ArraySearchPhaseResults instance. This might return an instance that reduces search responses incrementally.
      */
-    ArraySearchPhaseResults<SearchPhaseResult> newSearchPhaseResults(SearchRequest request, int numShards) {
+    ArraySearchPhaseResults<SearchPhaseResult> newSearchPhaseResults(SearchRequest request, int numShards,
+                                                                     SearchProgressListener searchProgressListener) {
         SearchSourceBuilder source = request.source();
         boolean isScrollRequest = request.scroll() != null;
         final boolean hasAggs = source != null && source.aggregations() != null;
@@ -688,11 +697,23 @@ public final class SearchPhaseController {
             // no incremental reduce if scroll is used - we only hit a single shard or sometimes more...
             if (request.getBatchedReduceSize() < numShards) {
                 // only use this if there are aggs and if there are more shards than we should reduce at once
-                return new QueryPhaseResultConsumer(this, numShards, request.getBatchedReduceSize(), hasTopDocs, hasAggs,
-                    trackTotalHitsUpTo, request.isFinalReduce());
+                return new QueryPhaseResultConsumer(this, searchProgressListener, numShards, request.getBatchedReduceSize(), hasTopDocs,
+                    hasAggs, trackTotalHitsUpTo, request.isFinalReduce());
             }
         }
         return new ArraySearchPhaseResults<SearchPhaseResult>(numShards) {
+            @Override
+            void consumeResult(SearchPhaseResult result) {
+                super.consumeResult(result);
+                searchProgressListener.onQueryResult(result.queryResult());
+            }
+
+            @Override
+            void consumeShardFailure(int shardIndex, Exception e) {
+                super.consumeShardFailure(shardIndex, e);
+                searchProgressListener.onQueryFailure(shardIndex, e);
+            }
+
             @Override
             ReducedQueryPhase reduce() {
                 return reducedQueryPhase(results.asList(), isScrollRequest, trackTotalHitsUpTo, request.isFinalReduce());

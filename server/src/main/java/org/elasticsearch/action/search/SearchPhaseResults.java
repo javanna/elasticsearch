@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.search;
 
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.search.SearchPhaseResult;
 
@@ -56,7 +57,7 @@ abstract class SearchPhaseResults<Result extends SearchPhaseResult> {
      */
     abstract boolean hasResult(int shardIndex);
 
-    void consumeShardFailure(int shardIndex) {}
+    void consumeShardFailure(int shardIndex, @Nullable Exception e) {}
 
     AtomicArray<Result> getAtomicArray() {
         throw new UnsupportedOperationException();

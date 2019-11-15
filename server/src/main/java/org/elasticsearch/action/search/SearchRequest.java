@@ -68,6 +68,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
     private final String localClusterAlias;
     private final long absoluteStartMillis;
     private final boolean finalReduce;
+    private final transient SearchProgressListener searchProgressListener;
 
     private SearchType searchType = SearchType.DEFAULT;
 
@@ -102,6 +103,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         this.localClusterAlias = null;
         this.absoluteStartMillis = DEFAULT_ABSOLUTE_START_MILLIS;
         this.finalReduce = true;
+        this.searchProgressListener = SearchProgressListener.NOOP;
     }
 
     /**
@@ -109,7 +111,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
      */
     public SearchRequest(SearchRequest searchRequest) {
         this(searchRequest, searchRequest.indices, searchRequest.localClusterAlias,
-            searchRequest.absoluteStartMillis, searchRequest.finalReduce);
+            searchRequest.absoluteStartMillis, searchRequest.finalReduce, searchRequest.searchProgressListener);
     }
 
     /**
@@ -153,11 +155,12 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         if (absoluteStartMillis < 0) {
             throw new IllegalArgumentException("absoluteStartMillis must not be negative but was [" + absoluteStartMillis + "]");
         }
-        return new SearchRequest(originalSearchRequest, indices, clusterAlias, absoluteStartMillis, finalReduce);
+        return new SearchRequest(originalSearchRequest, indices, clusterAlias, absoluteStartMillis, finalReduce,
+            originalSearchRequest.searchProgressListener);
     }
 
     private SearchRequest(SearchRequest searchRequest, String[] indices, String localClusterAlias, long absoluteStartMillis,
-                          boolean finalReduce) {
+                          boolean finalReduce, SearchProgressListener searchProgressListener) {
         this.allowPartialSearchResults = searchRequest.allowPartialSearchResults;
         this.batchedReduceSize = searchRequest.batchedReduceSize;
         this.ccsMinimizeRoundtrips = searchRequest.ccsMinimizeRoundtrips;
@@ -174,6 +177,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
         this.localClusterAlias = localClusterAlias;
         this.absoluteStartMillis = absoluteStartMillis;
         this.finalReduce = finalReduce;
+        this.searchProgressListener = searchProgressListener;
     }
 
     /**
@@ -213,6 +217,7 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
             finalReduce = true;
         }
         ccsMinimizeRoundtrips = in.readBoolean();
+        this.searchProgressListener = SearchProgressListener.NOOP;
     }
 
     @Override
@@ -306,6 +311,13 @@ public final class SearchRequest extends ActionRequest implements IndicesRequest
      */
     long getAbsoluteStartMillis() {
         return absoluteStartMillis;
+    }
+
+    /**
+     * Returns the {@link SearchProgressListener} that should be notified of progress during the execution of this search request.
+     */
+    SearchProgressListener getSearchProgressListener() {
+        return searchProgressListener;
     }
 
     /**

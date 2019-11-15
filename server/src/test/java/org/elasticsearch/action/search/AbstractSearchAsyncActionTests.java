@@ -59,7 +59,7 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
 
     private AbstractSearchAsyncAction<SearchPhaseResult> createAction(SearchRequest request,
                                                                       ArraySearchPhaseResults<SearchPhaseResult> results,
-                                                                      ActionListener<SearchResponse> listener,
+                                                                      SearchProgressActionListener listener,
                                                                       final boolean controlled,
                                                                       final AtomicLong expected) {
         final Runnable runnable;
@@ -190,7 +190,9 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
     public void testSendSearchResponseDisallowPartialFailures() {
         SearchRequest searchRequest = new SearchRequest().allowPartialSearchResults(false);
         AtomicReference<Exception> exception = new AtomicReference<>();
-        ActionListener<SearchResponse> listener = ActionListener.wrap(response -> fail("onResponse should not be called"), exception::set);
+        SearchProgressActionListener listener = new SearchProgressActionListener(
+            ActionListener.wrap(response -> fail("onResponse should not be called"), exception::set),
+            SearchProgressListener.NOOP);
         Set<Long> requestIds = new HashSet<>();
         List<Tuple<String, String>> nodeLookups = new ArrayList<>();
         int numFailures = randomIntBetween(1, 5);
@@ -218,7 +220,9 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
     public void testOnPhaseFailure() {
         SearchRequest searchRequest = new SearchRequest().allowPartialSearchResults(false);
         AtomicReference<Exception> exception = new AtomicReference<>();
-        ActionListener<SearchResponse> listener = ActionListener.wrap(response -> fail("onResponse should not be called"), exception::set);
+        SearchProgressActionListener listener = new SearchProgressActionListener(
+            ActionListener.wrap(response -> fail("onResponse should not be called"), exception::set),
+            SearchProgressListener.NOOP);
         Set<Long> requestIds = new HashSet<>();
         List<Tuple<String, String>> nodeLookups = new ArrayList<>();
         ArraySearchPhaseResults<SearchPhaseResult> phaseResults = phaseResults(requestIds, nodeLookups, 0);
@@ -242,7 +246,9 @@ public class AbstractSearchAsyncActionTests extends ESTestCase {
     public void testShardNotAvailableWithDisallowPartialFailures() {
         SearchRequest searchRequest = new SearchRequest().allowPartialSearchResults(false);
         AtomicReference<Exception> exception = new AtomicReference<>();
-        ActionListener<SearchResponse> listener = ActionListener.wrap(response -> fail("onResponse should not be called"), exception::set);
+        SearchProgressActionListener listener = new SearchProgressActionListener(
+            ActionListener.wrap(response -> fail("onResponse should not be called"), exception::set),
+            SearchProgressListener.NOOP);
         int numShards = randomIntBetween(2, 10);
         ArraySearchPhaseResults<SearchPhaseResult> phaseResults =
             new ArraySearchPhaseResults<>(numShards);

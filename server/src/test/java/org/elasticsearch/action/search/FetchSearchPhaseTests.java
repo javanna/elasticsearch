@@ -48,7 +48,8 @@ public class FetchSearchPhaseTests extends ESTestCase {
         SearchPhaseController controller = new SearchPhaseController(
             (b) -> new InternalAggregation.ReduceContext(BigArrays.NON_RECYCLING_INSTANCE, null, b));
         MockSearchPhaseContext mockSearchPhaseContext = new MockSearchPhaseContext(1);
-        ArraySearchPhaseResults<SearchPhaseResult> results = controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 1);
+        ArraySearchPhaseResults<SearchPhaseResult> results = controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 1,
+            SearchProgressListener.NOOP);
         boolean hasHits = randomBoolean();
         final int numHits;
         if (hasHits) {
@@ -72,7 +73,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
             public void run() {
                 mockSearchPhaseContext.sendSearchResponse(searchResponse, null);
             }
-        });
+        }, SearchProgressListener.NOOP);
         assertEquals("fetch", phase.getName());
         phase.run();
         mockSearchPhaseContext.assertNoFailure();
@@ -89,7 +90,8 @@ public class FetchSearchPhaseTests extends ESTestCase {
         MockSearchPhaseContext mockSearchPhaseContext = new MockSearchPhaseContext(2);
         SearchPhaseController controller = new SearchPhaseController(
             (b) -> new InternalAggregation.ReduceContext(BigArrays.NON_RECYCLING_INSTANCE, null, b));
-        ArraySearchPhaseResults<SearchPhaseResult> results = controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2);
+        ArraySearchPhaseResults<SearchPhaseResult> results = controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2,
+            SearchProgressListener.NOOP);
         int resultSetSize = randomIntBetween(2, 10);
         QuerySearchResult queryResult = new QuerySearchResult(123, new SearchShardTarget("node1", new ShardId("test", "na", 0),
             null, OriginalIndices.NONE));
@@ -128,7 +130,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                 public void run() {
                     mockSearchPhaseContext.sendSearchResponse(searchResponse, null);
                 }
-            });
+            }, SearchProgressListener.NOOP);
         assertEquals("fetch", phase.getName());
         phase.run();
         mockSearchPhaseContext.assertNoFailure();
@@ -147,7 +149,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         SearchPhaseController controller = new SearchPhaseController(
             (b) -> new InternalAggregation.ReduceContext(BigArrays.NON_RECYCLING_INSTANCE, null, b));
         ArraySearchPhaseResults<SearchPhaseResult> results =
-            controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2);
+            controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2, SearchProgressListener.NOOP);
         int resultSetSize = randomIntBetween(2, 10);
         QuerySearchResult queryResult = new QuerySearchResult(123, new SearchShardTarget("node1", new ShardId("test", "na", 0),
             null, OriginalIndices.NONE));
@@ -185,7 +187,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                 public void run() {
                     mockSearchPhaseContext.sendSearchResponse(searchResponse, null);
                 }
-            });
+            }, SearchProgressListener.NOOP);
         assertEquals("fetch", phase.getName());
         phase.run();
         mockSearchPhaseContext.assertNoFailure();
@@ -208,7 +210,8 @@ public class FetchSearchPhaseTests extends ESTestCase {
         SearchPhaseController controller = new SearchPhaseController(
             (b) -> new InternalAggregation.ReduceContext(BigArrays.NON_RECYCLING_INSTANCE, null, b));
         MockSearchPhaseContext mockSearchPhaseContext = new MockSearchPhaseContext(numHits);
-        ArraySearchPhaseResults<SearchPhaseResult> results = controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), numHits);
+        ArraySearchPhaseResults<SearchPhaseResult> results = controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), numHits,
+            SearchProgressListener.NOOP);
         for (int i = 0; i < numHits; i++) {
             QuerySearchResult queryResult = new QuerySearchResult(i, new SearchShardTarget("node1", new ShardId("test", "na", 0),
                 null, OriginalIndices.NONE));
@@ -238,7 +241,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                     mockSearchPhaseContext.sendSearchResponse(searchResponse, null);
                     latch.countDown();
                 }
-            });
+            }, SearchProgressListener.NOOP);
         assertEquals("fetch", phase.getName());
         phase.run();
         latch.await();
@@ -265,7 +268,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         SearchPhaseController controller = new SearchPhaseController(
             (b) -> new InternalAggregation.ReduceContext(BigArrays.NON_RECYCLING_INSTANCE, null, b));
         ArraySearchPhaseResults<SearchPhaseResult> results =
-            controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2);
+            controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2, SearchProgressListener.NOOP);
         int resultSetSize = randomIntBetween(2, 10);
         QuerySearchResult queryResult = new QuerySearchResult(123, new SearchShardTarget("node1", new ShardId("test", "na", 0),
             null, OriginalIndices.NONE));
@@ -307,7 +310,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                 public void run() {
                     mockSearchPhaseContext.sendSearchResponse(searchResponse, null);
                 }
-            });
+            }, SearchProgressListener.NOOP);
         assertEquals("fetch", phase.getName());
         phase.run();
         assertNotNull(mockSearchPhaseContext.phaseFailure.get());
@@ -321,7 +324,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         SearchPhaseController controller = new SearchPhaseController(
             (b) -> new InternalAggregation.ReduceContext(BigArrays.NON_RECYCLING_INSTANCE, null, b));
         ArraySearchPhaseResults<SearchPhaseResult> results =
-            controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2);
+            controller.newSearchPhaseResults(mockSearchPhaseContext.getRequest(), 2, SearchProgressListener.NOOP);
         int resultSetSize = 1;
         QuerySearchResult queryResult = new QuerySearchResult(123, new SearchShardTarget("node1", new ShardId("test", "na", 0),
             null, OriginalIndices.NONE));
@@ -358,7 +361,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
                 public void run() {
                     mockSearchPhaseContext.sendSearchResponse(searchResponse, null);
                 }
-            });
+            }, SearchProgressListener.NOOP);
         assertEquals("fetch", phase.getName());
         phase.run();
         mockSearchPhaseContext.assertNoFailure();

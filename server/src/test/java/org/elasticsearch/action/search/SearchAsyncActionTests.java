@@ -64,8 +64,9 @@ public class SearchAsyncActionTests extends ESTestCase {
         SearchRequest request = new SearchRequest();
         request.allowPartialSearchResults(true);
         int numShards = 10;
-        ActionListener<SearchResponse> responseListener = ActionListener.wrap(response -> {},
-            (e) -> { throw new AssertionError("unexpected", e);});
+        SearchProgressActionListener responseListener = new SearchProgressActionListener(
+            ActionListener.wrap(response -> {}, e -> { throw new AssertionError("unexpected", e);}),
+            SearchProgressListener.NOOP);
         DiscoveryNode primaryNode = new DiscoveryNode("node_1", buildNewFakeTransportAddress(), Version.CURRENT);
         DiscoveryNode replicaNode = new DiscoveryNode("node_2", buildNewFakeTransportAddress(), Version.CURRENT);
 
@@ -177,8 +178,9 @@ public class SearchAsyncActionTests extends ESTestCase {
         }
         CountDownLatch latch = new CountDownLatch(numShardAttempts);
         AtomicBoolean searchPhaseDidRun = new AtomicBoolean(false);
-        ActionListener<SearchResponse> responseListener = ActionListener.wrap(response -> {},
-            (e) -> { throw new AssertionError("unexpected", e);});
+        SearchProgressActionListener responseListener = new SearchProgressActionListener(
+            ActionListener.wrap(response -> {}, e -> { throw new AssertionError("unexpected", e);}),
+            SearchProgressListener.NOOP);
         DiscoveryNode primaryNode = new DiscoveryNode("node_1", buildNewFakeTransportAddress(), Version.CURRENT);
         // for the sake of this test we place the replica on the same node. ie. this is not a mistake since we limit per node now
         DiscoveryNode replicaNode = new DiscoveryNode("node_1", buildNewFakeTransportAddress(), Version.CURRENT);
@@ -271,9 +273,10 @@ public class SearchAsyncActionTests extends ESTestCase {
         request.allowPartialSearchResults(true);
         request.setMaxConcurrentShardRequests(randomIntBetween(1, 100));
         AtomicReference<TestSearchResponse> response = new AtomicReference<>();
-        ActionListener<SearchResponse> responseListener = ActionListener.wrap(
-            searchResponse -> response.set((TestSearchResponse) searchResponse),
-            (e) -> { throw new AssertionError("unexpected", e);});
+        SearchProgressActionListener responseListener = new SearchProgressActionListener(
+            ActionListener.wrap(
+                searchResponse -> response.set((TestSearchResponse) searchResponse), e -> { throw new AssertionError("unexpected", e);}),
+            SearchProgressListener.NOOP);
         DiscoveryNode primaryNode = new DiscoveryNode("node_1", buildNewFakeTransportAddress(), Version.CURRENT);
         DiscoveryNode replicaNode = new DiscoveryNode("node_2", buildNewFakeTransportAddress(), Version.CURRENT);
 
@@ -379,8 +382,9 @@ public class SearchAsyncActionTests extends ESTestCase {
         request.setMaxConcurrentShardRequests(numConcurrent);
         int numShards = randomIntBetween(5, 10);
         AtomicBoolean searchPhaseDidRun = new AtomicBoolean(false);
-        ActionListener<SearchResponse> responseListener = ActionListener.wrap(response -> {},
-            (e) -> { throw new AssertionError("unexpected", e);} );
+        SearchProgressActionListener responseListener = new SearchProgressActionListener(
+            ActionListener.wrap(response -> { }, e -> { throw new AssertionError("unexpected", e); }),
+            SearchProgressListener.NOOP);
         DiscoveryNode primaryNode = new DiscoveryNode("node_1", buildNewFakeTransportAddress(), Version.CURRENT);
         // for the sake of this test we place the replica on the same node. ie. this is not a mistake since we limit per node now
         DiscoveryNode replicaNode = new DiscoveryNode("node_1", buildNewFakeTransportAddress(), Version.CURRENT);

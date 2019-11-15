@@ -396,7 +396,9 @@ public class TransportSearchActionTests extends ESTestCase {
             } else {
                 Tuple<SearchRequest, ActionListener<SearchResponse>> tuple = setOnce.get();
                 assertEquals("", tuple.v1().getLocalClusterAlias());
-                assertThat(tuple.v2(), instanceOf(TransportSearchAction.CCSActionListener.class));
+                assertThat(tuple.v2(), instanceOf(SearchProgressActionListener.class));
+                assertThat(((SearchProgressActionListener)tuple.v2()).getDelegate(),
+                    instanceOf(TransportSearchAction.CCSActionListener.class));
                 tuple.v2().onResponse(emptySearchResponse());
             }
             awaitLatch(latch, 5, TimeUnit.SECONDS);
@@ -443,7 +445,9 @@ public class TransportSearchActionTests extends ESTestCase {
                 } else {
                     Tuple<SearchRequest, ActionListener<SearchResponse>> tuple = setOnce.get();
                     assertEquals("", tuple.v1().getLocalClusterAlias());
-                    assertThat(tuple.v2(), instanceOf(TransportSearchAction.CCSActionListener.class));
+                    assertThat(tuple.v2(), instanceOf(SearchProgressActionListener.class));
+                    assertThat(((SearchProgressActionListener)tuple.v2()).getDelegate(),
+                        instanceOf(TransportSearchAction.CCSActionListener.class));
                     tuple.v2().onResponse(emptySearchResponse());
                 }
                 awaitLatch(latch, 5, TimeUnit.SECONDS);
@@ -469,7 +473,9 @@ public class TransportSearchActionTests extends ESTestCase {
                 } else {
                     Tuple<SearchRequest, ActionListener<SearchResponse>> tuple = setOnce.get();
                     assertEquals("", tuple.v1().getLocalClusterAlias());
-                    assertThat(tuple.v2(), instanceOf(TransportSearchAction.CCSActionListener.class));
+                    assertThat(tuple.v2(), instanceOf(SearchProgressActionListener.class));
+                    assertThat(((SearchProgressActionListener)tuple.v2()).getDelegate(),
+                        instanceOf(TransportSearchAction.CCSActionListener.class));
                     tuple.v2().onResponse(emptySearchResponse());
                 }
                 awaitLatch(latch, 5, TimeUnit.SECONDS);
@@ -516,7 +522,9 @@ public class TransportSearchActionTests extends ESTestCase {
                 } else {
                     Tuple<SearchRequest, ActionListener<SearchResponse>> tuple = setOnce.get();
                     assertEquals("", tuple.v1().getLocalClusterAlias());
-                    assertThat(tuple.v2(), instanceOf(TransportSearchAction.CCSActionListener.class));
+                    assertThat(tuple.v2(), instanceOf(SearchProgressActionListener.class));
+                    assertThat(((SearchProgressActionListener)tuple.v2()).getDelegate(),
+                        instanceOf(TransportSearchAction.CCSActionListener.class));
                     tuple.v2().onResponse(emptySearchResponse());
                 }
                 awaitLatch(latch, 5, TimeUnit.SECONDS);
@@ -545,7 +553,9 @@ public class TransportSearchActionTests extends ESTestCase {
                 } else {
                     Tuple<SearchRequest, ActionListener<SearchResponse>> tuple = setOnce.get();
                     assertEquals("", tuple.v1().getLocalClusterAlias());
-                    assertThat(tuple.v2(), instanceOf(TransportSearchAction.CCSActionListener.class));
+                    assertThat(tuple.v2(), instanceOf(SearchProgressActionListener.class));
+                    assertThat(((SearchProgressActionListener)tuple.v2()).getDelegate(),
+                        instanceOf(TransportSearchAction.CCSActionListener.class));
                     tuple.v2().onResponse(emptySearchResponse());
                 }
                 awaitLatch(latch, 5, TimeUnit.SECONDS);
@@ -585,7 +595,9 @@ public class TransportSearchActionTests extends ESTestCase {
                 } else {
                     Tuple<SearchRequest, ActionListener<SearchResponse>> tuple = setOnce.get();
                     assertEquals("", tuple.v1().getLocalClusterAlias());
-                    assertThat(tuple.v2(), instanceOf(TransportSearchAction.CCSActionListener.class));
+                    assertThat(tuple.v2(), instanceOf(SearchProgressActionListener.class));
+                    assertThat(((SearchProgressActionListener)tuple.v2()).getDelegate(),
+                        instanceOf(TransportSearchAction.CCSActionListener.class));
                     tuple.v2().onResponse(emptySearchResponse());
                 }
                 awaitLatch(latch, 5, TimeUnit.SECONDS);

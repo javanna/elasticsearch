@@ -199,8 +199,9 @@ public class CanMatchPreFilterSearchPhaseTests extends ESTestCase {
         final SearchRequest searchRequest = new SearchRequest();
         searchRequest.allowPartialSearchResults(true);
         SearchTransportService transportService = new SearchTransportService(null, null);
-        ActionListener<SearchResponse> responseListener = ActionListener.wrap(response -> {},
-            (e) -> { throw new AssertionError("unexpected", e);});
+        SearchProgressActionListener responseListener = new SearchProgressActionListener(
+            ActionListener.wrap(response -> {}, e -> { throw new AssertionError("unexpected", e);}),
+            SearchProgressListener.NOOP);
         Map<String, AliasFilter> aliasFilters = Collections.singletonMap("_na_", new AliasFilter(null, Strings.EMPTY_ARRAY));
         final CanMatchPreFilterSearchPhase canMatchPhase = new CanMatchPreFilterSearchPhase(
             logger,

@@ -20,7 +20,6 @@ package org.elasticsearch.action.search;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.FixedBitSet;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.search.SearchService;
@@ -51,7 +50,7 @@ final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncAction<Searc
                                         Map<String, AliasFilter> aliasFilter, Map<String, Float> concreteIndexBoosts,
                                         Map<String, Set<String>> indexRoutings,
                                         Executor executor, SearchRequest request,
-                                        ActionListener<SearchResponse> listener, GroupShardsIterator<SearchShardIterator> shardsIts,
+                                        SearchProgressActionListener listener, GroupShardsIterator<SearchShardIterator> shardsIts,
                                         TransportSearchAction.SearchTimeProvider timeProvider, long clusterStateVersion,
                                         SearchTask task, Function<GroupShardsIterator<SearchShardIterator>, SearchPhase> phaseFactory,
                                         SearchResponse.Clusters clusters) {
@@ -110,7 +109,7 @@ final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncAction<Searc
         @Override
         void consumeResult(SearchService.CanMatchResponse result) {
             if (result.canMatch()) {
-                consumeShardFailure(result.getShardIndex());
+                consumeShardFailure(result.getShardIndex(), null);
             }
         }
 
@@ -120,7 +119,7 @@ final class CanMatchPreFilterSearchPhase extends AbstractSearchAsyncAction<Searc
         }
 
         @Override
-        synchronized void consumeShardFailure(int shardIndex) {
+        synchronized void consumeShardFailure(int shardIndex, Exception e) {
             // we have to carry over shard failures in order to account for them in the response.
             possibleMatches.set(shardIndex);
             numPossibleMatches++;
