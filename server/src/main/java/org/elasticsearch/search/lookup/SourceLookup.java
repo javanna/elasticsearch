@@ -18,6 +18,8 @@
  */
 package org.elasticsearch.search.lookup;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.ElasticsearchParseException;
@@ -37,6 +39,8 @@ import java.util.Set;
 import static java.util.Collections.emptyMap;
 
 public class SourceLookup implements Map<String, Object> {
+
+    private static final Logger logger = LogManager.getLogger(SourceLookup.class);
 
     private LeafReader reader;
 
@@ -69,6 +73,8 @@ public class SourceLookup implements Map<String, Object> {
             return source;
         }
         try {
+            //TODO remove this log line
+            logger.warn("parsing _source for doc " + docId);
             FieldsVisitor sourceFieldVisitor = new FieldsVisitor(true);
             reader.document(docId, sourceFieldVisitor);
             BytesReference source = sourceFieldVisitor.source();
@@ -130,6 +136,15 @@ public class SourceLookup implements Map<String, Object> {
      */
     public List<Object> extractRawValues(String path) {
         return XContentMapValues.extractRawValues(path, loadSourceIfNeeded());
+    }
+
+    /**
+     * For the provided path, return its value in the source. Note that in contrast with
+     * {@link SourceLookup#extractRawValues}, array and object values can be returned.
+     */
+    //TODO this is also added as part of the field-retrieval branch
+    public Object extractValue(String path) {
+        return XContentMapValues.extractValue(path, loadSourceIfNeeded());
     }
 
     public Object filter(FetchSourceContext context) {
