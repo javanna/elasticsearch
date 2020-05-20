@@ -44,6 +44,7 @@ import org.elasticsearch.index.IndexSortConfig;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.sourceonly.SourceOnlyFieldData;
 import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
@@ -210,7 +211,15 @@ public class QueryShardContext extends QueryRewriteContext {
 
     @SuppressWarnings("unchecked")
     public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
-        return (IFD) indexFieldDataService.apply(fieldType, fullyQualifiedIndex.getName());
+        IFD ifd = (IFD) indexFieldDataService.apply(fieldType, fullyQualifiedIndex.getName());
+        //TODO this is a very effective hack to ensure that the same SourceLookup instance is shared across
+        //the different source only fielddata instances being created on the same shard in the context
+        //of the same search request. Note that it works for sorting as well as aggs.
+        if (ifd instanceof SourceOnlyFieldData) {
+            SourceOnlyFieldData sourceOnlyFieldData = (SourceOnlyFieldData) ifd;
+            sourceOnlyFieldData.setSourceLookup(lookup().source());
+        }
+        return ifd;
     }
 
     public void addNamedQuery(String name, Query query) {
@@ -292,8 +301,7 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public SearchLookup lookup() {
         if (lookup == null) {
-            lookup = new SearchLookup(getMapperService(),
-                    mappedFieldType -> indexFieldDataService.apply(mappedFieldType, fullyQualifiedIndex.getName()));
+            lookup = new SearchLookup(getMapperService(), this::getForField);
         }
         return lookup;
     }
