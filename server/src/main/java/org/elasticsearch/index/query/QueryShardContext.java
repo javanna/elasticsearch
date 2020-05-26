@@ -21,6 +21,7 @@ package org.elasticsearch.index.query;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -44,14 +45,8 @@ import org.elasticsearch.index.IndexSortConfig;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.sourceonly.SourceOnlyFieldData;
-import org.elasticsearch.index.mapper.ContentPath;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ObjectMapper;
-import org.elasticsearch.index.mapper.TextFieldMapper;
-import org.elasticsearch.index.mapper.TypeFieldMapper;
+import org.elasticsearch.index.fielddata.runtime.SourceOnlyBinaryFieldData;
+import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.query.support.NestedScope;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.script.Script;
@@ -215,9 +210,9 @@ public class QueryShardContext extends QueryRewriteContext {
         //TODO this is a very effective hack to ensure that the same SourceLookup instance is shared across
         //the different source only fielddata instances being created on the same shard in the context
         //of the same search request. Note that it works for sorting as well as aggs.
-        if (ifd instanceof SourceOnlyFieldData) {
-            SourceOnlyFieldData sourceOnlyFieldData = (SourceOnlyFieldData) ifd;
-            sourceOnlyFieldData.setSourceLookup(lookup().source());
+        if (ifd instanceof SourceOnlyBinaryFieldData) {
+            SourceOnlyBinaryFieldData sourceOnlyBinaryFieldData = (SourceOnlyBinaryFieldData) ifd;
+            sourceOnlyBinaryFieldData.setSourceLookup(lookup().source());
         }
         return ifd;
     }
