@@ -17,61 +17,46 @@
  * under the License.
  */
 
-package org.elasticsearch.index.fielddata.sourceonly;
+package org.elasticsearch.index.fielddata.runtime;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.*;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.fielddata.plain.AbstractIndexFieldData;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.MultiValueMode;
-import org.elasticsearch.search.lookup.SourceLookup;
 import org.elasticsearch.search.sort.BucketedSort;
 import org.elasticsearch.search.sort.SortOrder;
 
-//TODO add test for source being loaded once per document in the context of the same search request
-public class SourceOnlyFieldData extends AbstractIndexFieldData<SourceOnlyFieldData.SourceOnlyLeafFieldData> {
-    public static class Builder implements IndexFieldData.Builder {
-        @Override
-        public IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType,
-                                       IndexFieldDataCache cache, CircuitBreakerService breakerService,
-                                       MapperService mapperService) {
-            return new SourceOnlyFieldData(indexSettings, fieldType.name(), cache);
-        }
-    }
+import java.util.function.Function;
 
-    private final SetOnce<SourceLookup> sourceLookup = new SetOnce<>();
+public abstract class RuntimeBinaryFieldData
+    extends AbstractIndexFieldData<RuntimeBinaryFieldData.RuntimeLeafFieldData> {
 
-    private SourceOnlyFieldData(IndexSettings indexSettings, String fieldName, IndexFieldDataCache cache) {
+    protected RuntimeBinaryFieldData(IndexSettings indexSettings, String fieldName, IndexFieldDataCache cache) {
         super(indexSettings, fieldName, cache);
     }
 
-    public void setSourceLookup(SourceLookup sourceLookup) {
-        this.sourceLookup.set(sourceLookup);
-    }
-
     @Override
-    protected SourceOnlyLeafFieldData empty(int maxDoc) {
+    protected RuntimeLeafFieldData empty(int maxDoc) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public SourceOnlyLeafFieldData load(LeafReaderContext context) {
+    public RuntimeLeafFieldData load(LeafReaderContext context) {
         return loadDirect(context);
     }
 
     @Override
-    public SourceOnlyLeafFieldData loadDirect(LeafReaderContext context) {
-        return new SourceOnlyLeafFieldData(context, getFieldName(), sourceLookup.get());
+    public RuntimeLeafFieldData loadDirect(LeafReaderContext context) {
+        return new RuntimeLeafFieldData(context.reader().maxDoc(), docID -> getValue(context, docID));
     }
+
+    protected abstract BytesRef getValue(LeafReaderContext leafReaderContext, int docID);
 
     @Override
     public SortField sortField(Object missingValue, MultiValueMode sortMode,
@@ -89,15 +74,11 @@ public class SourceOnlyFieldData extends AbstractIndexFieldData<SourceOnlyFieldD
         throw new IllegalArgumentException("only supported on numeric fields");
     }
 
-    protected static class SourceOnlyLeafFieldData implements LeafFieldData {
-        private final LeafReaderContext leafReaderContext;
-        private final String field;
-        private final SourceLookup sourceLookup;
+    protected static class RuntimeLeafFieldData implements LeafFieldData {
+        private final SortedBinaryDocValues docValues;
 
-        private SourceOnlyLeafFieldData(LeafReaderContext leafReaderContext, String field, SourceLookup sourceLookup) {
-            this.leafReaderContext = leafReaderContext;
-            this.field = field;
-            this.sourceLookup = sourceLookup;
+        private RuntimeLeafFieldData(int maxDoc, Function<Integer, BytesRef> valueExtractor) {
+            this.docValues = new RuntimeBinaryDocValues(maxDoc, valueExtractor).toSortedBinaryDocValues();
         }
 
         @Override
@@ -107,7 +88,7 @@ public class SourceOnlyFieldData extends AbstractIndexFieldData<SourceOnlyFieldD
 
         @Override
         public SortedBinaryDocValues getBytesValues() {
-            return new SourceOnlyBinaryDocValues(leafReaderContext, field, sourceLookup).toSortedBinaryDocValues();
+            return docValues;
         }
 
         @Override

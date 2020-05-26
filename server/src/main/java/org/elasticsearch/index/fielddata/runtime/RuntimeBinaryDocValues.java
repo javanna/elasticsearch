@@ -17,39 +17,28 @@
  * under the License.
  */
 
-package org.elasticsearch.index.fielddata.sourceonly;
+package org.elasticsearch.index.fielddata.runtime;
 
 import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.io.IOException;
+import java.util.function.Function;
 
-public final class SourceOnlyBinaryDocValues extends BinaryDocValues {
-    private final LeafReaderContext leafReaderContext;
-    private final String field;
-    private final SourceLookup sourceLookup;
+public final class RuntimeBinaryDocValues extends BinaryDocValues {
+    private final Function<Integer, BytesRef> valueExtractor;
     private final DocIdSetIterator docIdSetIterator;
 
-    SourceOnlyBinaryDocValues(LeafReaderContext leafReaderContext, String field, SourceLookup sourceLookup) {
-        this.docIdSetIterator = DocIdSetIterator.all(leafReaderContext.reader().maxDoc());
-        this.leafReaderContext = leafReaderContext;
-        this.field = field;
-        this.sourceLookup = sourceLookup;
+    RuntimeBinaryDocValues(int maxDoc, Function<Integer, BytesRef> valueExtractor) {
+        this.docIdSetIterator = DocIdSetIterator.all(maxDoc);
+        this.valueExtractor = valueExtractor;
     }
 
     @Override
     public BytesRef binaryValue() {
-        sourceLookup.setSegmentAndDocument(leafReaderContext, docIdSetIterator.docID());
-        //TODO calling toString here may not be the best thing to do,
-        // or we should at least check what we got back from _source?
-        // once field-retrieval is implemented we can reuse the same method added to field mapper
-        // which will do the right type conversion?
-        Object obj = sourceLookup.extractValue(field);
-        return obj == null ? null : new BytesRef(obj.toString());
+        return this.valueExtractor.apply(docIdSetIterator.docID());
     }
 
     @Override
@@ -83,7 +72,7 @@ public final class SourceOnlyBinaryDocValues extends BinaryDocValues {
         return new SortedBinaryDocValues() {
             @Override
             public boolean advanceExact(int doc) throws IOException {
-                return SourceOnlyBinaryDocValues.this.advanceExact(doc);
+                return RuntimeBinaryDocValues.this.advanceExact(doc);
             }
 
             @Override

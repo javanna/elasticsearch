@@ -40,8 +40,6 @@ import static java.util.Collections.emptyMap;
 
 public class SourceLookup implements Map<String, Object> {
 
-    private static final Logger logger = LogManager.getLogger(SourceLookup.class);
-
     private LeafReader reader;
 
     private int docId = -1;
@@ -73,8 +71,6 @@ public class SourceLookup implements Map<String, Object> {
             return source;
         }
         try {
-            //TODO remove this log line
-            logger.warn("parsing _source for doc " + docId);
             FieldsVisitor sourceFieldVisitor = new FieldsVisitor(true);
             reader.document(docId, sourceFieldVisitor);
             BytesReference source = sourceFieldVisitor.source();

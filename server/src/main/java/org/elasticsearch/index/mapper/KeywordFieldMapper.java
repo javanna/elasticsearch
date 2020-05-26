@@ -26,14 +26,11 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.NormsFieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -44,8 +41,9 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.SortedSetOrdinalsIndexFieldData;
-import org.elasticsearch.index.fielddata.sourceonly.SourceOnlyFieldData;
-import org.elasticsearch.index.fielddata.sourceonly.SourceOnlyTermQuery;
+import org.elasticsearch.index.fielddata.runtime.RuntimeValueProducer;
+import org.elasticsearch.index.fielddata.runtime.SourceOnlyBinaryFieldData;
+import org.elasticsearch.index.fielddata.runtime.RuntimeTermQuery;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
 import org.elasticsearch.search.aggregations.support.ValuesSourceType;
@@ -57,7 +55,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.elasticsearch.index.mapper.TypeParsers.parseField;
-import static org.elasticsearch.search.SearchService.ALLOW_EXPENSIVE_QUERIES;
 
 /**
  * A field mapper for keywords. This mapper accepts strings and indexes them as-is.
@@ -267,9 +264,11 @@ public final class KeywordFieldMapper extends FieldMapper {
         @Override
         public Query termQuery(Object value, QueryShardContext context) {
             if (indexOptions() == IndexOptions.NONE && pointDimensionCount() == 0) {
+
                 //TODO check if source is enabled
-                return new SourceOnlyTermQuery(
-                    new Term(name(), indexedValueForSearch(value)), context.lookup().source());
+                return new RuntimeTermQuery(
+                    new Term(name(), indexedValueForSearch(value)),
+                    RuntimeValueProducer.loadBinaryFromSource(name(), context.lookup().source()));
             }
             return super.termQuery(value, context);
         }
@@ -295,7 +294,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                 return new SortedSetOrdinalsIndexFieldData.Builder();
             } else {
                 //TODO check if source is enabled
-                return new SourceOnlyFieldData.Builder();
+                return new SourceOnlyBinaryFieldData.Builder();
             }
         }
 

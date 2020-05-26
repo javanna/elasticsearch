@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.index.fielddata.sourceonly;
+package org.elasticsearch.index.fielddata.runtime;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
