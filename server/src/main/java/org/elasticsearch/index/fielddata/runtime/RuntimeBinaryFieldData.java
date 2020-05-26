@@ -83,7 +83,7 @@ public abstract class RuntimeBinaryFieldData
 
         @Override
         public ScriptDocValues<?> getScriptValues() {
-            return new ScriptDocValues.BytesRefs(getBytesValues());
+            return new ScriptDocValues.Strings(getBytesValues());
         }
 
         @Override
