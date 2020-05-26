@@ -17,10 +17,8 @@
  * under the License.
  */
 
-package org.elasticsearch.index.fielddata.sourceonly;
+package org.elasticsearch.index.fielddata.runtime;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreScorer;
@@ -33,18 +31,17 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.util.Objects;
 
-public class SourceOnlyTermQuery extends Query {
+public class RuntimeTermQuery extends Query {
 
     private final Term term;
-    private final SourceLookup sourceLookup;
+    private final RuntimeValueProducer<BytesRef> valueProducer;
 
-    public SourceOnlyTermQuery(Term term, SourceLookup sourceLookup) {
+    public RuntimeTermQuery(Term term, RuntimeValueProducer<BytesRef> valueProducer) {
         this.term = term;
-        this.sourceLookup = sourceLookup;
+        this.valueProducer = valueProducer;
     }
 
     @Override
@@ -52,8 +49,9 @@ public class SourceOnlyTermQuery extends Query {
         return new ConstantScoreWeight(this, boost) {
             @Override
             public Scorer scorer(LeafReaderContext context) {
-                SourceOnlyBinaryDocValues docValues = new SourceOnlyBinaryDocValues(
-                    context, term.field(), sourceLookup);
+                RuntimeBinaryDocValues docValues = new RuntimeBinaryDocValues(
+                    context.reader().maxDoc(),
+                    docID -> valueProducer.produce(context, docID));
                 TwoPhaseIterator twoPhaseIterator = new TwoPhaseIterator(docValues) {
                     @Override
                     public boolean matches() {
@@ -98,7 +96,7 @@ public class SourceOnlyTermQuery extends Query {
     @Override
     public boolean equals(Object other) {
         return sameClassAs(other) &&
-            term.equals(((SourceOnlyTermQuery) other).term);
+            term.equals(((RuntimeTermQuery) other).term);
     }
 
     @Override
