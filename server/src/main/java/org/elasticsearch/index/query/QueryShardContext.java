@@ -59,6 +59,7 @@ import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.transport.RemoteClusterAware;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +100,7 @@ public class QueryShardContext extends QueryRewriteContext {
     private boolean mapUnmappedFieldAsString;
     private NestedScope nestedScope;
     private final ValuesSourceRegistry valuesSourceRegistry;
+    private final Map<String, String> runtimeFields;
 
     public QueryShardContext(int shardId,
                              IndexSettings indexSettings,
@@ -120,14 +122,39 @@ public class QueryShardContext extends QueryRewriteContext {
         this(shardId, indexSettings, bigArrays, bitsetFilterCache, indexFieldDataLookup, mapperService, similarityService,
                 scriptService, xContentRegistry, namedWriteableRegistry, client, searcher, nowInMillis, indexNameMatcher,
                 new Index(RemoteClusterAware.buildRemoteIndexName(clusterAlias, indexSettings.getIndex().getName()),
-                        indexSettings.getIndex().getUUID()), allowExpensiveQueries, valuesSourceRegistry);
+                        indexSettings.getIndex().getUUID()), allowExpensiveQueries, valuesSourceRegistry,
+            Collections.emptyMap());
+    }
+
+    public QueryShardContext(int shardId,
+                             IndexSettings indexSettings,
+                             BigArrays bigArrays,
+                             BitsetFilterCache bitsetFilterCache,
+                             BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup,
+                             MapperService mapperService,
+                             SimilarityService similarityService,
+                             ScriptService scriptService,
+                             NamedXContentRegistry xContentRegistry,
+                             NamedWriteableRegistry namedWriteableRegistry,
+                             Client client,
+                             IndexSearcher searcher,
+                             LongSupplier nowInMillis,
+                             String clusterAlias,
+                             Predicate<String> indexNameMatcher,
+                             BooleanSupplier allowExpensiveQueries,
+                             ValuesSourceRegistry valuesSourceRegistry,
+                             Map<String, String> runtimeFields) {
+        this(shardId, indexSettings, bigArrays, bitsetFilterCache, indexFieldDataLookup, mapperService, similarityService,
+            scriptService, xContentRegistry, namedWriteableRegistry, client, searcher, nowInMillis, indexNameMatcher,
+            new Index(RemoteClusterAware.buildRemoteIndexName(clusterAlias, indexSettings.getIndex().getName()),
+                indexSettings.getIndex().getUUID()), allowExpensiveQueries, valuesSourceRegistry, runtimeFields);
     }
 
     public QueryShardContext(QueryShardContext source) {
         this(source.shardId, source.indexSettings, source.bigArrays, source.bitsetFilterCache, source.indexFieldDataService,
             source.mapperService, source.similarityService, source.scriptService, source.getXContentRegistry(),
             source.getWriteableRegistry(), source.client, source.searcher, source.nowInMillis, source.indexNameMatcher,
-            source.fullyQualifiedIndex, source.allowExpensiveQueries, source.valuesSourceRegistry);
+            source.fullyQualifiedIndex, source.allowExpensiveQueries, source.valuesSourceRegistry, source.runtimeFields);
     }
 
     private QueryShardContext(int shardId,
@@ -146,7 +173,8 @@ public class QueryShardContext extends QueryRewriteContext {
                               Predicate<String> indexNameMatcher,
                               Index fullyQualifiedIndex,
                               BooleanSupplier allowExpensiveQueries,
-                              ValuesSourceRegistry valuesSourceRegistry) {
+                              ValuesSourceRegistry valuesSourceRegistry,
+                              Map<String, String> runtimeFields) {
         super(xContentRegistry, namedWriteableRegistry, client, nowInMillis);
         this.shardId = shardId;
         this.similarityService = similarityService;
@@ -163,6 +191,7 @@ public class QueryShardContext extends QueryRewriteContext {
         this.fullyQualifiedIndex = fullyQualifiedIndex;
         this.allowExpensiveQueries = allowExpensiveQueries;
         this.valuesSourceRegistry = valuesSourceRegistry;
+        this.runtimeFields = runtimeFields;
     }
 
     private void reset() {
@@ -240,7 +269,24 @@ public class QueryShardContext extends QueryRewriteContext {
         if (name.equals(TypeFieldMapper.NAME)) {
             deprecationLogger.deprecatedAndMaybeLog("query_with_types", TYPES_DEPRECATION_MESSAGE);
         }
-        return failIfFieldMappingNotFound(name, mapperService.fieldType(name));
+        MappedFieldType fieldType = mapperService.fieldType(name);
+        if (fieldType == null && runtimeFields.containsKey(name)) {
+            String type = runtimeFields.get(name);
+            Mapper.TypeParser.ParserContext parserContext = mapperService.documentMapperParser().parserContext();
+            Mapper.TypeParser typeParser = parserContext.typeParser(type);
+            FieldMapper.Builder<?> builder =
+                (FieldMapper.Builder<?>)typeParser.parse(name, Collections.emptyMap(), parserContext);
+            try {
+                builder.indexOptions(IndexOptions.NONE);
+            } catch(MapperParsingException e) {
+                //this is pretty horrible but some mappers don't allow to set the index options
+            }
+            builder.docValues(false);
+            FieldMapper mapper = (FieldMapper)builder.build(
+                new Mapper.BuilderContext(indexSettings.getSettings(), new ContentPath(1)));
+            return mapper.fieldType();
+        }
+        return failIfFieldMappingNotFound(name, fieldType);
     }
 
     public ObjectMapper getObjectMapper(String name) {

@@ -30,6 +30,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.fielddata.runtime.RuntimeFieldsBuilder;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.BoostingQueryBuilder;
 import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
@@ -735,6 +736,8 @@ public class SearchModule {
     }
 
     private void registerSearchExts(List<SearchPlugin> plugins) {
+        registerSearchExt(new SearchExtSpec<>("runtime_fields",
+            RuntimeFieldsBuilder::new, RuntimeFieldsBuilder::fromXContent));
         registerFromPlugin(plugins, SearchPlugin::getSearchExts, this::registerSearchExt);
     }
 

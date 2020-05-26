@@ -39,6 +39,7 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.runtime.RuntimeFieldsBuilder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ObjectMapper;
@@ -175,8 +176,16 @@ final class DefaultSearchContext extends SearchContext {
             engineSearcher.getQueryCache(), engineSearcher.getQueryCachingPolicy(), lowLevelCancellation);
         this.relativeTimeSupplier = relativeTimeSupplier;
         this.timeout = timeout;
+        List<SearchExtBuilder> ext = request.source().ext();
+        Map<String, String> runtimeFields = null;
+        for (SearchExtBuilder searchExtBuilder : ext) {
+            if (searchExtBuilder instanceof RuntimeFieldsBuilder) {
+                assert runtimeFields == null;
+                runtimeFields = ((RuntimeFieldsBuilder)searchExtBuilder).fields();
+            }
+        }
         queryShardContext = indexService.newQueryShardContext(request.shardId().id(), searcher,
-            request::nowInMillis, shardTarget.getClusterAlias());
+            request::nowInMillis, shardTarget.getClusterAlias(), runtimeFields);
         queryBoost = request.indexBoost();
         this.lowLevelCancellation = lowLevelCancellation;
     }
