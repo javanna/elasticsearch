@@ -44,7 +44,9 @@ public final class RuntimeBinaryDocValues extends BinaryDocValues {
     @Override
     public boolean advanceExact(int target) throws IOException {
         advance(target);
-        //TODO keeping it simple for now, but this will make us extract the same value twice from _source.
+        //TODO keeping it simple for now, but this will make us extract the same value twice from _source:
+        // 1) first time to return a boolean in this method 2) when reading the actual value. Though this will not cause _source to be
+        // loaded and parsed twice so it should be ok, at least for now.
         return binaryValue() != null;
     }
 
