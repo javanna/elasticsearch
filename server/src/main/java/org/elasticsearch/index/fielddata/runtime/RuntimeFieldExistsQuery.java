@@ -19,8 +19,8 @@
 
 package org.elasticsearch.index.fielddata.runtime;
 
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreScorer;
 import org.apache.lucene.search.ConstantScoreWeight;
 import org.apache.lucene.search.IndexSearcher;
@@ -34,14 +34,37 @@ import org.apache.lucene.util.BytesRef;
 
 import java.util.Objects;
 
-public class RuntimeTermQuery extends Query {
+public final class RuntimeFieldExistsQuery extends Query {
 
-    private final Term term;
+    private final String field;
     private final RuntimeValueProducer<BytesRef> valueProducer;
 
-    public RuntimeTermQuery(Term term, RuntimeValueProducer<BytesRef> valueProducer) {
-        this.term = term;
+    public RuntimeFieldExistsQuery(String field, RuntimeValueProducer<BytesRef> valueProducer) {
+        this.field = Objects.requireNonNull(field);
         this.valueProducer = valueProducer;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return sameClassAs(other) &&
+            field.equals(((RuntimeFieldExistsQuery) other).field);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * classHash() + field.hashCode();
+    }
+
+    @Override
+    public String toString(String field) {
+        return "RuntimeFieldExistsQuery [field=" + this.field + "]";
+    }
+
+    @Override
+    public void visit(QueryVisitor visitor) {
+        if (visitor.acceptField(field)) {
+            visitor.visitLeaf(this);
+        }
     }
 
     @Override
@@ -55,7 +78,7 @@ public class RuntimeTermQuery extends Query {
                     @Override
                     public boolean matches() {
                         BytesRef value = docValues.binaryValue();
-                        return Objects.equals(value, term.bytes());
+                        return value != null;
                     }
 
                     @Override
@@ -68,37 +91,9 @@ public class RuntimeTermQuery extends Query {
 
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
-                return false;
+                return DocValues.isCacheable(ctx, field);
             }
+
         };
     }
-
-    @Override
-    public void visit(QueryVisitor visitor) {
-        if (visitor.acceptField(term.field())) {
-            visitor.consumeTerms(this, term);
-        }
-    }
-
-    @Override
-    public String toString(String field) {
-        StringBuilder buffer = new StringBuilder();
-        if (!term.field().equals(field)) {
-            buffer.append(term.field());
-            buffer.append(":");
-        }
-        buffer.append(term.text());
-        return buffer.toString();
-    }
-
-
-    @Override
-    public boolean equals(Object other) {
-        return sameClassAs(other) &&
-            term.equals(((RuntimeTermQuery) other).term);
-    }
-
-    @Override
-    public int hashCode() {
-        return classHash() ^ term.hashCode();
-    }}
+}

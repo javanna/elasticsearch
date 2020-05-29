@@ -41,6 +41,7 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.SortedSetOrdinalsIndexFieldData;
+import org.elasticsearch.index.fielddata.runtime.RuntimeFieldExistsQuery;
 import org.elasticsearch.index.fielddata.runtime.RuntimeValueProducer;
 import org.elasticsearch.index.fielddata.runtime.SourceOnlyBinaryFieldData;
 import org.elasticsearch.index.fielddata.runtime.RuntimeTermQuery;
@@ -254,6 +255,8 @@ public final class KeywordFieldMapper extends FieldMapper {
         public Query existsQuery(QueryShardContext context) {
             if (hasDocValues()) {
                 return new DocValuesFieldExistsQuery(name());
+            } else if (indexOptions() == IndexOptions.NONE) {
+                return new RuntimeFieldExistsQuery(name(), RuntimeValueProducer.loadBinaryFromSource(name(), context.lookup().source()));
             } else if (omitNorms()) {
                 return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
             } else {
@@ -264,7 +267,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         @Override
         public Query termQuery(Object value, QueryShardContext context) {
             if (indexOptions() == IndexOptions.NONE && pointDimensionCount() == 0) {
-
                 //TODO check if source is enabled
                 return new RuntimeTermQuery(
                     new Term(name(), indexedValueForSearch(value)),
@@ -286,6 +288,19 @@ public final class KeywordFieldMapper extends FieldMapper {
             return super.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, context);
         }
 */
+        @Override
+        public boolean isSearchable() {
+            //either searchable through the index or loading from source on demand
+            return true;
+        }
+
+        @Override
+        public boolean isAggregatable() {
+            //this would not be needed for runtime fields, but if we don't add it
+            //we end up loading from _source for every doc for nothing.
+            //we know that it is aggregatable one way or another.
+            return true;
+        }
 
         @Override
         public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
