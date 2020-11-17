@@ -177,6 +177,9 @@ public class IndicesAliasesRequest extends AcknowledgedRequest<IndicesAliasesReq
         }
 
         private static final ObjectParser<AliasActions, Void> ADD_PARSER = parser(ADD.getPreferredName(), AliasActions::add);
+        private static final ObjectParser<AliasActions, Void> REMOVE_PARSER = parser(REMOVE.getPreferredName(), AliasActions::remove);
+        private static final ObjectParser<AliasActions, Void> REMOVE_INDEX_PARSER = parser(REMOVE_INDEX.getPreferredName(),
+            AliasActions::removeIndex);
         static {
             ADD_PARSER.declareObject(AliasActions::filter, (parser, m) -> {
                 try {
@@ -191,11 +194,8 @@ public class IndicesAliasesRequest extends AcknowledgedRequest<IndicesAliasesReq
             ADD_PARSER.declareField(AliasActions::searchRouting, XContentParser::text, SEARCH_ROUTING, ValueType.INT);
             ADD_PARSER.declareField(AliasActions::writeIndex, XContentParser::booleanValue, IS_WRITE_INDEX, ValueType.BOOLEAN);
             ADD_PARSER.declareField(AliasActions::isHidden, XContentParser::booleanValue, IS_HIDDEN, ValueType.BOOLEAN);
-            ADD_PARSER.declareField(AliasActions::mustExist, XContentParser::booleanValue, MUST_EXIST, ValueType.BOOLEAN);
+            REMOVE_PARSER.declareField(AliasActions::mustExist, XContentParser::booleanValue, MUST_EXIST, ValueType.BOOLEAN);
         }
-        private static final ObjectParser<AliasActions, Void> REMOVE_PARSER = parser(REMOVE.getPreferredName(), AliasActions::remove);
-        private static final ObjectParser<AliasActions, Void> REMOVE_INDEX_PARSER = parser(REMOVE_INDEX.getPreferredName(),
-                AliasActions::removeIndex);
 
         /**
          * Parser for any one {@link AliasAction}.
@@ -518,6 +518,9 @@ public class IndicesAliasesRequest extends AcknowledgedRequest<IndicesAliasesReq
             if (false == Strings.isEmpty(searchRouting)) {
                 builder.field(SEARCH_ROUTING.getPreferredName(), searchRouting);
             }
+            if (null != mustExist) {
+                builder.field(MUST_EXIST.getPreferredName(), mustExist);
+            }
             if (null != writeIndex) {
                 builder.field(IS_WRITE_INDEX.getPreferredName(), writeIndex);
             }
@@ -529,7 +532,7 @@ public class IndicesAliasesRequest extends AcknowledgedRequest<IndicesAliasesReq
             return builder;
         }
 
-        public static AliasActions fromXContent(XContentParser parser) throws IOException {
+        public static AliasActions fromXContent(XContentParser parser) {
             return PARSER.apply(parser, null);
         }
 
