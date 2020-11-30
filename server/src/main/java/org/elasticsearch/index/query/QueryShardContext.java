@@ -52,6 +52,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.MapperServiceSnapshot;
 import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.RuntimeFieldType;
@@ -89,7 +90,7 @@ public class QueryShardContext extends QueryRewriteContext {
     private final ScriptService scriptService;
     private final IndexSettings indexSettings;
     private final BigArrays bigArrays;
-    private final MapperService mapperService;
+    private final MapperServiceSnapshot mapperService;
     private final SimilarityService similarityService;
     private final BitsetFilterCache bitsetFilterCache;
     private final TriFunction<MappedFieldType, String, Supplier<SearchLookup>, IndexFieldData<?>> indexFieldDataService;
@@ -138,7 +139,7 @@ public class QueryShardContext extends QueryRewriteContext {
             bigArrays,
             bitsetFilterCache,
             indexFieldDataLookup,
-            mapperService,
+            new MapperServiceSnapshot(mapperService.documentMapper()),
             similarityService,
             scriptService,
             xContentRegistry,
@@ -169,7 +170,7 @@ public class QueryShardContext extends QueryRewriteContext {
                               BigArrays bigArrays,
                               BitsetFilterCache bitsetFilterCache,
                               TriFunction<MappedFieldType, String, Supplier<SearchLookup>, IndexFieldData<?>> indexFieldDataLookup,
-                              MapperService mapperService,
+                              MapperServiceSnapshot mapperService,
                               SimilarityService similarityService,
                               ScriptService scriptService,
                               NamedXContentRegistry xContentRegistry,
@@ -254,7 +255,7 @@ public class QueryShardContext extends QueryRewriteContext {
     }
 
     public ParsedDocument parseDocument(SourceToParse source) throws MapperParsingException {
-        return mapperService.documentMapper() == null ? null : mapperService.documentMapper().parse(source);
+        return mapperService.parseDocument(source);
     }
 
     public boolean hasNested() {
@@ -262,7 +263,7 @@ public class QueryShardContext extends QueryRewriteContext {
     }
 
     public boolean hasMappings() {
-        return mapperService.documentMapper() != null;
+        return mapperService.hasMappings();
     }
 
     /**
@@ -324,7 +325,7 @@ public class QueryShardContext extends QueryRewriteContext {
     }
 
     public boolean isSourceEnabled() {
-        return mapperService.documentMapper().sourceMapper().enabled();
+        return mapperService.isSourceEnabled();
     }
 
     /**
