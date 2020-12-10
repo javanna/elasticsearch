@@ -21,7 +21,7 @@ which data type the field should have:
 `true` or `false`::                 <<boolean,`boolean`>> field
 floating{nbsp}point{nbsp}number::   <<number,`float`>> indexed field or <<number,`double`>> runtime field
 integer::                           <<number,`long`>> field
-object::                            <<object,`object`>> field, not that objects are always mapped as part of the `properties` section, even when `dynamic` is set to `runtime`
+object::                            <<object,`object`>> field, note that objects are always mapped as part of the `properties` section, even when `dynamic` is set to `runtime`
 array::                             Depends on the first non-`null` value in the array.
 string::                            Either a <<date,`date`>> field
                                         (if the value passes <<date-detection,date detection>>),
