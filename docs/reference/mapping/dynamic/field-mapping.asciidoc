@@ -2,22 +2,26 @@
 === Dynamic field mapping
 
 By default, when a previously unseen field is found in a document,
-Elasticsearch will add the new field to the type mapping.   This behaviour can
+Elasticsearch will add the new field to the type mapping. This behaviour can
 be disabled, both at the document and at the <<object,`object`>>  level, by
 setting the <<dynamic,`dynamic`>> parameter to `false` (to ignore new fields) or to `strict` (to throw
 an exception if an unknown field is encountered).
+The <<dynamic,`dynamic`>> parameter can also be set to `runtime`, in which case
+unseen fields will be automatically added to the mapping as <<runtime,Runtime fields>>
+so that they have no indexing overhead as they are loaded from _source at search-time.
 
-Assuming `dynamic` field mapping is enabled, some simple rules are used to
-determine which data type the field should have:
+Assuming `dynamic` field mapping is enabled, by either setting the `dynamic`
+parameter to `true` or `runtime`, some simple rules are used to determine
+which data type the field should have:
 
 [horizontal]
 *JSON data type*::                   *Elasticsearch data type*
 
 `null`::                            No field is added.
 `true` or `false`::                 <<boolean,`boolean`>> field
-floating{nbsp}point{nbsp}number::   <<number,`float`>> field
+floating{nbsp}point{nbsp}number::   <<number,`float`>> indexed field or <<number,`double`>> runtime field
 integer::                           <<number,`long`>> field
-object::                            <<object,`object`>> field
+object::                            <<object,`object`>> field, not that objects are always mapped as part of the `properties` section, even when `dynamic` is set to `runtime`
 array::                             Depends on the first non-`null` value in the array.
 string::                            Either a <<date,`date`>> field
                                         (if the value passes <<date-detection,date detection>>),
