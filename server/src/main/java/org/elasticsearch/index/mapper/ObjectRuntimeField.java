@@ -43,8 +43,7 @@ public class ObjectRuntimeField implements RuntimeField {
                     throw new IllegalArgumentException("object runtime field [" + name + "] must declare a [script]");
                 }
             });
-            //TODO we call it fields2 for now because it clashes with multi_fields which are rejected for all runtime fields
-            private final FieldMapper.Parameter<Map<String, Object>> fields = new FieldMapper.Parameter<>("fields2",
+            private final FieldMapper.Parameter<Map<String, Object>> fields = new FieldMapper.Parameter<>("fields",
                 true, Collections::emptyMap, (f, p, o) -> parseFields(f, o), mappers -> {
                 throw new UnsupportedOperationException();
             });
@@ -79,11 +78,13 @@ public class ObjectRuntimeField implements RuntimeField {
 
     ObjectRuntimeField(String name, Collection<RuntimeField> subfields, ToXContent toXContent) {
         this.name = name;
-        this.subfields = subfields.stream().flatMap(runtimeField -> runtimeField.asMappedFieldTypes().stream())
+        this.subfields = subfields.stream()
+            .map(runtimeField -> RuntimeField.withFullName(name, runtimeField))
+            .flatMap(runtimeField -> runtimeField.asMappedFieldTypes().stream())
             .collect(Collectors.toList());
         this.toXContent = (builder, params) -> {
             toXContent.toXContent(builder, params);
-            builder.startObject("fields2");
+            builder.startObject("fields");
             for (RuntimeField runtimeField : subfields) {
                 runtimeField.toXContent(builder, params);
             }
@@ -98,7 +99,7 @@ public class ObjectRuntimeField implements RuntimeField {
     }
 
     @Override
-    public String name() {
+    public String simpleName() {
         return name;
     }
 

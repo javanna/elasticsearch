@@ -11,11 +11,10 @@ package org.elasticsearch.index.mapper;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.core.Booleans;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.time.DateMathParser;
-import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.core.Booleans;
 import org.elasticsearch.index.fielddata.BooleanScriptFieldData;
 import org.elasticsearch.index.query.SearchExecutionContext;
 import org.elasticsearch.script.BooleanFieldScript;
@@ -39,7 +38,7 @@ public final class BooleanScriptFieldType extends AbstractScriptFieldType<Boolea
         new Builder<>(name, BooleanFieldScript.CONTEXT) {
             @Override
             RuntimeField newRuntimeField(BooleanFieldScript.Factory scriptFactory) {
-                return new BooleanScriptFieldType(name, scriptFactory, getScript(), meta(), this);
+                return new ScriptRuntimeField(name, new BooleanScriptFieldType(name, scriptFactory, getScript(), meta()), this);
             }
 
             @Override
@@ -53,18 +52,21 @@ public final class BooleanScriptFieldType extends AbstractScriptFieldType<Boolea
             }
         });
 
-    public BooleanScriptFieldType(String name) {
-        this(name, BooleanFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap(), (builder, params) -> builder);
+    public static RuntimeField sourceOnly(String name) {
+        return new ScriptRuntimeField(
+            name,
+            new BooleanScriptFieldType(name, BooleanFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap()),
+            (builder, params) -> builder
+        );
     }
 
     BooleanScriptFieldType(
         String name,
         BooleanFieldScript.Factory scriptFactory,
         Script script,
-        Map<String, String> meta,
-        ToXContent toXContent
+        Map<String, String> meta
     ) {
-        super(name, searchLookup -> scriptFactory.newFactory(name, script.getParams(), searchLookup), script, meta, toXContent);
+        super(name, searchLookup -> scriptFactory.newFactory(name, script.getParams(), searchLookup), script, meta);
     }
 
     @Override

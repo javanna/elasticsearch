@@ -32,7 +32,7 @@ public interface RuntimeField extends ToXContentFragment {
 
     @Override
     default XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(name());
+        builder.startObject(simpleName());
         builder.field("type", typeName());
         doXContentBody(builder, params);
         builder.endObject();
@@ -45,10 +45,17 @@ public interface RuntimeField extends ToXContentFragment {
     void doXContentBody(XContentBuilder builder, Params params) throws IOException;
 
     /**
-     * Exposes the name of the runtime field
+     * Exposes the name of the runtime field including any parent field paths
      * @return name of the field
      */
-    String name();
+    default String name() {
+        return simpleName();
+    }
+
+    /**
+     * Exposes the leaf name of the runtime field
+     */
+    String simpleName();
 
     /**
      * Exposes the type of the runtime field
@@ -200,21 +207,44 @@ public interface RuntimeField extends ToXContentFragment {
      */
     static Map<String, MappedFieldType> collectFieldTypes(Collection<RuntimeField> runtimeFields) {
         return runtimeFields.stream()
-            .flatMap(runtimeField -> {
-                List<String> names = runtimeField.asMappedFieldTypes().stream().map(MappedFieldType::name)
-                    .filter(name -> name.equals(runtimeField.name()) == false
-                        && (name.startsWith(runtimeField.name() + ".") == false
-                        || name.length() > runtimeField.name().length() + 1 == false))
-                    .collect(Collectors.toList());
-                if (names.isEmpty() == false) {
-                    throw new IllegalStateException("Found sub-fields with name not belonging to the parent field they are part of "
-                        + names);
-                }
-                return runtimeField.asMappedFieldTypes().stream();
-            })
+            .flatMap(runtimeField -> runtimeField.asMappedFieldTypes().stream())
             .collect(Collectors.toUnmodifiableMap(MappedFieldType::name, mappedFieldType -> mappedFieldType,
                 (t, t2) -> {
                     throw new IllegalArgumentException("Found two runtime fields with same name [" + t.name() + "]");
                 }));
+    }
+
+    /**
+     * Wraps a RuntimeField so that it's name() is returned concatenated with a parent name
+     * @param name  the parent path
+     * @param in    the RuntimeField
+     */
+    static RuntimeField withFullName(String name, RuntimeField in) {
+        return new RuntimeField() {
+            @Override
+            public void doXContentBody(XContentBuilder builder, Params params) throws IOException {
+                in.doXContentBody(builder, params);
+            }
+
+            @Override
+            public String name() {
+                return name + "." + simpleName();
+            }
+
+            @Override
+            public String simpleName() {
+                return in.simpleName();
+            }
+
+            @Override
+            public String typeName() {
+                return in.typeName();
+            }
+
+            @Override
+            public Collection<MappedFieldType> asMappedFieldTypes() {
+                return in.asMappedFieldTypes();
+            }
+        };
     }
 }

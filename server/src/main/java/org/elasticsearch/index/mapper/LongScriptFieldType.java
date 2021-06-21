@@ -10,10 +10,10 @@ package org.elasticsearch.index.mapper;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.LongSet;
+
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.time.DateMathParser;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.index.fielddata.LongScriptFieldData;
 import org.elasticsearch.index.mapper.NumberFieldMapper.NumberType;
 import org.elasticsearch.index.query.SearchExecutionContext;
@@ -40,7 +40,7 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
         new Builder<>(name, LongFieldScript.CONTEXT) {
             @Override
             RuntimeField newRuntimeField(LongFieldScript.Factory scriptFactory) {
-                return new LongScriptFieldType(name, scriptFactory, getScript(), meta(), this);
+                return new ScriptRuntimeField(name, new LongScriptFieldType(name, scriptFactory, getScript(), meta()), this);
             }
 
             @Override
@@ -54,18 +54,20 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
             }
         });
 
-    public LongScriptFieldType(String name) {
-        this(name, LongFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap(), (builder, params) -> builder);
+    public static RuntimeField sourceOnly(String name) {
+        return new ScriptRuntimeField(
+            name,
+            new LongScriptFieldType(name, LongFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap()),
+            (builder, params) -> builder);
     }
 
     LongScriptFieldType(
         String name,
         LongFieldScript.Factory scriptFactory,
         Script script,
-        Map<String, String> meta,
-        ToXContent toXContent
+        Map<String, String> meta
     ) {
-        super(name, searchLookup -> scriptFactory.newFactory(name, script.getParams(), searchLookup), script, meta, toXContent);
+        super(name, searchLookup -> scriptFactory.newFactory(name, script.getParams(), searchLookup), script, meta);
     }
 
     @Override

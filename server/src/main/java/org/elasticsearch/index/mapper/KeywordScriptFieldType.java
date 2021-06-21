@@ -14,7 +14,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.time.DateMathParser;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.index.fielddata.StringScriptFieldData;
 import org.elasticsearch.index.query.SearchExecutionContext;
 import org.elasticsearch.script.ObjectFieldScript;
@@ -47,7 +46,7 @@ public final class KeywordScriptFieldType extends AbstractScriptFieldType<String
         new Builder<>(name, StringFieldScript.CONTEXT) {
             @Override
             RuntimeField newRuntimeField(StringFieldScript.Factory scriptFactory) {
-                return new KeywordScriptFieldType(name, scriptFactory, getScript(), meta(), this);
+                return new ScriptRuntimeField(name, new KeywordScriptFieldType(name, scriptFactory, getScript(), meta()), this);
             }
 
             @Override
@@ -61,18 +60,21 @@ public final class KeywordScriptFieldType extends AbstractScriptFieldType<String
             }
         });
 
-    public KeywordScriptFieldType(String name) {
-        this(name, StringFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap(), (builder, params) -> builder);
+    public static RuntimeField sourceOnly(String name) {
+        return new ScriptRuntimeField(
+            name,
+            new KeywordScriptFieldType(name, StringFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap()),
+            (builder, params) -> builder
+        );
     }
 
     KeywordScriptFieldType(
         String name,
         StringFieldScript.Factory scriptFactory,
         Script script,
-        Map<String, String> meta,
-        ToXContent toXContent
+        Map<String, String> meta
     ) {
-        super(name, searchLookup -> scriptFactory.newFactory(name, script.getParams(), searchLookup), script, meta, toXContent);
+        super(name, searchLookup -> scriptFactory.newFactory(name, script.getParams(), searchLookup), script, meta);
     }
 
     @Override

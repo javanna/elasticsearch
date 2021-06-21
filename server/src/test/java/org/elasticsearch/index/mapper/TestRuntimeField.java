@@ -31,7 +31,7 @@ public final class TestRuntimeField implements RuntimeField {
     }
 
     @Override
-    public String name() {
+    public String simpleName() {
         return name;
     }
 
