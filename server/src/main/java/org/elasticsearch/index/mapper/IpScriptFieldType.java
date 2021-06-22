@@ -69,6 +69,16 @@ public final class IpScriptFieldType extends AbstractScriptFieldType<IpFieldScri
             IpFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
                 return IpFieldScript.objectAdapter(parentScriptFactory);
             }
+
+            @Override
+            IpFieldScript.Factory getParseFromSourceFactory() {
+                return IpFieldScript.PARSE_FROM_SOURCE;
+            }
+
+            @Override
+            IpFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
+                return IpFieldScript.objectAdapter(parentScriptFactory);
+            }
         });
 
     IpScriptFieldType(

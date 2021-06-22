@@ -64,6 +64,17 @@ public final class GeoPointScriptFieldType extends AbstractScriptFieldType<GeoPo
                 Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
                 return GeoPointFieldScript.objectAdapter(parentScriptFactory);
             }
+
+            @Override
+            GeoPointFieldScript.Factory getParseFromSourceFactory() {
+                return GeoPointFieldScript.PARSE_FROM_SOURCE;
+            }
+
+            @Override
+            GeoPointFieldScript.Factory getObjectSubfieldFactory(
+                Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
+                return GeoPointFieldScript.objectAdapter(parentScriptFactory);
+            }
         });
 
     GeoPointScriptFieldType(

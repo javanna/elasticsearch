@@ -51,6 +51,16 @@ public final class BooleanScriptFieldType extends AbstractScriptFieldType<Boolea
             BooleanFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
                 return BooleanFieldScript.objectAdapter(parentScriptFactory);
             }
+
+            @Override
+            BooleanFieldScript.Factory getParseFromSourceFactory() {
+                return BooleanFieldScript.PARSE_FROM_SOURCE;
+            }
+
+            @Override
+            BooleanFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
+                return BooleanFieldScript.objectAdapter(parentScriptFactory);
+            }
         });
 
     private static RuntimeField runtimeField(
