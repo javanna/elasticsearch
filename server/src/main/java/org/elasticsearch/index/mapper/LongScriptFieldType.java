@@ -14,6 +14,7 @@ import com.carrotsearch.hppc.LongSet;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.time.DateMathParser;
+import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.index.fielddata.LongScriptFieldData;
 import org.elasticsearch.index.mapper.NumberFieldMapper.NumberType;
 import org.elasticsearch.index.query.SearchExecutionContext;
@@ -40,7 +41,7 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
         new Builder<>(name, LongFieldScript.CONTEXT) {
             @Override
             RuntimeField newRuntimeField(LongFieldScript.Factory scriptFactory) {
-                return new ScriptRuntimeField(name, new LongScriptFieldType(name, scriptFactory, getScript(), meta()), this);
+                return runtimeField(name, this, scriptFactory, getScript(), meta());
             }
 
             @Override
@@ -54,11 +55,28 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
             }
         });
 
+    private static RuntimeField runtimeField(
+        String name,
+        ToXContent toXContent,
+        LongFieldScript.Factory scriptFactory,
+        Script script,
+        Map<String, String> meta
+    ) {
+        return new ScriptRuntimeField(name, toXContent) {
+            @Override
+            public String typeName() {
+                return NumberType.LONG.typeName();
+            }
+
+            @Override
+            public MappedFieldType asMappedFieldType(String parent) {
+                return new LongScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, script, meta);
+            }
+        };
+    }
+
     public static RuntimeField sourceOnly(String name) {
-        return new ScriptRuntimeField(
-            name,
-            new LongScriptFieldType(name, LongFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap()),
-            (builder, params) -> builder);
+        return runtimeField(name, (builder, params) -> builder, LongFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap());
     }
 
     LongScriptFieldType(

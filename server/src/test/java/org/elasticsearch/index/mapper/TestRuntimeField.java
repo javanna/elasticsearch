@@ -31,7 +31,7 @@ public final class TestRuntimeField implements RuntimeField {
     }
 
     @Override
-    public String simpleName() {
+    public String name() {
         return name;
     }
 
@@ -41,7 +41,7 @@ public final class TestRuntimeField implements RuntimeField {
     }
 
     @Override
-    public Collection<MappedFieldType> asMappedFieldTypes() {
+    public Collection<MappedFieldType> asMappedFieldTypes(String parent) {
         return subfields;
     }
 

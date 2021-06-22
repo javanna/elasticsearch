@@ -55,8 +55,8 @@ public class TestObjectRuntimeField extends MapperServiceTestCase {
 
         RuntimeField rf = mapperService.mappingLookup().getMapping().getRoot().getRuntimeField("obj");
         assertEquals(
-            "{\"obj\":{\"type\":\"object\",\"script\":\"dummy\"," +
-                "\"fields\":{\"long-subfield\":{\"type\":\"long\"},\"str-subfield\":{\"type\",\"keyword\"}}}",
+            "{\"obj\":{\"type\":\"object\",\"script\":{\"source\":\"dummy\",\"lang\":\"painless\"}," +
+                "\"fields\":{\"long-subfield\":{\"type\":\"long\"},\"str-subfield\":{\"type\":\"keyword\"}}}}",
             Strings.toString(rf)
         );
     }

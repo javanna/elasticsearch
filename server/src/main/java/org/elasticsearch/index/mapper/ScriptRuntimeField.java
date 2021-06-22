@@ -15,32 +15,27 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
-public class ScriptRuntimeField implements RuntimeField {
+public abstract class ScriptRuntimeField implements RuntimeField {
 
     protected final String name;
     protected final ToXContent toXContent;
-    protected final MappedFieldType fieldType;
 
-    public ScriptRuntimeField(String name, MappedFieldType fieldType, ToXContent toXContent) {
+    public ScriptRuntimeField(String name, ToXContent toXContent) {
         this.name = name;
         this.toXContent = toXContent;
-        this.fieldType = fieldType;
     }
 
     @Override
-    public String simpleName() {
+    public String name() {
         return name;
     }
 
     @Override
-    public String typeName() {
-        return fieldType.typeName();
+    public final Collection<MappedFieldType> asMappedFieldTypes(String parent) {
+        return Collections.singleton(asMappedFieldType(parent));
     }
 
-    @Override
-    public final Collection<MappedFieldType> asMappedFieldTypes() {
-        return Collections.singleton(fieldType);
-    }
+    protected abstract MappedFieldType asMappedFieldType(String parent);
 
     @Override
     public final void doXContentBody(XContentBuilder builder, Params params) throws IOException {

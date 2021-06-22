@@ -14,6 +14,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.time.DateMathParser;
 import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.index.fielddata.StringScriptFieldData;
 import org.elasticsearch.index.query.SearchExecutionContext;
 import org.elasticsearch.script.ObjectFieldScript;
@@ -46,7 +47,7 @@ public final class KeywordScriptFieldType extends AbstractScriptFieldType<String
         new Builder<>(name, StringFieldScript.CONTEXT) {
             @Override
             RuntimeField newRuntimeField(StringFieldScript.Factory scriptFactory) {
-                return new ScriptRuntimeField(name, new KeywordScriptFieldType(name, scriptFactory, getScript(), meta()), this);
+                return runtimeField(name, this, scriptFactory, getScript(), meta());
             }
 
             @Override
@@ -60,12 +61,28 @@ public final class KeywordScriptFieldType extends AbstractScriptFieldType<String
             }
         });
 
+    private static RuntimeField runtimeField(
+        String name,
+        ToXContent toXContent,
+        StringFieldScript.Factory scriptFactory,
+        Script script,
+        Map<String, String> meta
+    ) {
+        return new ScriptRuntimeField(name, toXContent) {
+            @Override
+            public String typeName() {
+                return KeywordFieldMapper.CONTENT_TYPE;
+            }
+
+            @Override
+            public MappedFieldType asMappedFieldType(String parent) {
+                return new KeywordScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, script, meta);
+            }
+        };
+    }
+
     public static RuntimeField sourceOnly(String name) {
-        return new ScriptRuntimeField(
-            name,
-            new KeywordScriptFieldType(name, StringFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap()),
-            (builder, params) -> builder
-        );
+        return runtimeField(name, (builder, params) -> builder, StringFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap());
     }
 
     KeywordScriptFieldType(

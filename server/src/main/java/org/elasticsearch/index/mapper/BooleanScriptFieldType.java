@@ -14,6 +14,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.time.DateMathParser;
+import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.core.Booleans;
 import org.elasticsearch.index.fielddata.BooleanScriptFieldData;
 import org.elasticsearch.index.query.SearchExecutionContext;
@@ -38,7 +39,7 @@ public final class BooleanScriptFieldType extends AbstractScriptFieldType<Boolea
         new Builder<>(name, BooleanFieldScript.CONTEXT) {
             @Override
             RuntimeField newRuntimeField(BooleanFieldScript.Factory scriptFactory) {
-                return new ScriptRuntimeField(name, new BooleanScriptFieldType(name, scriptFactory, getScript(), meta()), this);
+                return runtimeField(name, this, scriptFactory, getScript(), meta());
             }
 
             @Override
@@ -52,12 +53,28 @@ public final class BooleanScriptFieldType extends AbstractScriptFieldType<Boolea
             }
         });
 
+    private static RuntimeField runtimeField(
+        String name,
+        ToXContent toXContent,
+        BooleanFieldScript.Factory scriptFactory,
+        Script script,
+        Map<String, String> meta
+    ) {
+        return new ScriptRuntimeField(name, toXContent) {
+            @Override
+            public String typeName() {
+                return BooleanFieldMapper.CONTENT_TYPE;
+            }
+
+            @Override
+            public MappedFieldType asMappedFieldType(String parent) {
+                return new BooleanScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, script, meta);
+            }
+        };
+    }
+
     public static RuntimeField sourceOnly(String name) {
-        return new ScriptRuntimeField(
-            name,
-            new BooleanScriptFieldType(name, BooleanFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap()),
-            (builder, params) -> builder
-        );
+        return runtimeField(name, (builder, params) -> builder, BooleanFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap());
     }
 
     BooleanScriptFieldType(

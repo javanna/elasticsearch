@@ -16,6 +16,7 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.time.DateFormatter;
 import org.elasticsearch.common.time.DateMathParser;
 import org.elasticsearch.common.util.LocaleUtils;
+import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.core.Nullable;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.index.fielddata.DateScriptFieldData;
@@ -84,10 +85,7 @@ public class DateScriptFieldType extends AbstractScriptFieldType<DateFieldScript
                 String pattern = format.getValue() == null ? DateFieldMapper.DEFAULT_DATE_TIME_FORMATTER.pattern() : format.getValue();
                 Locale locale = this.locale.getValue() == null ? Locale.ROOT : this.locale.getValue();
                 DateFormatter dateTimeFormatter = DateFormatter.forPattern(pattern).withLocale(locale);
-                return new ScriptRuntimeField(
-                    name,
-                    new DateScriptFieldType(name, scriptFactory, dateTimeFormatter, getScript(), meta()),
-                    this);
+                return runtimeField(name, this, dateTimeFormatter, scriptFactory, getScript(), meta());
             }
 
             @Override
@@ -101,19 +99,43 @@ public class DateScriptFieldType extends AbstractScriptFieldType<DateFieldScript
             }
         });
 
+    private static RuntimeField runtimeField(
+        String name,
+        ToXContent toXContent,
+        DateFormatter dateFormatter,
+        DateFieldScript.Factory scriptFactory,
+        Script script,
+        Map<String, String> meta
+    ) {
+        return new ScriptRuntimeField(name, toXContent) {
+            @Override
+            public String typeName() {
+                return DateFieldMapper.CONTENT_TYPE;
+            }
+
+            @Override
+            public MappedFieldType asMappedFieldType(String parent) {
+                return new DateScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, dateFormatter, script, meta);
+            }
+        };
+    }
+
     private final DateFormatter dateTimeFormatter;
     private final DateMathParser dateMathParser;
 
     public static RuntimeField sourceOnly(String name, DateFormatter dateTimeFormatter) {
-        return new ScriptRuntimeField(
+        return runtimeField(
             name,
-            new DateScriptFieldType(name, DateFieldScript.PARSE_FROM_SOURCE, dateTimeFormatter, null, Collections.emptyMap()),
             (builder, params) -> {
                 if (DateFieldMapper.DEFAULT_DATE_TIME_FORMATTER.pattern().equals(dateTimeFormatter.pattern()) == false) {
                     builder.field("format", dateTimeFormatter.pattern());
                 }
                 return builder;
-            });
+            },
+            dateTimeFormatter,
+            DateFieldScript.PARSE_FROM_SOURCE,
+            null,
+            Collections.emptyMap());
     }
 
     DateScriptFieldType(

@@ -41,7 +41,17 @@ public final class GeoPointScriptFieldType extends AbstractScriptFieldType<GeoPo
         new Builder<>(name, GeoPointFieldScript.CONTEXT) {
             @Override
             RuntimeField newRuntimeField(GeoPointFieldScript.Factory scriptFactory) {
-                return new ScriptRuntimeField(name, new GeoPointScriptFieldType(name, scriptFactory, getScript(), meta()), this);
+                return new ScriptRuntimeField(name, this) {
+                    @Override
+                    public String typeName() {
+                        return GeoPointFieldMapper.CONTENT_TYPE;
+                    }
+
+                    @Override
+                    public MappedFieldType asMappedFieldType(String parent) {
+                        return new GeoPointScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, getScript(), meta());
+                    }
+                };
             }
 
             @Override

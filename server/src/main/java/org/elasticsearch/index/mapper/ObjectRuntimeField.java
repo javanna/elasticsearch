@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -73,19 +74,16 @@ public class ObjectRuntimeField implements RuntimeField {
         });
 
     private final String name;
-    private final Collection<MappedFieldType> subfields;
+    private final Collection<RuntimeField> subfields;
     private final ToXContent toXContent;
 
     ObjectRuntimeField(String name, Collection<RuntimeField> subfields, ToXContent toXContent) {
         this.name = name;
-        this.subfields = subfields.stream()
-            .map(runtimeField -> RuntimeField.withFullName(name, runtimeField))
-            .flatMap(runtimeField -> runtimeField.asMappedFieldTypes().stream())
-            .collect(Collectors.toList());
+        this.subfields = subfields.stream().sorted(Comparator.comparing(RuntimeField::name)).collect(Collectors.toList());
         this.toXContent = (builder, params) -> {
             toXContent.toXContent(builder, params);
             builder.startObject("fields");
-            for (RuntimeField runtimeField : subfields) {
+            for (RuntimeField runtimeField : this.subfields) {
                 runtimeField.toXContent(builder, params);
             }
             builder.endObject();
@@ -99,7 +97,7 @@ public class ObjectRuntimeField implements RuntimeField {
     }
 
     @Override
-    public String simpleName() {
+    public String name() {
         return name;
     }
 
@@ -109,8 +107,10 @@ public class ObjectRuntimeField implements RuntimeField {
     }
 
     @Override
-    public Collection<MappedFieldType> asMappedFieldTypes() {
-        return subfields;
+    public Collection<MappedFieldType> asMappedFieldTypes(String parent) {
+        return subfields.stream()
+            .flatMap(runtimeField -> runtimeField.asMappedFieldTypes(name).stream())
+            .collect(Collectors.toList());
     }
 
     private static Map<String, Object> parseFields(String name, Object fieldsObject) {
