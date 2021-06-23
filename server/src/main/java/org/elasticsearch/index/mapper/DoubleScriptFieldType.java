@@ -53,6 +53,16 @@ public final class DoubleScriptFieldType extends AbstractScriptFieldType<DoubleF
             DoubleFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
                 return DoubleFieldScript.objectAdapter(parentScriptFactory);
             }
+
+            @Override
+            DoubleFieldScript.Factory getParseFromSourceFactory() {
+                return DoubleFieldScript.PARSE_FROM_SOURCE;
+            }
+
+            @Override
+            DoubleFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
+                return DoubleFieldScript.objectAdapter(parentScriptFactory);
+            }
         });
 
     private static RuntimeField runtimeField(

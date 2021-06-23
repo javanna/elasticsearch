@@ -53,6 +53,16 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
             LongFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
                 return LongFieldScript.objectAdapter(parentScriptFactory);
             }
+
+            @Override
+            LongFieldScript.Factory getParseFromSourceFactory() {
+                return LongFieldScript.PARSE_FROM_SOURCE;
+            }
+
+            @Override
+            LongFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
+                return LongFieldScript.objectAdapter(parentScriptFactory);
+            }
         });
 
     private static RuntimeField runtimeField(
