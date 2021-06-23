@@ -31,11 +31,11 @@ public abstract class ScriptRuntimeField implements RuntimeField {
     }
 
     @Override
-    public final Collection<MappedFieldType> asMappedFieldTypes(String parent) {
-        return Collections.singleton(asMappedFieldType(parent));
+    public final Collection<MappedFieldType> asMappedFieldTypes() {
+        return Collections.singleton(asMappedFieldType());
     }
 
-    protected abstract MappedFieldType asMappedFieldType(String parent);
+    protected abstract MappedFieldType asMappedFieldType();
 
     @Override
     public final void doXContentBody(XContentBuilder builder, Params params) throws IOException {

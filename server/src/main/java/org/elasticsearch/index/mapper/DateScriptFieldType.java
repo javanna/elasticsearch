@@ -81,11 +81,11 @@ public class DateScriptFieldType extends AbstractScriptFieldType<DateFieldScript
             }
 
             @Override
-            RuntimeField newRuntimeField(DateFieldScript.Factory scriptFactory) {
+            RuntimeField newRuntimeField(String parent, DateFieldScript.Factory scriptFactory) {
                 String pattern = format.getValue() == null ? DateFieldMapper.DEFAULT_DATE_TIME_FORMATTER.pattern() : format.getValue();
                 Locale locale = this.locale.getValue() == null ? Locale.ROOT : this.locale.getValue();
                 DateFormatter dateTimeFormatter = DateFormatter.forPattern(pattern).withLocale(locale);
-                return runtimeField(name, this, dateTimeFormatter, scriptFactory, getScript(), meta());
+                return runtimeField(name, parent, this, dateTimeFormatter, scriptFactory, getScript(), meta());
             }
 
             @Override
@@ -101,6 +101,7 @@ public class DateScriptFieldType extends AbstractScriptFieldType<DateFieldScript
 
     private static RuntimeField runtimeField(
         String name,
+        String parent,
         ToXContent toXContent,
         DateFormatter dateFormatter,
         DateFieldScript.Factory scriptFactory,
@@ -114,7 +115,7 @@ public class DateScriptFieldType extends AbstractScriptFieldType<DateFieldScript
             }
 
             @Override
-            public MappedFieldType asMappedFieldType(String parent) {
+            public MappedFieldType asMappedFieldType() {
                 return new DateScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, dateFormatter, script, meta);
             }
         };
@@ -126,6 +127,7 @@ public class DateScriptFieldType extends AbstractScriptFieldType<DateFieldScript
     public static RuntimeField sourceOnly(String name, DateFormatter dateTimeFormatter) {
         return runtimeField(
             name,
+            null,
             (builder, params) -> {
                 if (DateFieldMapper.DEFAULT_DATE_TIME_FORMATTER.pattern().equals(dateTimeFormatter.pattern()) == false) {
                     builder.field("format", dateTimeFormatter.pattern());

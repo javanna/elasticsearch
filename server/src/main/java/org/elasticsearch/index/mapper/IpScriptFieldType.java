@@ -46,7 +46,7 @@ public final class IpScriptFieldType extends AbstractScriptFieldType<IpFieldScri
     public static final RuntimeField.Parser PARSER = new RuntimeField.Parser(name ->
         new Builder<>(name, IpFieldScript.CONTEXT) {
             @Override
-            RuntimeField newRuntimeField(IpFieldScript.Factory scriptFactory) {
+            RuntimeField newRuntimeField(String parent, IpFieldScript.Factory scriptFactory) {
                 return new ScriptRuntimeField(name, this) {
                     @Override
                     public String typeName() {
@@ -54,7 +54,7 @@ public final class IpScriptFieldType extends AbstractScriptFieldType<IpFieldScri
                     }
 
                     @Override
-                    public MappedFieldType asMappedFieldType(String parent) {
+                    public MappedFieldType asMappedFieldType() {
                         return new IpScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, getScript(), meta());
                     }
                 };

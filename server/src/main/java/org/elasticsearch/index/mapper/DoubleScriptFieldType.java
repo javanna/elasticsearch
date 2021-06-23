@@ -40,8 +40,8 @@ public final class DoubleScriptFieldType extends AbstractScriptFieldType<DoubleF
     public static final RuntimeField.Parser PARSER = new RuntimeField.Parser(name ->
         new Builder<>(name, DoubleFieldScript.CONTEXT) {
             @Override
-            RuntimeField newRuntimeField(DoubleFieldScript.Factory scriptFactory) {
-                return runtimeField(name, this, scriptFactory, getScript(), meta());
+            RuntimeField newRuntimeField(String parent, DoubleFieldScript.Factory scriptFactory) {
+                return runtimeField(name, parent, this, scriptFactory, getScript(), meta());
             }
 
             @Override
@@ -57,6 +57,7 @@ public final class DoubleScriptFieldType extends AbstractScriptFieldType<DoubleF
 
     private static RuntimeField runtimeField(
         String name,
+        String parent,
         ToXContent toXContent,
         DoubleFieldScript.Factory scriptFactory,
         Script script,
@@ -69,14 +70,14 @@ public final class DoubleScriptFieldType extends AbstractScriptFieldType<DoubleF
             }
 
             @Override
-            public MappedFieldType asMappedFieldType(String parent) {
+            public MappedFieldType asMappedFieldType() {
                 return new DoubleScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, script, meta);
             }
         };
     }
 
     public static RuntimeField sourceOnly(String name) {
-        return runtimeField(name, (builder, params) -> builder, DoubleFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap());
+        return runtimeField(name, null, (builder, params) -> builder, DoubleFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap());
     }
 
     DoubleScriptFieldType(

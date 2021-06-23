@@ -41,7 +41,7 @@ public final class TestRuntimeField implements RuntimeField {
     }
 
     @Override
-    public Collection<MappedFieldType> asMappedFieldTypes(String parent) {
+    public Collection<MappedFieldType> asMappedFieldTypes() {
         return subfields;
     }
 

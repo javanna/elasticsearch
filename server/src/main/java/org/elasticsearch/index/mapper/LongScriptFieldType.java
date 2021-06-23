@@ -40,8 +40,8 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
     public static final RuntimeField.Parser PARSER = new RuntimeField.Parser(name ->
         new Builder<>(name, LongFieldScript.CONTEXT) {
             @Override
-            RuntimeField newRuntimeField(LongFieldScript.Factory scriptFactory) {
-                return runtimeField(name, this, scriptFactory, getScript(), meta());
+            RuntimeField newRuntimeField(String parent, LongFieldScript.Factory scriptFactory) {
+                return runtimeField(name, parent, this, scriptFactory, getScript(), meta());
             }
 
             @Override
@@ -57,6 +57,7 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
 
     private static RuntimeField runtimeField(
         String name,
+        String parent,
         ToXContent toXContent,
         LongFieldScript.Factory scriptFactory,
         Script script,
@@ -69,14 +70,14 @@ public final class LongScriptFieldType extends AbstractScriptFieldType<LongField
             }
 
             @Override
-            public MappedFieldType asMappedFieldType(String parent) {
+            public MappedFieldType asMappedFieldType() {
                 return new LongScriptFieldType(RuntimeField.fullName(parent, name), scriptFactory, script, meta);
             }
         };
     }
 
     public static RuntimeField sourceOnly(String name) {
-        return runtimeField(name, (builder, params) -> builder, LongFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap());
+        return runtimeField(name, null, (builder, params) -> builder, LongFieldScript.PARSE_FROM_SOURCE, null, Collections.emptyMap());
     }
 
     LongScriptFieldType(

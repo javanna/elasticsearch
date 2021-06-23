@@ -59,7 +59,13 @@ public class ObjectRuntimeField implements RuntimeField {
 
             @Override
             protected RuntimeField createRuntimeField(Mapper.TypeParser.ParserContext parserContext,
+                                                      String parent,
                                                       Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
+                if (parent != null) {
+                    throw new IllegalArgumentException(
+                        "Runtime field [" + name + "] of type [object] cannot be nested within field [" + parent + "]"
+                    );
+                }
                 if (parentScriptFactory != null) {
                     throw new IllegalArgumentException("Runtime field [" + name + "] of type [object] cannot hold another runtime " +
                         "field of type [object]");
@@ -68,7 +74,7 @@ public class ObjectRuntimeField implements RuntimeField {
                 //TODO the sub-fields should be named after their full path, yet their toXContent should
                 // only print out their leaf field name (which may contain dots!)
                 Map<String, RuntimeField> runtimeFields = RuntimeField.parseRuntimeFields(fields.getValue(),
-                    parserContext, searchLookup -> factory.newFactory(name, script.get().getParams(), searchLookup), false);
+                    parserContext, name, searchLookup -> factory.newFactory(name, script.get().getParams(), searchLookup), false);
                 return new ObjectRuntimeField(name, runtimeFields.values(), this);
             }
         });
@@ -107,9 +113,9 @@ public class ObjectRuntimeField implements RuntimeField {
     }
 
     @Override
-    public Collection<MappedFieldType> asMappedFieldTypes(String parent) {
+    public Collection<MappedFieldType> asMappedFieldTypes() {
         return subfields.stream()
-            .flatMap(runtimeField -> runtimeField.asMappedFieldTypes(name).stream())
+            .flatMap(runtimeField -> runtimeField.asMappedFieldTypes().stream())
             .collect(Collectors.toList());
     }
 
