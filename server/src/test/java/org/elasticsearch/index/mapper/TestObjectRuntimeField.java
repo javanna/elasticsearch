@@ -9,11 +9,14 @@
 package org.elasticsearch.index.mapper;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.script.LongFieldScript;
 import org.elasticsearch.script.ObjectFieldScript;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptContext;
 
 import java.io.IOException;
+
+import static org.hamcrest.Matchers.containsString;
 
 public class TestObjectRuntimeField extends MapperServiceTestCase {
 
@@ -33,7 +36,15 @@ public class TestObjectRuntimeField extends MapperServiceTestCase {
                 }
             };
         }
-        throw new UnsupportedOperationException("Unknown context");
+        if (context == LongFieldScript.CONTEXT) {
+            return (T) (LongFieldScript.Factory) (field, params, lookup) -> ctx -> new LongFieldScript(field, params, lookup, ctx) {
+                @Override
+                public void execute() {
+
+                }
+            };
+        }
+        throw new UnsupportedOperationException("Unknown context " + context.name);
     }
 
     public void testObjectDefinition() throws IOException {
@@ -59,6 +70,20 @@ public class TestObjectRuntimeField extends MapperServiceTestCase {
                 "\"fields\":{\"long-subfield\":{\"type\":\"long\"},\"str-subfield\":{\"type\":\"keyword\"}}}}",
             Strings.toString(rf)
         );
+    }
+
+    public void testScriptOnSubFieldThrowsError() {
+        Exception e = expectThrows(MapperParsingException.class, () -> createMapperService(runtimeMapping(b -> {
+            b.startObject("obj");
+            b.field("type", "object");
+            b.field("script", "dummy");
+            b.startObject("fields");
+            b.startObject("long").field("type", "long").field("script", "dummy").endObject();
+            b.endObject();
+            b.endObject();
+        })));
+
+        assertThat(e.getMessage(), containsString("Cannot use [script] parameter on sub-field [long] of object field [obj]"));
     }
 
 }

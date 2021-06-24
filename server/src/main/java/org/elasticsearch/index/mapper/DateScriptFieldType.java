@@ -97,16 +97,6 @@ public class DateScriptFieldType extends AbstractScriptFieldType<DateFieldScript
             DateFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
                 return DateFieldScript.objectAdapter(parentScriptFactory);
             }
-
-            @Override
-            DateFieldScript.Factory getParseFromSourceFactory() {
-                return DateFieldScript.PARSE_FROM_SOURCE;
-            }
-
-            @Override
-            DateFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
-                return DateFieldScript.objectAdapter(parentScriptFactory);
-            }
         });
 
     private static RuntimeField runtimeField(

@@ -59,16 +59,6 @@ public final class KeywordScriptFieldType extends AbstractScriptFieldType<String
             StringFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
                 return StringFieldScript.objectAdapter(parentScriptFactory);
             }
-
-            @Override
-            StringFieldScript.Factory getParseFromSourceFactory() {
-                return StringFieldScript.PARSE_FROM_SOURCE;
-            }
-
-            @Override
-            StringFieldScript.Factory getObjectSubfieldFactory(Function<SearchLookup, ObjectFieldScript.LeafFactory> parentScriptFactory) {
-                return StringFieldScript.objectAdapter(parentScriptFactory);
-            }
         });
 
     private static RuntimeField runtimeField(

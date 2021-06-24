@@ -184,6 +184,12 @@ public interface RuntimeField extends ToXContentFragment {
                 } else {
                     type = typeNode.toString();
                 }
+                Object scriptNode = propNode.get("script");
+                if (scriptNode != null && parent != null) {
+                    throw new MapperParsingException(
+                        "Cannot use [script] parameter on sub-field [" + fieldName + "] of object field [" + parent + "]"
+                    );
+                }
                 Parser typeParser = parserContext.runtimeFieldParser(type);
                 if (typeParser == null) {
                     throw new MapperParsingException("No handler for type [" + type +
