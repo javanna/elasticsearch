@@ -45,12 +45,13 @@ public abstract class ObjectFieldScript extends AbstractFieldScript {
      */
     public final List<Object> getValues(String field) {
         //TODO for now we re-run the script every time a leaf field is accessed, but we could cache the values?
+        assert field.startsWith(this.fieldName + ".");
         fieldValues.clear();
         execute();
-        return fieldValues.get(field);
+        return fieldValues.get(field.substring(fieldName.length() + 1));
     }
 
-    protected final void emit(String field, Object value) {
+    public final void emit(String field, Object value) {
         List<Object> values = this.fieldValues.computeIfAbsent(field, s -> new ArrayList<>());
         values.add(value);
     }
