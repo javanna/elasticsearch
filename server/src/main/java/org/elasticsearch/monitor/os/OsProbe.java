@@ -470,7 +470,7 @@ public class OsProbe {
     @SuppressForbidden(reason = "access /sys/fs/cgroup/cpu")
     List<String> readSysFsCgroupCpuAcctCpuStat(final String controlGroup) throws IOException {
         final List<String> lines = Files.readAllLines(PathUtils.get("/sys/fs/cgroup/cpu", controlGroup, "cpu.stat"));
-        assert lines != null && lines.size() == 3;
+        //assert lines != null && lines.size() == 3;
         return lines;
     }
 
