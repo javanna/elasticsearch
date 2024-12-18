@@ -230,7 +230,7 @@ public class DiscoveryNodeTests extends ESTestCase {
                     transportAddress,
                     withExternalId ? "test-external-id" : "test-name",
                     Version.CURRENT,
-                    IndexVersions.MINIMUM_COMPATIBLE,
+                    IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                     IndexVersions.MINIMUM_READONLY_COMPATIBLE,
                     IndexVersion.current()
                 )

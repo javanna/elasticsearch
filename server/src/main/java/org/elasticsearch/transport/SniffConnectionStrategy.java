@@ -504,7 +504,7 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
     private static DiscoveryNode resolveSeedNode(String clusterAlias, String address, String proxyAddress) {
         var seedVersion = new VersionInformation(
             Version.CURRENT.minimumCompatibilityVersion(),
-            IndexVersions.MINIMUM_COMPATIBLE,
+            IndexVersions.MINIMUM_WRITE_COMPATIBLE,
             IndexVersions.MINIMUM_READONLY_COMPATIBLE,
             IndexVersion.current()
         );

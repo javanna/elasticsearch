@@ -56,7 +56,7 @@ public class ClusterSearchShardsResponseTests extends ESTestCase {
             clusterSearchShardsGroups[i] = new ClusterSearchShardsGroup(shardId, new ShardRouting[] { shardRouting });
             DiscoveryNodeUtils.Builder node = DiscoveryNodeUtils.builder(shardRouting.currentNodeId())
                 .address(new TransportAddress(TransportAddress.META_ADDRESS, randomInt(0xFFFF)))
-                .version(randomCompatibleVersion(random(), Version.CURRENT), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current());
+                .version(randomCompatibleVersion(random(), Version.CURRENT), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current());
             nodes.add(node.build());
             AliasFilter aliasFilter;
             if (randomBoolean()) {

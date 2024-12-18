@@ -110,7 +110,7 @@ public class FeatureServiceTests extends ESTestCase {
                     .add(DiscoveryNodeUtils.create("node2"))
                     .add(
                         DiscoveryNodeUtils.builder("node3")
-                            .version(new VersionInformation(nextMajor(), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current()))
+                            .version(new VersionInformation(nextMajor(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current()))
                             .build()
                     )
             )

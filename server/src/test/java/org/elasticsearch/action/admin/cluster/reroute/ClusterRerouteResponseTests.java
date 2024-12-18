@@ -218,7 +218,7 @@ public class ClusterRerouteResponseTests extends ESTestCase {
                 clusterState.stateUUID(),
                 clusterState.getNodes().get("node0").getEphemeralId(),
                 Version.CURRENT,
-                IndexVersions.MINIMUM_COMPATIBLE,
+                IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                 IndexVersions.MINIMUM_READONLY_COMPATIBLE,
                 IndexVersion.current(),
                 IndexVersion.current(),

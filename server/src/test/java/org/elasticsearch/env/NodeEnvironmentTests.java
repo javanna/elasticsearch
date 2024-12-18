@@ -567,7 +567,7 @@ public class NodeEnvironmentTests extends ESTestCase {
             }
 
             Version oldVersion = Version.fromId(between(1, Version.CURRENT.minimumCompatibilityVersion().id - 1));
-            IndexVersion oldIndexVersion = IndexVersion.fromId(between(1, IndexVersions.MINIMUM_COMPATIBLE.id() - 1));
+            IndexVersion oldIndexVersion = IndexVersion.fromId(between(1, IndexVersions.MINIMUM_WRITE_COMPATIBLE.id() - 1));
             Version previousNodeVersion = Version.fromId(between(Version.CURRENT.minimumCompatibilityVersion().id, Version.CURRENT.id - 1));
             overrideOldestIndexVersion(oldIndexVersion, previousNodeVersion, env.nodeDataPaths());
 
@@ -591,7 +591,7 @@ public class NodeEnvironmentTests extends ESTestCase {
             );
 
             // This should work
-            overrideOldestIndexVersion(IndexVersions.MINIMUM_COMPATIBLE, previousNodeVersion, env.nodeDataPaths());
+            overrideOldestIndexVersion(IndexVersions.MINIMUM_WRITE_COMPATIBLE, previousNodeVersion, env.nodeDataPaths());
             checkForIndexCompatibility(logger, env.dataPaths());
 
             // Trying to boot with newer version should pass this check

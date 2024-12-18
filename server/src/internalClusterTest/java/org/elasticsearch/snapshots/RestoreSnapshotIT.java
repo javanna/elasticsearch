@@ -980,7 +980,7 @@ public class RestoreSnapshotIT extends AbstractSnapshotIntegTestCase {
         final String repoName = "test-repo";
         final Path repoPath = randomRepoPath();
         createRepository(repoName, FsRepository.TYPE, repoPath);
-        final IndexVersion oldVersion = IndexVersion.fromId(IndexVersions.MINIMUM_COMPATIBLE.id() - 1);
+        final IndexVersion oldVersion = IndexVersion.fromId(IndexVersions.MINIMUM_WRITE_COMPATIBLE.id() - 1);
         final String oldSnapshot = initWithSnapshotVersion(repoName, repoPath, oldVersion);
         final SnapshotRestoreException snapshotRestoreException = expectThrows(
             SnapshotRestoreException.class,
@@ -992,7 +992,7 @@ public class RestoreSnapshotIT extends AbstractSnapshotIntegTestCase {
                 "the snapshot was created with Elasticsearch version ["
                     + oldVersion.toReleaseVersion()
                     + "] which is below the current versions minimum index compatibility version ["
-                    + IndexVersions.MINIMUM_COMPATIBLE.toReleaseVersion()
+                    + IndexVersions.MINIMUM_WRITE_COMPATIBLE.toReleaseVersion()
                     + "]"
             )
         );

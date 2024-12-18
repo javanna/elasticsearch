@@ -224,7 +224,7 @@ public abstract class ESAllocationTestCase extends ESTestCase {
     protected static DiscoveryNode newNode(String nodeId, Version version, IndexVersion indexVersion) {
         return DiscoveryNodeUtils.builder(nodeId)
             .roles(MASTER_DATA_ROLES)
-            .version(version, IndexVersions.MINIMUM_COMPATIBLE, indexVersion)
+            .version(version, IndexVersions.MINIMUM_WRITE_COMPATIBLE, indexVersion)
             .build();
     }
 

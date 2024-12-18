@@ -110,7 +110,7 @@ public class RepositoryDataTests extends ESTestCase {
             newSnapshot,
             new RepositoryData.SnapshotDetails(
                 randomFrom(SnapshotState.SUCCESS, SnapshotState.PARTIAL, SnapshotState.FAILED),
-                randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_COMPATIBLE),
+                randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_WRITE_COMPATIBLE),
                 randomNonNegativeLong(),
                 randomNonNegativeLong(),
                 randomAlphaOfLength(10)
@@ -142,7 +142,7 @@ public class RepositoryDataTests extends ESTestCase {
                 snapshotId.getUUID(),
                 new RepositoryData.SnapshotDetails(
                     randomFrom(SnapshotState.values()),
-                    randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_COMPATIBLE),
+                    randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_WRITE_COMPATIBLE),
                     randomNonNegativeLong(),
                     randomNonNegativeLong(),
                     randomAlphaOfLength(10)
@@ -210,7 +210,7 @@ public class RepositoryDataTests extends ESTestCase {
             snapshotId,
             new RepositoryData.SnapshotDetails(
                 state,
-                randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_COMPATIBLE),
+                randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_WRITE_COMPATIBLE),
                 randomNonNegativeLong(),
                 randomNonNegativeLong(),
                 randomAlphaOfLength(10)
@@ -455,7 +455,7 @@ public class RepositoryDataTests extends ESTestCase {
                 snapshotId,
                 new RepositoryData.SnapshotDetails(
                     randomFrom(SnapshotState.values()),
-                    randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_COMPATIBLE),
+                    randomFrom(IndexVersion.current(), IndexVersions.MINIMUM_WRITE_COMPATIBLE),
                     randomNonNegativeLong(),
                     randomNonNegativeLong(),
                     randomAlphaOfLength(10)

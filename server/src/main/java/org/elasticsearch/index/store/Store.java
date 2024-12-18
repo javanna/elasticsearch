@@ -855,7 +855,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
                     }
                 }
                 if (maxVersion == null) {
-                    maxVersion = IndexVersions.MINIMUM_COMPATIBLE.luceneVersion();
+                    maxVersion = IndexVersions.MINIMUM_WRITE_COMPATIBLE.luceneVersion();
                 }
                 final String segmentsFile = segmentCommitInfos.getSegmentsFileName();
                 checksumFromLuceneFile(

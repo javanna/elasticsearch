@@ -886,12 +886,12 @@ public class MetadataTests extends ESTestCase {
 
     public void testOldestIndexComputation() {
         Metadata metadata = buildIndicesWithVersions(
-            IndexVersions.MINIMUM_COMPATIBLE,
+            IndexVersions.MINIMUM_WRITE_COMPATIBLE,
             IndexVersion.current(),
             IndexVersion.fromId(IndexVersion.current().id() + 1)
         ).build();
 
-        assertEquals(IndexVersions.MINIMUM_COMPATIBLE, metadata.oldestIndexVersion());
+        assertEquals(IndexVersions.MINIMUM_WRITE_COMPATIBLE, metadata.oldestIndexVersion());
 
         Metadata.Builder b = Metadata.builder();
         assertEquals(IndexVersion.current(), b.build().oldestIndexVersion());
@@ -899,7 +899,7 @@ public class MetadataTests extends ESTestCase {
         Throwable ex = expectThrows(
             IllegalArgumentException.class,
             () -> buildIndicesWithVersions(
-                IndexVersions.MINIMUM_COMPATIBLE,
+                IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                 IndexVersions.ZERO,
                 IndexVersion.fromId(IndexVersion.current().id() + 1)
             ).build()

@@ -89,12 +89,12 @@ public class NodeJoinExecutorTests extends ESTestCase {
             .build();
         metaBuilder.put(indexMetadata, false);
         Metadata metadata = metaBuilder.build();
-        NodeJoinExecutor.ensureIndexCompatibility(IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current(), metadata);
+        NodeJoinExecutor.ensureIndexCompatibility(IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current(), metadata);
 
         expectThrows(
             IllegalStateException.class,
             () -> NodeJoinExecutor.ensureIndexCompatibility(
-                IndexVersions.MINIMUM_COMPATIBLE,
+                IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                 IndexVersionUtils.getPreviousVersion(IndexVersion.current()),
                 metadata
             )
@@ -113,7 +113,7 @@ public class NodeJoinExecutorTests extends ESTestCase {
         Metadata metadata = metaBuilder.build();
         expectThrows(
             IllegalStateException.class,
-            () -> NodeJoinExecutor.ensureIndexCompatibility(IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current(), metadata)
+            () -> NodeJoinExecutor.ensureIndexCompatibility(IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current(), metadata)
         );
     }
 
@@ -122,12 +122,12 @@ public class NodeJoinExecutorTests extends ESTestCase {
         final Version version = randomCompatibleVersion(random(), Version.CURRENT);
         builder.add(
             DiscoveryNodeUtils.builder(UUIDs.base64UUID())
-                .version(version, IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+                .version(version, IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
                 .build()
         );
         builder.add(
             DiscoveryNodeUtils.builder(UUIDs.base64UUID())
-                .version(randomCompatibleVersion(random(), version), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+                .version(randomCompatibleVersion(random(), version), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
                 .build()
         );
         DiscoveryNodes nodes = builder.build();
@@ -265,7 +265,7 @@ public class NodeJoinExecutorTests extends ESTestCase {
         // this can happen in the process of marking, then removing, assumed features
         // they should still be recorded appropriately
         DiscoveryNode newNode = DiscoveryNodeUtils.builder(UUIDs.base64UUID())
-            .version(nextMajor(), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+            .version(nextMajor(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
             .build();
         clusterState = ClusterStateTaskExecutorUtils.executeAndAssertSuccessful(
             clusterState,
@@ -311,7 +311,7 @@ public class NodeJoinExecutorTests extends ESTestCase {
             .build();
 
         DiscoveryNode newNodeNextMajor = DiscoveryNodeUtils.builder(UUIDs.base64UUID())
-            .version(nextMajor(), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+            .version(nextMajor(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
             .build();
         clusterState = ClusterStateTaskExecutorUtils.executeAndAssertSuccessful(
             clusterState,
@@ -350,7 +350,7 @@ public class NodeJoinExecutorTests extends ESTestCase {
 
         // a next major can't join missing non-assumed features
         DiscoveryNode newNodeNextMajorMissing = DiscoveryNodeUtils.builder(UUIDs.base64UUID())
-            .version(nextMajor(), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+            .version(nextMajor(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
             .build();
         ex.set(null);
         clusterState = ClusterStateTaskExecutorUtils.executeAndAssertSuccessful(
@@ -400,11 +400,11 @@ public class NodeJoinExecutorTests extends ESTestCase {
             .build();
 
         DiscoveryNode newNodeNextMajor = DiscoveryNodeUtils.builder(UUIDs.base64UUID())
-            .version(nextMajor(), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+            .version(nextMajor(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
             .build();
         DiscoveryNode newNodeCurMajor = DiscoveryNodeUtils.create(UUIDs.base64UUID());
         DiscoveryNode newNodeNextMajorMissing = DiscoveryNodeUtils.builder(UUIDs.base64UUID())
-            .version(nextMajor(), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+            .version(nextMajor(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
             .build();
         // even though a next major could join, this doesnt allow the current major to join with missing features
         // nor a next major missing non-assumed features
@@ -467,7 +467,7 @@ public class NodeJoinExecutorTests extends ESTestCase {
             .build();
         metaBuilder.put(indexMetadata, false);
         Metadata metadata = metaBuilder.build();
-        NodeJoinExecutor.ensureIndexCompatibility(IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current(), metadata);
+        NodeJoinExecutor.ensureIndexCompatibility(IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current(), metadata);
     }
 
     public static Settings.Builder randomCompatibleVersionSettings() {

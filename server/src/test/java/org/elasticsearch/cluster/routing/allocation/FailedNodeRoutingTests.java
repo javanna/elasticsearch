@@ -226,7 +226,7 @@ public class FailedNodeRoutingTests extends ESAllocationTestCase {
             .roles(roles)
             .version(
                 VersionUtils.randomCompatibleVersion(random(), Version.CURRENT),
-                IndexVersions.MINIMUM_COMPATIBLE,
+                IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                 IndexVersionUtils.randomCompatibleVersion(random())
             )
             .build();

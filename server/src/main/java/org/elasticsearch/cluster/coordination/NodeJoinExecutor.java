@@ -393,7 +393,7 @@ public class NodeJoinExecutor implements ClusterStateTaskExecutor<JoinTask> {
      * Ensures that all indices are compatible with the given index version. This will ensure that all indices in the given metadata
      * will not be created with a newer version of elasticsearch as well as that all indices are newer or equal to the minimum index
      * compatibility version.
-     * @see IndexVersions#MINIMUM_COMPATIBLE
+     * @see IndexVersions#MINIMUM_WRITE_COMPATIBLE
      * @throws IllegalStateException if any index is incompatible with the given version
      */
     public static void ensureIndexCompatibility(IndexVersion minSupportedVersion, IndexVersion maxSupportedVersion, Metadata metadata) {

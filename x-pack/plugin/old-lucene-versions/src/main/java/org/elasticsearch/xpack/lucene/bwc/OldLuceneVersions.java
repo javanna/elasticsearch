@@ -207,7 +207,7 @@ public class OldLuceneVersions extends Plugin implements IndexStorePlugin, Clust
             assert oldSegmentInfos.getLuceneVersion()
                 .onOrAfter(RecoverySettings.SEQ_NO_SNAPSHOT_RECOVERIES_SUPPORTED_VERSION.luceneVersion()) == false
                 : oldSegmentInfos.getLuceneVersion() + " should contain the ES_VERSION";
-            map.put(Engine.ES_VERSION, IndexVersions.MINIMUM_COMPATIBLE.toString());
+            map.put(Engine.ES_VERSION, IndexVersions.MINIMUM_WRITE_COMPATIBLE.toString());
         }
         segmentInfos.setUserData(map, false);
         for (SegmentCommitInfo infoPerCommit : oldSegmentInfos.asList()) {

@@ -405,7 +405,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         assertEquals(Version.CURRENT, DiscoveryNodes.EMPTY_NODES.getMaxNodeVersion());
         assertEquals(Version.CURRENT.minimumCompatibilityVersion(), DiscoveryNodes.EMPTY_NODES.getMinNodeVersion());
         assertEquals(IndexVersion.current(), DiscoveryNodes.EMPTY_NODES.getMaxDataNodeCompatibleIndexVersion());
-        assertEquals(IndexVersions.MINIMUM_COMPATIBLE, DiscoveryNodes.EMPTY_NODES.getMinSupportedIndexVersion());
+        assertEquals(IndexVersions.MINIMUM_WRITE_COMPATIBLE, DiscoveryNodes.EMPTY_NODES.getMinSupportedIndexVersion());
 
         // use a mix of versions with major, minor, and patch numbers
         List<VersionInformation> dataVersions = List.of(
@@ -482,7 +482,7 @@ public class DiscoveryNodesTests extends ESTestCase {
 
         final var node0 = nodeVersionFactory.apply(
             0,
-            new VersionInformation(VersionUtils.randomVersion(random()), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+            new VersionInformation(VersionUtils.randomVersion(random()), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
         );
         testHarness.accept(builder -> builder.add(node0), 0L);
 

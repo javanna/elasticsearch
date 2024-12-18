@@ -33,7 +33,7 @@ public record VersionInformation(
 
     public static final VersionInformation CURRENT = new VersionInformation(
         BuildVersion.current(),
-        IndexVersions.MINIMUM_COMPATIBLE,
+        IndexVersions.MINIMUM_WRITE_COMPATIBLE,
         IndexVersions.MINIMUM_READONLY_COMPATIBLE,
         IndexVersion.current()
     );

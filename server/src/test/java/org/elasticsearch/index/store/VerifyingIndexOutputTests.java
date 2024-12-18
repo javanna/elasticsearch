@@ -29,7 +29,7 @@ public class VerifyingIndexOutputTests extends ESTestCase {
 
     private static final int CHECKSUM_LENGTH = 8;
 
-    private static final Version MIN_SUPPORTED_LUCENE_VERSION = IndexVersions.MINIMUM_COMPATIBLE.luceneVersion();
+    private static final Version MIN_SUPPORTED_LUCENE_VERSION = IndexVersions.MINIMUM_WRITE_COMPATIBLE.luceneVersion();
     private static final Matcher<String> VERIFICATION_FAILURE = containsString("verification failed (hardware problem?)");
     private static final Matcher<String> FOOTER_NOT_CHECKED = allOf(VERIFICATION_FAILURE, containsString("footer=<not checked>"));
     private static final Matcher<String> INVALID_LENGTH = allOf(VERIFICATION_FAILURE, containsString("footer=<invalid length>"));

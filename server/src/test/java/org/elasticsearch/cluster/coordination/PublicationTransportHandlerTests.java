@@ -229,7 +229,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
                 var node = DiscoveryNodeUtils.builder("node-" + allNodes.size())
                     .version(
                         VersionUtils.randomCompatibleVersion(random(), Version.CURRENT),
-                        IndexVersions.MINIMUM_COMPATIBLE,
+                        IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                         IndexVersionUtils.randomCompatibleVersion(random())
                     )
                     .build();
@@ -364,7 +364,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         final var otherNode = DiscoveryNodeUtils.builder("otherNode")
             .version(
                 VersionUtils.randomCompatibleVersion(random(), Version.CURRENT),
-                IndexVersions.MINIMUM_COMPATIBLE,
+                IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                 IndexVersionUtils.randomCompatibleVersion(random())
             )
             .build();

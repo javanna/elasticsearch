@@ -74,7 +74,7 @@ public class SimilarityServiceTests extends ESTestCase {
         };
         IllegalArgumentException e = expectThrows(
             IllegalArgumentException.class,
-            () -> SimilarityService.validateSimilarity(IndexVersions.MINIMUM_COMPATIBLE, negativeScoresSim)
+            () -> SimilarityService.validateSimilarity(IndexVersions.MINIMUM_WRITE_COMPATIBLE, negativeScoresSim)
         );
         assertThat(e.getMessage(), Matchers.containsString("Similarities should not return negative scores"));
 
@@ -99,7 +99,7 @@ public class SimilarityServiceTests extends ESTestCase {
         };
         e = expectThrows(
             IllegalArgumentException.class,
-            () -> SimilarityService.validateSimilarity(IndexVersions.MINIMUM_COMPATIBLE, decreasingScoresWithFreqSim)
+            () -> SimilarityService.validateSimilarity(IndexVersions.MINIMUM_WRITE_COMPATIBLE, decreasingScoresWithFreqSim)
         );
         assertThat(e.getMessage(), Matchers.containsString("Similarity scores should not decrease when term frequency increases"));
 
@@ -124,7 +124,7 @@ public class SimilarityServiceTests extends ESTestCase {
         };
         e = expectThrows(
             IllegalArgumentException.class,
-            () -> SimilarityService.validateSimilarity(IndexVersions.MINIMUM_COMPATIBLE, increasingScoresWithNormSim)
+            () -> SimilarityService.validateSimilarity(IndexVersions.MINIMUM_WRITE_COMPATIBLE, increasingScoresWithNormSim)
         );
         assertThat(e.getMessage(), Matchers.containsString("Similarity scores should not increase when norm increases"));
     }

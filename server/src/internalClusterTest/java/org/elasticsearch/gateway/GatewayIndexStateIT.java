@@ -382,7 +382,7 @@ public class GatewayIndexStateIT extends ESIntegTestCase {
             .settings(
                 Settings.builder()
                     .put(metadata.getSettings())
-                    .put(IndexMetadata.SETTING_VERSION_CREATED, IndexVersions.MINIMUM_COMPATIBLE)
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, IndexVersions.MINIMUM_WRITE_COMPATIBLE)
                     // this is invalid but should be archived
                     .put("index.similarity.BM25.type", "boolean")
                     // this one is not validated ahead of time and breaks allocation

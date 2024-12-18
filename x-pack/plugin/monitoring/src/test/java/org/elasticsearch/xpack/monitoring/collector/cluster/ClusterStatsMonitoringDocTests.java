@@ -461,7 +461,7 @@ public class ClusterStatsMonitoringDocTests extends BaseMonitoringDocTestCase<Cl
             mockNodeVersion,
             pluginEsBuildVersion,
             Version.CURRENT,
-            IndexVersions.MINIMUM_COMPATIBLE,
+            IndexVersions.MINIMUM_WRITE_COMPATIBLE,
             IndexVersions.MINIMUM_READONLY_COMPATIBLE,
             IndexVersion.current(),
             apmIndicesExist };

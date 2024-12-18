@@ -122,11 +122,11 @@ public class IndexVersionUtils {
 
     /** Returns a random {@code IndexVersion} that is compatible with {@link IndexVersion#current()} */
     public static IndexVersion randomCompatibleVersion(Random random) {
-        return randomVersionBetween(random, IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current());
+        return randomVersionBetween(random, IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current());
     }
 
     /** Returns a random {@code IndexVersion} that is compatible with the previous version to {@code version} */
     public static IndexVersion randomPreviousCompatibleVersion(Random random, IndexVersion version) {
-        return randomVersionBetween(random, IndexVersions.MINIMUM_COMPATIBLE, getPreviousVersion(version));
+        return randomVersionBetween(random, IndexVersions.MINIMUM_WRITE_COMPATIBLE, getPreviousVersion(version));
     }
 }

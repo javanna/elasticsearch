@@ -724,14 +724,14 @@ public class FailedShardsRoutingTests extends ESAllocationTestCase {
                         newNode(
                             "node3-old",
                             VersionUtils.randomVersionBetween(random(), Version.CURRENT.minimumCompatibilityVersion(), null),
-                            IndexVersionUtils.randomVersionBetween(random(), IndexVersions.MINIMUM_COMPATIBLE, null)
+                            IndexVersionUtils.randomVersionBetween(random(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, null)
                         )
                     )
                     .add(
                         newNode(
                             "node4-old",
                             VersionUtils.randomVersionBetween(random(), Version.CURRENT.minimumCompatibilityVersion(), null),
-                            IndexVersionUtils.randomVersionBetween(random(), IndexVersions.MINIMUM_COMPATIBLE, null)
+                            IndexVersionUtils.randomVersionBetween(random(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, null)
                         )
                     )
             )

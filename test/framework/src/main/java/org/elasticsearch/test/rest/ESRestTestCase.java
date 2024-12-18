@@ -2339,7 +2339,7 @@ public abstract class ESRestTestCase extends ESTestCase {
             IndexVersion indexVersion = versionStr != null
                 ? IndexVersion.fromId(Integer.parseInt(versionStr.toString()))
                 : IndexVersion.fromId(
-                    parseLegacyVersion((String) nodeData.get("version")).map(Version::id).orElse(IndexVersions.MINIMUM_COMPATIBLE.id())
+                    parseLegacyVersion((String) nodeData.get("version")).map(Version::id).orElse(IndexVersions.MINIMUM_WRITE_COMPATIBLE.id())
                 );
             if (minVersion == null || minVersion.after(indexVersion)) {
                 minVersion = indexVersion;

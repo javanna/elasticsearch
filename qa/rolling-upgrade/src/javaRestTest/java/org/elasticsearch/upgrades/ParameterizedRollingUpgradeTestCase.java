@@ -78,7 +78,7 @@ public abstract class ParameterizedRollingUpgradeTestCase extends ESRestTestCase
                 } else {
                     // it doesn't have index version (pre 8.11) - just infer it from the release version
                     version = parseLegacyVersion(getOldClusterVersion()).map(v -> IndexVersion.fromId(v.id))
-                        .orElse(IndexVersions.MINIMUM_COMPATIBLE);
+                        .orElse(IndexVersions.MINIMUM_WRITE_COMPATIBLE);
                 }
 
                 if (indexVersion == null) {

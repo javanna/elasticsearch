@@ -130,7 +130,7 @@ public record Build(
 
         final String flavor = "default";
         String minWireCompat = Version.CURRENT.minimumCompatibilityVersion().toString();
-        String minIndexCompat = minimumCompatString(IndexVersions.MINIMUM_COMPATIBLE);
+        String minIndexCompat = minimumCompatString(IndexVersions.MINIMUM_WRITE_COMPATIBLE);
         String displayString = defaultDisplayString(type, hash, date, qualifiedVersionString(version, qualifier, isSnapshot));
 
         return new Build(flavor, type, hash, date, version, qualifier, isSnapshot, minWireCompat, minIndexCompat, displayString);

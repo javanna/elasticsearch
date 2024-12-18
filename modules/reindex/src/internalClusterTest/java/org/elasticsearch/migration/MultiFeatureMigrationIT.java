@@ -264,7 +264,7 @@ public class MultiFeatureMigrationIT extends AbstractFeatureMigrationIntegTest {
         .setAliasName(".second-internal-managed-alias")
         .setPrimaryIndex(".second-int-man-old")
         .setType(SystemIndexDescriptor.Type.INTERNAL_MANAGED)
-        .setSettings(createSettings(IndexVersions.MINIMUM_COMPATIBLE, 0))
+        .setSettings(createSettings(IndexVersions.MINIMUM_WRITE_COMPATIBLE, 0))
         .setMappings(createMapping(true, true))
         .setOrigin(ORIGIN)
         .setAllowedElasticProductOrigins(Collections.emptyList())

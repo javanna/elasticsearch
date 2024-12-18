@@ -82,7 +82,7 @@ public abstract class ParameterizedFullClusterRestartTestCase extends ESRestTest
                 } else {
                     // it doesn't have index version (pre 8.11) - just infer it from the release version
                     version = parseLegacyVersion(OLD_CLUSTER_VERSION).map(x -> IndexVersion.fromId(x.id()))
-                        .orElse(IndexVersions.MINIMUM_COMPATIBLE);
+                        .orElse(IndexVersions.MINIMUM_WRITE_COMPATIBLE);
                 }
 
                 if (indexVersion == null) {

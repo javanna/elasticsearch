@@ -109,7 +109,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                     emptySet(),
                     new VersionInformation(
                         Version.CURRENT.minimumCompatibilityVersion(),
-                        IndexVersions.MINIMUM_COMPATIBLE,
+                        IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                         IndexVersions.MINIMUM_READONLY_COMPATIBLE,
                         IndexVersion.current()
                     )

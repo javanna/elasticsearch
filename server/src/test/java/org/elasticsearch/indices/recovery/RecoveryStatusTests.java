@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 import static org.elasticsearch.index.shard.IndexShardTestCase.closeShardNoCheck;
 
 public class RecoveryStatusTests extends ESSingleNodeTestCase {
-    private static final Version MIN_SUPPORTED_LUCENE_VERSION = IndexVersions.MINIMUM_COMPATIBLE.luceneVersion();
+    private static final Version MIN_SUPPORTED_LUCENE_VERSION = IndexVersions.MINIMUM_WRITE_COMPATIBLE.luceneVersion();
 
     public void testRenameTempFiles() throws IOException {
         IndexService service = createIndex("foo");

@@ -247,7 +247,7 @@ public class ProxyConnectionStrategyTests extends ESTestCase {
     public void testConnectFailsWithIncompatibleNodes() {
         VersionInformation incompatibleVersion = new VersionInformation(
             Version.CURRENT.minimumCompatibilityVersion().minimumCompatibilityVersion(),
-            IndexVersions.MINIMUM_COMPATIBLE,
+            IndexVersions.MINIMUM_WRITE_COMPATIBLE,
             IndexVersion.current()
         );
         TransportVersion incompatibleTransportVersion = TransportVersionUtils.getPreviousVersion(TransportVersions.MINIMUM_COMPATIBLE);

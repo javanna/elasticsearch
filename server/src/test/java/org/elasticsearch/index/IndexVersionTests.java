@@ -157,7 +157,7 @@ public class IndexVersionTests extends ESTestCase {
     }
 
     public void testVersionConstantPresent() {
-        Set<IndexVersion> ignore = Set.of(IndexVersions.ZERO, IndexVersion.current(), IndexVersions.MINIMUM_COMPATIBLE);
+        Set<IndexVersion> ignore = Set.of(IndexVersions.ZERO, IndexVersion.current(), IndexVersions.MINIMUM_WRITE_COMPATIBLE);
         assertThat(IndexVersion.current(), sameInstance(IndexVersion.fromId(IndexVersion.current().id())));
         assertThat(IndexVersion.current().luceneVersion(), equalTo(org.apache.lucene.util.Version.LATEST));
         final int iters = scaledRandomIntBetween(20, 100);

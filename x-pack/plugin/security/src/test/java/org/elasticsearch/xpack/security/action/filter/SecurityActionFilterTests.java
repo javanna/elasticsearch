@@ -104,7 +104,7 @@ public class SecurityActionFilterTests extends ESTestCase {
             .add(DiscoveryNodeUtils.create("id1"))
             .add(
                 DiscoveryNodeUtils.builder("id2")
-                    .version(Version.CURRENT.minimumCompatibilityVersion(), IndexVersions.MINIMUM_COMPATIBLE, IndexVersion.current())
+                    .version(Version.CURRENT.minimumCompatibilityVersion(), IndexVersions.MINIMUM_WRITE_COMPATIBLE, IndexVersion.current())
                     .build()
             )
             .build();

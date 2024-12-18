@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 public class FileInfoTests extends ESTestCase {
-    private static final Version MIN_SUPPORTED_LUCENE_VERSION = IndexVersions.MINIMUM_COMPATIBLE.luceneVersion();
+    private static final Version MIN_SUPPORTED_LUCENE_VERSION = IndexVersions.MINIMUM_WRITE_COMPATIBLE.luceneVersion();
 
     public void testToFromXContent() throws IOException {
         final int iters = scaledRandomIntBetween(1, 10);

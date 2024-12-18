@@ -101,7 +101,7 @@ public class IndexRecoveryMonitoringDocTests extends BaseMonitoringDocTestCase<I
             .version(
                 new VersionInformation(
                     Version.CURRENT.minimumCompatibilityVersion(),
-                    IndexVersions.MINIMUM_COMPATIBLE,
+                    IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                     IndexVersion.current()
                 )
             )

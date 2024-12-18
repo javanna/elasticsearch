@@ -150,7 +150,7 @@ public class TransportBulkActionTests extends ESTestCase {
         DiscoveryNode discoveryNode = DiscoveryNodeUtils.builder("node")
             .version(
                 VersionUtils.randomCompatibleVersion(random(), Version.CURRENT),
-                IndexVersions.MINIMUM_COMPATIBLE,
+                IndexVersions.MINIMUM_WRITE_COMPATIBLE,
                 IndexVersionUtils.randomCompatibleVersion(random())
             )
             .build();

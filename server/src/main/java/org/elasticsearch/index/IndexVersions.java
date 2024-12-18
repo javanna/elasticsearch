@@ -191,7 +191,7 @@ public class IndexVersions {
      * In branches 8.7-8.11 see server/src/main/java/org/elasticsearch/index/IndexVersion.java for the equivalent definitions.
      */
 
-    public static final IndexVersion MINIMUM_COMPATIBLE = V_8_0_0;
+    public static final IndexVersion MINIMUM_WRITE_COMPATIBLE = V_8_0_0;
     public static final IndexVersion MINIMUM_READONLY_COMPATIBLE = V_7_0_0;
 
     static final NavigableMap<Integer, IndexVersion> VERSION_IDS = getAllVersionIds(IndexVersions.class);
@@ -244,7 +244,7 @@ public class IndexVersions {
     }
 
     static Collection<IndexVersion> getAllWriteVersions() {
-        return VERSION_IDS.values().stream().filter(v -> v.onOrAfter(IndexVersions.MINIMUM_COMPATIBLE)).collect(Collectors.toSet());
+        return VERSION_IDS.values().stream().filter(v -> v.onOrAfter(IndexVersions.MINIMUM_WRITE_COMPATIBLE)).collect(Collectors.toSet());
     }
 
     static Collection<IndexVersion> getAllVersions() {

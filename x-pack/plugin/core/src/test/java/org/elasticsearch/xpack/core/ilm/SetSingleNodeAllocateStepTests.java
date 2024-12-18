@@ -388,7 +388,7 @@ public class SetSingleNodeAllocateStepTests extends AbstractStepTestCase<SetSing
     public void testPerformActionSomeShardsOnlyOnNewNodes() throws Exception {
         VersionInformation oldVersion = new VersionInformation(
             VersionUtils.randomCompatibleVersion(random(), VersionUtils.getPreviousVersion()),
-            IndexVersions.MINIMUM_COMPATIBLE,
+            IndexVersions.MINIMUM_WRITE_COMPATIBLE,
             IndexVersionUtils.randomCompatibleVersion(random())
         );
         final int numNodes = randomIntBetween(2, 20); // Need at least 2 nodes to have some nodes on a new version
@@ -453,7 +453,7 @@ public class SetSingleNodeAllocateStepTests extends AbstractStepTestCase<SetSing
     public void testPerformActionSomeShardsOnlyOnNewNodesButNewNodesInvalidAttrs() {
         VersionInformation oldVersion = new VersionInformation(
             VersionUtils.randomCompatibleVersion(random(), VersionUtils.getPreviousVersion()),
-            IndexVersions.MINIMUM_COMPATIBLE,
+            IndexVersions.MINIMUM_WRITE_COMPATIBLE,
             IndexVersionUtils.randomCompatibleVersion(random())
         );
         final int numNodes = randomIntBetween(2, 20); // Need at least 2 nodes to have some nodes on a new version
@@ -526,7 +526,7 @@ public class SetSingleNodeAllocateStepTests extends AbstractStepTestCase<SetSing
     public void testPerformActionNewShardsExistButWithInvalidAttributes() throws Exception {
         VersionInformation oldVersion = new VersionInformation(
             VersionUtils.randomCompatibleVersion(random(), VersionUtils.getPreviousVersion()),
-            IndexVersions.MINIMUM_COMPATIBLE,
+            IndexVersions.MINIMUM_WRITE_COMPATIBLE,
             IndexVersionUtils.randomCompatibleVersion(random())
         );
         final int numNodes = randomIntBetween(2, 20); // Need at least 2 nodes to have some nodes on a new version

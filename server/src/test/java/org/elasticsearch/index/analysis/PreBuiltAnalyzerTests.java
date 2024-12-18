@@ -53,7 +53,7 @@ public class PreBuiltAnalyzerTests extends ESSingleNodeTestCase {
     public void testThatInstancesAreTheSameAlwaysForKeywordAnalyzer() {
         assertThat(
             PreBuiltAnalyzers.KEYWORD.getAnalyzer(IndexVersion.current()),
-            is(PreBuiltAnalyzers.KEYWORD.getAnalyzer(IndexVersions.MINIMUM_COMPATIBLE))
+            is(PreBuiltAnalyzers.KEYWORD.getAnalyzer(IndexVersions.MINIMUM_WRITE_COMPATIBLE))
         );
     }
 

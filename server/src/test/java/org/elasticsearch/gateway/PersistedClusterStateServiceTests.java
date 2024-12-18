@@ -1470,7 +1470,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         final Path[] dataPaths2 = createDataPaths();
         final Path[] combinedPaths = Stream.concat(Arrays.stream(dataPaths1), Arrays.stream(dataPaths2)).toArray(Path[]::new);
 
-        IndexVersion oldVersion = IndexVersion.fromId(IndexVersions.MINIMUM_COMPATIBLE.id() - 1);
+        IndexVersion oldVersion = IndexVersion.fromId(IndexVersions.MINIMUM_WRITE_COMPATIBLE.id() - 1);
 
         final IndexVersion[] indexVersions = new IndexVersion[] {
             oldVersion,

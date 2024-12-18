@@ -55,7 +55,7 @@ public class TransportActionProxyTests extends ESTestCase {
     private static final Version CURRENT_VERSION = Version.fromString(String.valueOf(Version.CURRENT.major) + ".0.0");
     protected static final VersionInformation version0 = new VersionInformation(
         CURRENT_VERSION.minimumCompatibilityVersion(),
-        IndexVersions.MINIMUM_COMPATIBLE,
+        IndexVersions.MINIMUM_WRITE_COMPATIBLE,
         IndexVersion.current()
     );
     protected static final TransportVersion transportVersion0 = TransportVersions.MINIMUM_COMPATIBLE;
@@ -65,7 +65,7 @@ public class TransportActionProxyTests extends ESTestCase {
 
     protected static final VersionInformation version1 = new VersionInformation(
         Version.fromId(CURRENT_VERSION.id + 1),
-        IndexVersions.MINIMUM_COMPATIBLE,
+        IndexVersions.MINIMUM_WRITE_COMPATIBLE,
         IndexVersion.current()
     );
     protected static final TransportVersion transportVersion1 = TransportVersion.fromId(TransportVersion.current().id() + 1);
