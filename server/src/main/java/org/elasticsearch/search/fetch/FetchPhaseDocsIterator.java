@@ -14,11 +14,8 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
-import org.elasticsearch.search.query.QuerySearchResult;
-import org.elasticsearch.search.query.SearchTimeoutException;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -52,9 +49,7 @@ abstract class FetchPhaseDocsIterator {
     public final SearchHit[] iterate(
         SearchShardTarget shardTarget,
         IndexReader indexReader,
-        int[] docIds,
-        boolean allowPartialResults,
-        QuerySearchResult querySearchResult
+        int[] docIds
     ) {
         SearchHit[] searchHits = new SearchHit[docIds.length];
         DocIdToIndex[] docs = new DocIdToIndex[docIds.length];
@@ -69,42 +64,25 @@ abstract class FetchPhaseDocsIterator {
             LeafReaderContext ctx = indexReader.leaves().get(leafOrd);
             int endReaderIdx = endReaderIdx(ctx, 0, docs);
             int[] docsInLeaf = docIdsInLeaf(0, endReaderIdx, docs, ctx.docBase);
-            try {
-                setNextReader(ctx, docsInLeaf);
-            } catch (ContextIndexSearcher.TimeExceededException e) {
-                SearchTimeoutException.handleTimeout(allowPartialResults, shardTarget, querySearchResult);
-                assert allowPartialResults;
-                return SearchHits.EMPTY;
-            }
+            setNextReader(ctx, docsInLeaf);
             for (int i = 0; i < docs.length; i++) {
-                try {
-                    if (i >= endReaderIdx) {
-                        leafOrd = ReaderUtil.subIndex(docs[i].docId, indexReader.leaves());
-                        ctx = indexReader.leaves().get(leafOrd);
-                        endReaderIdx = endReaderIdx(ctx, i, docs);
-                        docsInLeaf = docIdsInLeaf(i, endReaderIdx, docs, ctx.docBase);
-                        setNextReader(ctx, docsInLeaf);
-                    }
-                    currentDoc = docs[i].docId;
-                    assert searchHits[docs[i].index] == null;
-                    searchHits[docs[i].index] = nextDoc(docs[i].docId);
-                } catch (ContextIndexSearcher.TimeExceededException e) {
-                    if (allowPartialResults == false) {
-                        purgeSearchHits(searchHits);
-                    }
-                    SearchTimeoutException.handleTimeout(allowPartialResults, shardTarget, querySearchResult);
-                    assert allowPartialResults;
-                    SearchHit[] partialSearchHits = new SearchHit[i];
-                    System.arraycopy(searchHits, 0, partialSearchHits, 0, i);
-                    return partialSearchHits;
+                if (i >= endReaderIdx) {
+                    leafOrd = ReaderUtil.subIndex(docs[i].docId, indexReader.leaves());
+                    ctx = indexReader.leaves().get(leafOrd);
+                    endReaderIdx = endReaderIdx(ctx, i, docs);
+                    docsInLeaf = docIdsInLeaf(i, endReaderIdx, docs, ctx.docBase);
+                    setNextReader(ctx, docsInLeaf);
                 }
+                currentDoc = docs[i].docId;
+                assert searchHits[docs[i].index] == null;
+                searchHits[docs[i].index] = nextDoc(docs[i].docId);
             }
-        } catch (SearchTimeoutException e) {
-            throw e;
         } catch (CircuitBreakingException e) {
             purgeSearchHits(searchHits);
             throw e;
         } catch (Exception e) {
+            assert e instanceof ContextIndexSearcher.TimeExceededException == false
+                : "timeout checks should not be registered to the searcher used in fetch phase";
             purgeSearchHits(searchHits);
             throw new FetchPhaseExecutionException(shardTarget, "Error running fetch phase for doc [" + currentDoc + "]", e);
         }

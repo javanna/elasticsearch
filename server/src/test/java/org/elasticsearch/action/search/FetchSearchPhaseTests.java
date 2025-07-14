@@ -50,6 +50,7 @@ import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.SearchPhaseResult;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.fetch.FetchPhase;
+import org.elasticsearch.search.fetch.FetchPhaseExecutionException;
 import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.fetch.FetchSubPhase;
 import org.elasticsearch.search.fetch.FetchSubPhaseProcessor;
@@ -67,6 +68,7 @@ import org.elasticsearch.search.profile.SearchProfileQueryPhaseResult;
 import org.elasticsearch.search.profile.SearchProfileShardResult;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.search.query.SearchTimeoutException;
+import org.elasticsearch.tasks.TaskCancelledException;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalAggregationTestCase;
 import org.elasticsearch.test.TestSearchContext;
@@ -84,6 +86,7 @@ import java.util.stream.IntStream;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -777,7 +780,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         return profiled ? new ProfileResult("fetch", "fetch", Map.of(), Map.of(), FETCH_PROFILE_TIME, List.of()) : null;
     }
 
-    public void testFetchTimeoutWithPartialResults() throws IOException {
+    public void testFetchCancelledSearch() throws IOException {
         Directory dir = newDirectory();
         RandomIndexWriter w = new RandomIndexWriter(random(), dir);
         w.addDocument(new Document());
@@ -787,29 +790,10 @@ public class FetchSearchPhaseTests extends ESTestCase {
         w.close();
         ContextIndexSearcher contextIndexSearcher = createSearcher(r);
         try (SearchContext searchContext = createSearchContext(contextIndexSearcher, true)) {
-            FetchPhase fetchPhase = createFetchPhase(contextIndexSearcher);
-            fetchPhase.execute(searchContext, new int[] { 0, 1, 2 }, null);
-            assertTrue(searchContext.queryResult().searchTimedOut());
-            assertEquals(1, searchContext.fetchResult().hits().getHits().length);
-        } finally {
-            r.close();
-            dir.close();
-        }
-    }
-
-    public void testFetchTimeoutNoPartialResults() throws IOException {
-        Directory dir = newDirectory();
-        RandomIndexWriter w = new RandomIndexWriter(random(), dir);
-        w.addDocument(new Document());
-        w.addDocument(new Document());
-        w.addDocument(new Document());
-        IndexReader r = w.getReader();
-        w.close();
-        ContextIndexSearcher contextIndexSearcher = createSearcher(r);
-
-        try (SearchContext searchContext = createSearchContext(contextIndexSearcher, false)) {
-            FetchPhase fetchPhase = createFetchPhase(contextIndexSearcher);
-            expectThrows(SearchTimeoutException.class, () -> fetchPhase.execute(searchContext, new int[] { 0, 1, 2 }, null));
+            FetchPhase fetchPhase = createFetchPhaseWithCancellation();
+            FetchPhaseExecutionException fetchPhaseExecutionException = expectThrows(FetchPhaseExecutionException.class, () -> fetchPhase.execute(searchContext, new int[]{0, 1, 2}, null));
+            assertThat(fetchPhaseExecutionException.getCause(), instanceOf(TaskCancelledException.class));
+            assertFalse(searchContext.queryResult().searchTimedOut());
             assertNull(searchContext.fetchResult().hits());
         } finally {
             r.close();
@@ -885,7 +869,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
         }, randomBoolean());
     }
 
-    private static FetchPhase createFetchPhase(ContextIndexSearcher contextIndexSearcher) {
+    private static FetchPhase createFetchPhaseWithCancellation() {
         return new FetchPhase(Collections.singletonList(fetchContext -> new FetchSubPhaseProcessor() {
             boolean processCalledOnce = false;
 
@@ -896,7 +880,7 @@ public class FetchSearchPhaseTests extends ESTestCase {
             public void process(FetchSubPhase.HitContext hitContext) {
                 // we throw only once one doc has been fetched, so we can test partial results are returned
                 if (processCalledOnce) {
-                    contextIndexSearcher.throwTimeExceededException();
+                    throw new TaskCancelledException("search cancelled");
                 } else {
                     processCalledOnce = true;
                 }
